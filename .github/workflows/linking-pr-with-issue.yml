@@ -6,7 +6,7 @@ on:
 
 permissions:
   issues: write
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   link-issue:
@@ -22,6 +22,7 @@ jobs:
               const prBody = context.payload.pull_request.body || "";
               const prUrl = context.payload.pull_request.html_url;
               const prNumber = context.payload.pull_request.number;
+              const prNodeId = context.payload.pull_request.node_id;
               
               const regex = /\b(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved):?\s+#(\d+)\b/gi;
               let match;
@@ -35,6 +36,26 @@ jobs:
               
               for (const issueNumber of uniqueIssues) {
                 try {
+                  const issue = await github.rest.issues.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber
+                  });
+                  
+                  await github.graphql(`
+                    mutation($issueId: ID!, $prId: ID!) {
+                      addCloseIssueReferences(input: {
+                        issueId: $issueId,
+                        pullRequestIds: [$prId]
+                      }) {
+                        clientMutationId
+                      }
+                    }
+                  `, {
+                    issueId: issue.data.node_id,
+                    prId: prNodeId
+                  });
+                  
                   const comments = await github.rest.issues.listComments({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
@@ -50,9 +71,8 @@ jobs:
                       owner: context.repo.owner,
                       repo: context.repo.repo,
                       issue_number: issueNumber,
-                      body: `${commentIdentifier} **Linked PR:** This issue has been linked with PR [#${prNumber}](${prUrl}). When this PR is merged into **${baseBranch}**, this issue will be closed automatically.`
+                      body: `**Linked PR:** This issue has been linked with PR [#${prNumber}](${prUrl}). When this PR is merged into **${baseBranch}**, this issue will be closed automatically.\n\n${commentIdentifier}`
                     });
-                    console.log(`Link comment added successfully to issue #${issueNumber}.`);
                   }
                 } catch (error) {
                   console.error(`Failed to link issue #${issueNumber}:`, error.message);
