@@ -30,6 +30,12 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_
 
 message(STATUS "QGC: Building MAVLink")
 
+set(MAVLINK_DIALECT "${QGC_MAVLINK_DIALECT}" CACHE STRING "MAVLink dialect" FORCE)
+set(MAVLINK_VERSION "${QGC_MAVLINK_VERSION}" CACHE STRING "MAVLink protocol version" FORCE)
+set(mavlink_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mavlink")
+set(mavlink_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/mavlink")
+add_subdirectory("${mavlink_SOURCE_DIR}" "${mavlink_BINARY_DIR}" EXCLUDE_FROM_ALL)
+
 add_dependencies(${CMAKE_PROJECT_NAME} mavlink)
 target_include_directories(${CMAKE_PROJECT_NAME}
                            PRIVATE ${mavlink_BINARY_DIR}/include/mavlink
@@ -78,22 +84,6 @@ add_custom_command(
 )
 add_custom_target(mavlink_instance_fields DEPENDS "${MAVLINK_INSTANCE_FIELDS_H}")
 add_dependencies(${CMAKE_PROJECT_NAME} mavlink_instance_fields)
-
-# Bundle the upstream component_metadata JSON schemas (referenced from the CPM dir, never
-# vendored) so ComponentInformation validates metadata against the pinned QGC_MAVLINK_GIT_TAG.
-set(MAVLINK_COMPONENT_METADATA_DIR "${mavlink_SOURCE_DIR}/component_metadata")
-set(MAVLINK_SCHEMA_FILES
-    "${MAVLINK_COMPONENT_METADATA_DIR}/parameter.schema.json"
-    "${MAVLINK_COMPONENT_METADATA_DIR}/general.schema.json"
-    "${MAVLINK_COMPONENT_METADATA_DIR}/actuators.schema.json"
-    "${MAVLINK_COMPONENT_METADATA_DIR}/peripherals.schema.json"
-    "${MAVLINK_COMPONENT_METADATA_DIR}/translation.schema.json"
-)
-qt_add_resources(${CMAKE_PROJECT_NAME} mavlink_component_metadata_schemas
-    PREFIX "/json/component_metadata"
-    BASE "${MAVLINK_COMPONENT_METADATA_DIR}"
-    FILES ${MAVLINK_SCHEMA_FILES}
-)
 
 # ----------------------------------------------------------------------------
 # LibEvents - MAVLink event handling
