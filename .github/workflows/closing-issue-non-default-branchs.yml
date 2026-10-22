@@ -1,11 +1,12 @@
 name: Auto Close Issue on Non-Default Branch Merge
 
-permissions: 
-  issues: write
-
 on:
   pull_request:
     types: [closed]
+
+permissions: 
+  issues: write
+  pull-requests: read
 
 jobs:
   close-linked-issue:
