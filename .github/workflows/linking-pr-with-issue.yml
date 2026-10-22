@@ -1,0 +1,56 @@
+name: Linking PR with an Issue
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  link-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Link PR and Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const baseBranch = context.payload.pull_request.base.ref;
+            
+            if (baseBranch.endsWith('/master')) {
+              const prBody = context.payload.pull_request.body || "";
+              const prUrl = context.payload.pull_request.html_url;
+              const prNumber = context.payload.pull_request.number;
+              
+              const regex = /(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)/gi;
+              let match;
+              const issueNumbers = [];
+              
+              while ((match = regex.exec(prBody)) !== null) {
+                issueNumbers.push(parseInt(match[1], 10));
+              }
+              
+              const uniqueIssues = [...new Set(issueNumbers)];
+              
+              for (const issueNumber of uniqueIssues) {
+                const comments = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber
+                });
+                
+                const commentIdentifier = `<!-- linked-by-pr-${prNumber} -->`;
+                const alreadyLinked = comments.data.some(c => c.body.includes(commentIdentifier));
+                
+                if (!alreadyLinked) {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    body: `${commentIdentifier} **Linked PR:** This issue, linked with PR [#${prNumber}](${prUrl}). When PR merged, this issue will be closed.`
+                  });
+                  console.log(`Comment is added succesfully into issue #${issueNumber}.`);
+                }
+              }
+            }
