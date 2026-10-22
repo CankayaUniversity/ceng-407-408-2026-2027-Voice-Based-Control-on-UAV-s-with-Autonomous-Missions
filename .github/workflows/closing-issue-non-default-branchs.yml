@@ -1,0 +1,49 @@
+name: Auto Close Issue on Non-Default Branch Merge
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  close-linked-issue:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Branch and Issue Check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const baseBranch = context.payload.pull_request.base.ref;
+            
+            if (baseBranch.endsWith('/master')) {
+              const prBody = context.payload.pull_request.body || "";
+              const regex = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)/i;
+              const match = prBody.match(regex);
+              
+              if (match) {
+                const issueNumber = parseInt(match[2], 10);
+                
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  state: 'closed',
+                  state_reason: 'completed'
+                });
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  body: `This issue closed automatically by PR #${context.payload.pull_request.number} with merging into **${baseBranch}**.`
+                });
+                
+                console.log(`#${issueNumber} issue closed succesfully.`);
+              }
+              else {
+                console.log("Cannot found any keyword to close an issue in PR description.");
+              }
+            }
+            else {
+              console.log(`Target Branch (${baseBranch}) has no any master branch.`);
+            }
