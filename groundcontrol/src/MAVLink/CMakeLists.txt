@@ -30,22 +30,6 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_
 
 message(STATUS "QGC: Building MAVLink")
 
-CPMAddPackage(
-    NAME mavlink
-    GIT_REPOSITORY ${QGC_MAVLINK_GIT_REPO}
-    GIT_TAG ${QGC_MAVLINK_GIT_TAG}
-    EXCLUDE_FROM_ALL YES
-    OPTIONS
-        "MAVLINK_DIALECT ${QGC_MAVLINK_DIALECT}"
-        "MAVLINK_VERSION ${QGC_MAVLINK_VERSION}"
-    # mavgen embeds Python's salted hash() in MAVLINK_*_XML_HASH, making the
-    # generated headers differ on every run; pin PYTHONHASHSEED for
-    # deterministic output (keeps moccache/ccache effective).
-    PATCHES mavlink-deterministic-mavgen.patch
-)
-
-qgc_require_cpm_added(mavlink)
-
 add_dependencies(${CMAKE_PROJECT_NAME} mavlink)
 target_include_directories(${CMAKE_PROJECT_NAME}
                            PRIVATE ${mavlink_BINARY_DIR}/include/mavlink
