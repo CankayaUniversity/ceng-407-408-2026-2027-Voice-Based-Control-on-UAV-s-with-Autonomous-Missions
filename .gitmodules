@@ -1,0 +1,4 @@
+[submodule "groundcontrol/src/MAVLink/mavlink"]
+	path = groundcontrol/src/MAVLink/mavlink
+	url = git@github.com:CankayaUniversity/ceng-407-408-2026-2027-Voice-Based-Control-on-UAV-s-with-Autonomous-Missions.git
+	branch = mavlink
