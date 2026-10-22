@@ -2,7 +2,7 @@ name: Linking PR with an Issue
 
 on:
   pull_request:
-    types: [opened, edited, synchronize]
+    types: [opened, edited]
 
 permissions:
   issues: write
@@ -23,7 +23,7 @@ jobs:
               const prUrl = context.payload.pull_request.html_url;
               const prNumber = context.payload.pull_request.number;
               
-              const regex = /(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)/gi;
+              const regex = /\b(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved):?\s+#(\d+)\b/gi;
               let match;
               const issueNumbers = [];
               
@@ -34,23 +34,28 @@ jobs:
               const uniqueIssues = [...new Set(issueNumbers)];
               
               for (const issueNumber of uniqueIssues) {
-                const comments = await github.rest.issues.listComments({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issueNumber
-                });
-                
-                const commentIdentifier = `<!-- linked-by-pr-${prNumber} -->`;
-                const alreadyLinked = comments.data.some(c => c.body.includes(commentIdentifier));
-                
-                if (!alreadyLinked) {
-                  await github.rest.issues.createComment({
+                try {
+                  const comments = await github.rest.issues.listComments({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     issue_number: issueNumber,
-                    body: `${commentIdentifier} **Linked PR:** This issue, linked with PR [#${prNumber}](${prUrl}). When PR merged, this issue will be closed.`
+                    per_page: 100
                   });
-                  console.log(`Comment is added succesfully into issue #${issueNumber}.`);
+                  
+                  const commentIdentifier = `<!-- linked-by-pr-${prNumber} -->`;
+                  const alreadyLinked = comments.data.some(c => c.body && c.body.includes(commentIdentifier));
+                  
+                  if (!alreadyLinked) {
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issueNumber,
+                      body: `${commentIdentifier} **Linked PR:** This issue has been linked with PR [#${prNumber}](${prUrl}). When this PR is merged into **${baseBranch}**, this issue will be closed automatically.`
+                    });
+                    console.log(`Link comment added successfully to issue #${issueNumber}.`);
+                  }
+                } catch (error) {
+                  console.error(`Failed to link issue #${issueNumber}:`, error.message);
                 }
               }
             }

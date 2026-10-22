@@ -21,33 +21,44 @@ jobs:
             
             if (baseBranch.endsWith('/master')) {
               const prBody = context.payload.pull_request.body || "";
-              const regex = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)/i;
-              const match = prBody.match(regex);
+              const prNumber = context.payload.pull_request.number;
+              const regex = /\b(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved):?\s+#(\d+)\b/gi;
+              let match;
+              const issueNumbers = [];
               
-              if (match) {
-                const issueNumber = parseInt(match[2], 10);
-                
-                await github.rest.issues.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issueNumber,
-                  state: 'closed',
-                  state_reason: 'completed'
-                });
-                
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issueNumber,
-                  body: `This issue closed automatically by PR #${context.payload.pull_request.number} with merging into **${baseBranch}**.`
-                });
-                
-                console.log(`#${issueNumber} issue closed succesfully.`);
+              while ((match = regex.exec(prBody)) !== null) {
+                issueNumbers.push(parseInt(match[1], 10));
               }
-              else {
-                console.log("Cannot found any keyword to close an issue in PR description.");
+              
+              const uniqueIssues = [...new Set(issueNumbers)];
+              
+              if (uniqueIssues.length === 0) {
+                console.log("No issue closing keywords found in PR description.");
+                return;
               }
-            }
-            else {
-              console.log(`Target Branch (${baseBranch}) has no any master branch.`);
+              
+              for (const issueNumber of uniqueIssues) {
+                try {
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    state: 'closed',
+                    state_reason: 'completed'
+                  });
+                  
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    body: `This issue was closed automatically by PR #${prNumber} upon merging into **${baseBranch}**.`
+                  });
+                  
+                  console.log(`Issue #${issueNumber} closed successfully.`);
+                } catch (error) {
+                  console.error(`Failed to close issue #${issueNumber}:`, error.message);
+                }
+              }
+            } else {
+              console.log(`Target branch (${baseBranch}) is not a subteam master branch.`);
             }
