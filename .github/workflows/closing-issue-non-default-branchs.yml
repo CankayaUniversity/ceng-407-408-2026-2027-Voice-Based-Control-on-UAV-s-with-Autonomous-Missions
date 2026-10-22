@@ -1,5 +1,8 @@
 name: Auto Close Issue on Non-Default Branch Merge
 
+permissions: 
+  issues: write
+
 on:
   pull_request:
     types: [closed]
