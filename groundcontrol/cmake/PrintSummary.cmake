@@ -150,8 +150,6 @@ OptionOutput("Git submodule update                  " GIT_SUBMODULE)
 # External Dependencies
 message(STATUS "")
 message(STATUS "External Dependencies:")
-_qgc_kv("MAVLink repo:       " "${QGC_MAVLINK_GIT_REPO}")
-_qgc_kv("MAVLink tag:        " "${QGC_MAVLINK_GIT_TAG}")
 _qgc_kv("CPM cache:          " "${CPM_SOURCE_CACHE}")
 if(QGC_ENABLE_GST_VIDEOSTREAMING AND GStreamer_VERSION)
     _qgc_kv("GStreamer version:  " "${GStreamer_VERSION}")
