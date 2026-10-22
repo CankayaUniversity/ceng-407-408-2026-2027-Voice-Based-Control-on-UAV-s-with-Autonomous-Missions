@@ -22,12 +22,6 @@
 	path = autopilot/platforms/nuttx/NuttX/apps
 	url = https://github.com/PX4/NuttX-apps.git
 	branch = px4_firmware_nuttx-10.3.0+
-[submodule "autopilot/Tools/flightgear_bridge"]
-	path = autopilot/Tools/simulation/flightgear/flightgear_bridge
-	url = https://github.com/PX4/PX4-FlightGear-Bridge.git
-[submodule "autopilot/Tools/simulation/jsbsim/jsbsim_bridge"]
-	path = autopilot/Tools/simulation/jsbsim/jsbsim_bridge
-	url = https://github.com/PX4/px4-jsbsim-bridge.git
 [submodule "autopilot/src/drivers/cyphal/libcanard"]
 	path = autopilot/src/drivers/cyphal/libcanard
 	url = https://github.com/opencyphal/libcanard.git
@@ -76,9 +70,6 @@
 	path = autopilot/Tools/simulation/gz
 	url = https://github.com/PX4/PX4-gazebo-models.git
 	branch = main
-[submodule "autopilot/boards/modalai/voxl2/libfc-sensor-api"]
-	path = autopilot/boards/modalai/voxl2/libfc-sensor-api
-	url = https://gitlab.com/voxl-public/voxl-sdk/core-libs/libfc-sensor-api.git
 [submodule "autopilot/src/drivers/actuators/vertiq_io/iq-module-communication-cpp"]
 	path = autopilot/src/drivers/actuators/vertiq_io/iq-module-communication-cpp
 	url = https://github.com/PX4/iq-module-communication-cpp.git
