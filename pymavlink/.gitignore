@@ -5,7 +5,9 @@ build*
 .nfs*
 share/
 __pycache__
-generator/C/
+generator/C/*
+!generator/C/include_v1.0/
+!generator/C/include_v2.0/
 generator/CPP11/include_v2.0
 generator/python/
 generator/message_definitions
