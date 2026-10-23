@@ -1852,8 +1852,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		break;
 
 	case MAVLINK_MODE_UAVIONIX:
-		configure_stream_local("UAVIONIX_ADSB_OUT_CFG", 0.1f);
-		configure_stream_local("UAVIONIX_ADSB_OUT_DYNAMIC", 5.0f);
 		break;
 
 	case MAVLINK_MODE_DISTANCE_SENSOR:

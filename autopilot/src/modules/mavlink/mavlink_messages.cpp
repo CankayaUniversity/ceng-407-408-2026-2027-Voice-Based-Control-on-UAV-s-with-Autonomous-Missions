@@ -156,8 +156,6 @@
 # include "streams/ODOMETRY.hpp"
 # include "streams/SCALED_PRESSURE2.hpp"
 # include "streams/SCALED_PRESSURE3.hpp"
-# include "streams/UAVIONIX_ADSB_OUT_CFG.hpp"
-# include "streams/UAVIONIX_ADSB_OUT_DYNAMIC.hpp"
 #endif // !CONSTRAINED_FLASH
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align

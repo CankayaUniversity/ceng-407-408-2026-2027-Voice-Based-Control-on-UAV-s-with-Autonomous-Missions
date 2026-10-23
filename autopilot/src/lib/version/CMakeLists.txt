@@ -32,7 +32,16 @@
 ############################################################################
 
 # check if px4 source is a git repo
-if (EXISTS ${PX4_SOURCE_DIR}/.git)
+execute_process(
+	COMMAND git rev-parse --git-dir
+	OUTPUT_VARIABLE git_dir_path
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+	RESULT_VARIABLE git_dir_result
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+)
+if (git_dir_result EQUAL 0)
+	get_filename_component(git_dir_path "${git_dir_path}" REALPATH BASE_DIR ${PX4_SOURCE_DIR})
+elseif (EXISTS ${PX4_SOURCE_DIR}/.git)
 	if (IS_DIRECTORY ${PX4_SOURCE_DIR}/.git)
 		# standard git repo
 		set(git_dir_path ${PX4_SOURCE_DIR}/.git)
