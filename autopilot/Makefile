@@ -35,8 +35,10 @@
 #
 # We depend on our submodules, so we have to prevent attempts to
 # compile without it being present.
-ifeq ($(wildcard .git),)
+ifeq ($(wildcard .git)$(wildcard ../.git),)
+ifeq ($(shell git rev-parse --is-inside-work-tree 2>/dev/null),)
     $(error YOU HAVE TO USE GIT TO DOWNLOAD THIS REPOSITORY. ABORTING.)
+endif
 endif
 
 # Help
