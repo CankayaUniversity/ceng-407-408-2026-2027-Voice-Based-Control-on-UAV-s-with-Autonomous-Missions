@@ -1,7 +1,3 @@
-[submodule "autopilot/src/modules/mavlink/mavlink"]
-	path = autopilot/src/modules/mavlink/mavlink
-	url = https://github.com/mavlink/mavlink.git
-	branch = master
 [submodule "autopilot/Tools/simulation/jmavsim/jMAVSim"]
 	path = autopilot/Tools/simulation/jmavsim/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
