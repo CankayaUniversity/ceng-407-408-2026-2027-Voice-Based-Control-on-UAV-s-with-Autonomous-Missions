@@ -1,0 +1,64 @@
+{
+  "folders": [
+    {
+      "name": "Main (Project Root)",
+      "path": ".."
+    },
+    {
+      "name": "Autopilot (PX4)",
+      "path": "../../worktrees/autopilot"
+    },
+    {
+      "name": "Ground Control Station (QGC)",
+      "path": "../../worktrees/gcs"
+    },
+    {
+      "name": "MAVLink",
+      "path": "../../worktrees/mavlink"
+    },
+    {
+      "name": "Simulation",
+      "path": "../../worktrees/simulation"
+    },
+    {
+      "name": "Swarm",
+      "path": "../../worktrees/swarm"
+    },
+    {
+      "name": "Tracking",
+      "path": "../../worktrees/tracking"
+    },
+    {
+      "name": "Voice Control",
+      "path": "../../worktrees/voice"
+    }
+  ],
+  "settings": {
+    "git.openRepositoryInParentFolders": "always",
+    "git.autoRepositoryDetection": "subFolders",
+    "files.exclude": {
+      "**/.git": true,
+      "**/.svn": true,
+      "**/.hg": true,
+      "**/CVS": true,
+      "**/.DS_Store": true,
+      "**/Thumbs.db": true
+    },
+    "search.exclude": {
+      "**/build": true,
+      "**/dist": true,
+      "**/node_modules": true,
+      "**/.cache": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-vscode.cpptools",
+      "ms-vscode.cmake-tools",
+      "twxs.cmake",
+      "ms-python.python",
+      "redhat.vscode-xml",
+      "timonwong.shellcheck"
+    ]
+  }
+}
