@@ -9,6 +9,12 @@
   <include>development.xml</include>
   <include>minimal.xml</include>
   
+  <!-- ardupilotmega.xml range of IDs:
+    messages: 11000 - 11999
+    commands: 42000 - 42999
+  -->
+  <include>ardupilotmega.xml</include>
+  
   <!-- custom_voice.xml range of IDs:
     messages: 15000 - 15999
     commands: 50000 - 51000
