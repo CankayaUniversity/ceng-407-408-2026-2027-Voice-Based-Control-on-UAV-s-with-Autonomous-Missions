@@ -7,7 +7,45 @@ include_guard(GLOBAL)
 
 find_package(Git QUIET)
 
-if(NOT GIT_FOUND OR NOT EXISTS "${CMAKE_SOURCE_DIR}/.git")
+set(_is_git_repo FALSE)
+set(QGC_GIT_ROOT "${CMAKE_SOURCE_DIR}")
+
+if(GIT_FOUND)
+    if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+        set(_is_git_repo TRUE)
+    else()
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} rev-parse --show-toplevel
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            RESULT_VARIABLE _git_toplevel_result
+            OUTPUT_VARIABLE _git_toplevel
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        if(_git_toplevel_result EQUAL 0 AND IS_DIRECTORY "${_git_toplevel}")
+            set(_is_git_repo TRUE)
+            set(QGC_GIT_ROOT "${_git_toplevel}")
+        endif()
+    endif()
+endif()
+
+if(NOT _is_git_repo)
+    get_filename_component(_check_dir "${CMAKE_SOURCE_DIR}" DIRECTORY)
+    while(_check_dir AND NOT "${_check_dir}" STREQUAL "/" AND NOT _is_git_repo)
+        if(EXISTS "${_check_dir}/.git")
+            set(_is_git_repo TRUE)
+            set(QGC_GIT_ROOT "${_check_dir}")
+            break()
+        endif()
+        get_filename_component(_parent_dir "${_check_dir}" DIRECTORY)
+        if("${_parent_dir}" STREQUAL "${_check_dir}")
+            break()
+        endif()
+        set(_check_dir "${_parent_dir}")
+    endwhile()
+endif()
+
+if(NOT GIT_FOUND OR NOT _is_git_repo)
     message(WARNING "QGC: Git not found or not a git repository. Using fallback version info.")
     set(QGC_GIT_BRANCH "unknown")
     set(QGC_GIT_HASH "0000000")
@@ -27,12 +65,13 @@ if(NOT GIT_FOUND OR NOT EXISTS "${CMAKE_SOURCE_DIR}/.git")
     return()
 endif()
 
+
 # Optionally update submodules during configuration
 if(GIT_SUBMODULE)
     message(STATUS "Updating Git submodules...")
     execute_process(
         COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        WORKING_DIRECTORY "${QGC_GIT_ROOT}"
         RESULT_VARIABLE GIT_SUBMODULE_RESULT
         OUTPUT_VARIABLE GIT_SUBMODULE_OUTPUT
         ERROR_VARIABLE GIT_SUBMODULE_ERROR
