@@ -5,6 +5,7 @@ Provides consistent file discovery across tools with proper
 filtering of build directories and generated files.
 """
 
+import os
 from collections.abc import Generator, Iterable
 from pathlib import Path
 
@@ -32,7 +33,7 @@ ALL_CPP_EXTENSIONS = CPP_EXTENSIONS | HEADER_EXTENSIONS
 
 def find_repo_root(start_path: Path | None = None) -> Path:
     """
-    Find the repository root by looking for .git directory.
+    Find the repository/project root.
 
     Args:
         start_path: Starting point for search. Defaults to current file.
@@ -40,16 +41,33 @@ def find_repo_root(start_path: Path | None = None) -> Path:
     Returns:
         Path to repository root, or start_path if not found.
     """
+    if env_root := os.environ.get("QGC_REPO_ROOT") or os.environ.get("QGC_SOURCE_DIR"):
+        env_path = Path(env_root).resolve()
+        if env_path.is_dir():
+            return env_path
+
     if start_path is None:
         start_path = Path(__file__).resolve()
 
     current = start_path if start_path.is_dir() else start_path.parent
 
+    # Look for QGC project root marker (tools/pyproject.toml) upwards
+    for parent in [current, *current.parents]:
+        if (parent / "tools" / "pyproject.toml").is_file():
+            return parent
+
+    # Look for groundcontrol/tools/pyproject.toml if start_path is at or above monorepo root
+    for parent in [current, *current.parents]:
+        if (parent / "groundcontrol" / "tools" / "pyproject.toml").is_file():
+            return parent / "groundcontrol"
+
+    # Fall back to .git directory
     for parent in [current, *current.parents]:
         if (parent / ".git").exists():
             return parent
 
     return start_path
+
 
 
 def should_skip_path(path: Path, skip_dirs: Iterable[str] | None = None) -> bool:

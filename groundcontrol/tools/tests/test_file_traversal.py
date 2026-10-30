@@ -15,7 +15,7 @@ from common.file_traversal import (
 class TestFindRepoRoot:
     def test_find_repo_root(self) -> None:
         root = find_repo_root(Path(__file__))
-        assert (root / ".git").exists()
+        assert (root / "tools" / "pyproject.toml").exists() or (root / ".git").exists()
 
 
 class TestShouldSkipPath:
