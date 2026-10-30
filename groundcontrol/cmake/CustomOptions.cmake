@@ -128,7 +128,7 @@ set(QGC_MAVLINK_VERSION "2.0" CACHE STRING "MAVLink protocol version")
 # ============================================================================
 
 # ArduPilot (APM) Plugin
-option(QGC_DISABLE_APM_PLUGIN_FACTORY "Disable ArduPilot plugin factory" OFF)
+option(QGC_DISABLE_APM_PLUGIN_FACTORY "Disable ArduPilot plugin factory" ON)
 
 # PX4 Plugin
 option(QGC_DISABLE_PX4_PLUGIN_FACTORY "Disable PX4 plugin factory" OFF)
