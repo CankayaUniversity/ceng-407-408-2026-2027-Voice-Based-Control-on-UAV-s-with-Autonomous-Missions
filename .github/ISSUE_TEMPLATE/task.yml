@@ -1,0 +1,47 @@
+projects: ["CankayaUniversity/31"]
+name: "Task"
+description: "Create a concrete engineering, testing, or implementation task."
+title: "[TASK]: "
+labels: ["Tasks"]
+body:
+  - type: input
+    id: parent_req
+    attributes:
+      label: Parent Requirement
+      description: Reference the requirement this task belongs to (e.g., #12).
+      placeholder: "#12"
+    validations:
+      required: true
+  - type: textarea
+    id: task_description
+    attributes:
+      label: Description
+      description: Outline the concrete technical implementation or testing steps.
+      placeholder: "Implement the endpoint, create DB schema, write unit tests..."
+    validations:
+      required: true
+  - type: dropdown
+    id: story_points
+    attributes:
+      label: Story Points
+      description: Estimated effort using the Fibonacci sequence.
+      options:
+        - "1"
+        - "2"
+        - "3"
+        - "5"
+        - "8"
+        - "13"
+    validations:
+      required: true
+  - type: textarea
+    id: definition_of_done
+    attributes:
+      label: Definition of Done (DoD)
+      description: Conditions that must be met before this task can be marked as complete.
+      placeholder: |
+        - [ ] Code passes linting and formatting
+        - [ ] Unit/Integration tests written and passing
+        - [ ] PR reviewed and approved
+    validations:
+      required: false

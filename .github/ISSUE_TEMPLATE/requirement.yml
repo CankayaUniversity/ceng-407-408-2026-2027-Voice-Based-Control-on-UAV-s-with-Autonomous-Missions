@@ -1,0 +1,32 @@
+projects: ["CankayaUniversity/31"]
+name: "Requirement"
+description: "Define system or user level requirement"
+title: "[REQ]: "
+labels: ["Requirements"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Requirement Description
+      description: What defines and related to in the system
+      placeholder: "The system, makes..."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: How we are going to validate this requirement?
+      placeholder: |
+        - [ ] Criteria 1
+        - [ ] Criteria 2
+    validations:
+      required: true
+  - type: textarea
+    id: initial_tasks
+    attributes:
+      label: First Tasks
+      description: Define potential task that relates with this requirement.
+      placeholder: |
+        - [ ] Task 1
+        - [ ] Task 2
