@@ -5376,6 +5376,28 @@
     </message>
   </context>
   <context>
+    <name>VoiceCommand.SettingsGroup.json</name>
+    <message>
+      <extracomment>.QGC.MetaData.Facts[selectedMicrophone].shortDesc, .QGC.MetaData.Facts[selectedMicrophone].longDesc</extracomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json"/>
+      <source>Selected audio input device for voice commands.</source>
+      <translation>Sesli komutlar için seçilen ses giriş cihazı.</translation>
+    </message>
+    <message>
+      <extracomment>.QGC.MetaData.Facts[selectedMicrophone].label</extracomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json"/>
+      <source>Microphone</source>
+      <translation>Mikrofon</translation>
+    </message>
+    <message>
+      <extracomment>.QGC.MetaData.Facts[selectedMicrophone].keywords</extracomment>
+      <translatorcomment>Only use english comma ',' to separate strings</translatorcomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json"/>
+      <source>microphone,voice,audio,input</source>
+      <translation>mikrofon,ses,sesli komut,giriş</translation>
+    </message>
+  </context>
+  <context>
     <name>AutoConnect.SettingsGroup.json</name>
     <message>
       <extracomment>.QGC.MetaData.Facts[autoConnectUDP].shortDesc</extracomment>
@@ -10100,6 +10122,12 @@
       <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/AppSettings/pages/SettingsPages.json"/>
       <source>Video</source>
       <translation type="unfinished">Video</translation>
+    </message>
+    <message>
+      <extracomment>.pages[Voice Command].name</extracomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/AppSettings/pages/SettingsPages.json"/>
+      <source>Voice Command</source>
+      <translation>Sesli Komut</translation>
     </message>
     <message>
       <extracomment>.pages[Help].name</extracomment>

@@ -21810,6 +21810,101 @@ If a vehicle still has this key configured, you will no longer be able to commun
     </message>
 </context>
 <context>
+    <name>VoiceCommandSettings</name>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="16"/>
+        <source>Microphone Device</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="24"/>
+        <source>Audio Input Source</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="43"/>
+        <source>Select the microphone to be used for voice control.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="50"/>
+        <source>No audio input devices detected on your system. Connect a microphone to enable voice commands.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="59"/>
+        <source>Device Specifications</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="70"/>
+        <source>Status:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="75"/>
+        <source>Ready / Active</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="75"/>
+        <source>Not Available</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="81"/>
+        <source>Sample Rate:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="86"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="101"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="112"/>
+        <source>N/A</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="91"/>
+        <source>Channels:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="98"/>
+        <source>1 (Mono)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="99"/>
+        <source>2 (Stereo)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="100"/>
+        <source>%1 channels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="107"/>
+        <source>Sample Format:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="117"/>
+        <source>OS Default:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="122"/>
+        <source>Yes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="122"/>
+        <source>No</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>main</name>
     <message>
         <location filename="../src/Utilities/Platform/Platform.cc" line="245"/>
