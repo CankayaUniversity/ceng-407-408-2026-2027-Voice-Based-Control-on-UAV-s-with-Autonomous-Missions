@@ -1,0 +1,121 @@
+name: GCS Lint & Format
+
+on:
+  pull_request:
+    branches:
+      - 'gcs/master'
+    paths:
+      - 'groundcontrol/**'
+      - '.github/workflows/gcs-lint.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  clang-format:
+    name: Clang-Format Style Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang-format
+
+      - name: Determine files to format check
+        id: files
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ] && [ -n "${{ github.event.before }}" ]; then
+            BASE="${{ github.event.before }}"
+          else
+            BASE="HEAD~1"
+          fi
+
+          echo "Comparing against base: $BASE"
+          git fetch origin ${{ github.base_ref || 'gcs/master' }} --depth=50 || true
+
+          CHANGED_FILES=$(git diff --name-only "$BASE"...HEAD -- \
+            'groundcontrol/src/*.cc' 'groundcontrol/src/*.h' \
+            'groundcontrol/src/*.cpp' 'groundcontrol/src/*.hpp' \
+            'groundcontrol/test/*.cc' 'groundcontrol/test/*.h' \
+            'groundcontrol/test/*.cpp' 'groundcontrol/test/*.hpp' \
+            ':!groundcontrol/src/MAVLink/mavlink/**' \
+            ':!groundcontrol/libs/**' 2>/dev/null || true)
+
+          echo "Changed files to check:"
+          echo "$CHANGED_FILES"
+
+          echo "$CHANGED_FILES" > /tmp/changed_cpp_files.txt
+          COUNT=$(grep -c '[^[:space:]]' /tmp/changed_cpp_files.txt || true)
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Run clang-format check
+        if: steps.files.outputs.count > 0
+        run: |
+          FAILED=0
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            [ ! -f "$file" ] && continue
+            if ! clang-format --dry-run --Werror --style=file:groundcontrol/.clang-format "$file"; then
+              echo "::error file=$file::Code formatting violation in $file. Run 'clang-format -i $file' to fix."
+              FAILED=1
+            fi
+          done < /tmp/changed_cpp_files.txt
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo ""
+            echo "Formatting errors detected. Please run clang-format with groundcontrol/.clang-format."
+            exit 1
+          fi
+          echo "All modified C++ files conform to coding style"
+
+  static-analysis:
+    name: Code Quality & Safety Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check for forbidden Q_ASSERT in production code
+        run: |
+          ASSERT_HITS=$(grep -rn --exclude-dir={test,build,libs,mavlink,.cache,.ccache} "Q_ASSERT" groundcontrol/src/ 2>/dev/null || true)
+          if [ -n "$ASSERT_HITS" ]; then
+            echo "::error::Q_ASSERT found in production code. Use defensive checks with early returns instead:"
+            echo "$ASSERT_HITS"
+            exit 1
+          fi
+          echo "No forbidden Q_ASSERT in production code."
+
+      - name: Check for categorized logging violations
+        run: |
+          LOG_HITS=$(grep -Enr --exclude-dir={test,build,libs,mavlink,.cache,.ccache} "(^|[^A-Za-z0-9_])q(Debug|Info|Warning|Critical)\([[:space:]]*[A-Za-z_]+Log[[:space:]]*\)" groundcontrol/src/ 2>/dev/null || true)
+          if [ -n "$LOG_HITS" ]; then
+            echo "::error::Category function passed to uncategorized log macro. Use qCDebug/qCInfo/qCWarning/qCCritical instead:"
+            echo "$LOG_HITS"
+            exit 1
+          fi
+          echo "Logging macros check passed."
+
+      - name: Run vehicle null-safety and translate analyzers
+        run: |
+          python3 groundcontrol/tools/analyzers/vehicle_null_check.py groundcontrol/src/
+          python3 groundcontrol/tools/analyzers/qt_translate_noop_check.py groundcontrol/src/
+          echo "Custom analyzers passed."

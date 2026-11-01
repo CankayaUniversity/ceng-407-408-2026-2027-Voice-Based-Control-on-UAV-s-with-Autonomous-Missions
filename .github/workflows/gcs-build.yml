@@ -1,0 +1,119 @@
+name: GCS Build & Test
+
+on:
+  pull_request:
+    branches:
+      - 'gcs/master'
+    paths:
+      - 'groundcontrol/**'
+      - '.github/workflows/gcs-build.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/gcs/master' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux:
+    name: Linux Build (Qt 6)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure Git for submodule checkout
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "git@github.com:"
+
+      - name: Update submodules
+        run: |
+          git submodule update --init --recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build ccache mold \
+            libfuse2 fuse3 pkgconf \
+            libatspi2.0-dev libfontconfig1-dev libfreetype-dev \
+            libgtk-3-dev libsm-dev libx11-dev libx11-xcb-dev \
+            libxcb-cursor-dev libxcb-glx0-dev libxcb-icccm4-dev \
+            libxcb-image0-dev libxcb-keysyms1-dev libxcb-present-dev \
+            libxcb-randr0-dev libxcb-render-util0-dev libxcb-render0-dev \
+            libxcb-shape0-dev libxcb-shm0-dev libxcb-sync-dev \
+            libxcb-util-dev libxcb-xfixes0-dev libxcb-xinerama0-dev \
+            libxcb-xkb-dev libxcb1-dev libxext-dev libxfixes-dev \
+            libxi-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libxrender-dev libunwind-dev libegl-dev libgl1-mesa-dri \
+            libglx-mesa0 xvfb xauth
+
+      - name: Set up ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-ccache-${{ github.workflow }}
+          max-size: 3G
+
+      - name: Restore Qt Cache
+        id: cache-qt
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.qt
+          key: qt-linux-6.11.1-gcc_64-v1
+
+      - name: Install Qt 6.11.1
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        run: |
+          pip install aqtinstall
+          python3 groundcontrol/tools/setup/install_qt.py install \
+            --version 6.11.1 \
+            --host linux \
+            --target desktop \
+            --arch linux_gcc_64 \
+            --outdir /home/runner/.qt \
+            --modules "qtgraphs qtlocation qtpositioning qtspeech qtmultimedia qtserialport qtimageformats qtshadertools qtconnectivity qtquick3d qtsensors qtscxml qtwebsockets qthttpserver"
+
+      - name: Set Qt Environment
+        run: |
+          QT_ROOT="/home/runner/.qt/6.11.1/gcc_64"
+          echo "QT_ROOT_DIR=${QT_ROOT}" >> "$GITHUB_ENV"
+          echo "CMAKE_PREFIX_PATH=${QT_ROOT}" >> "$GITHUB_ENV"
+          echo "${QT_ROOT}/bin" >> "$GITHUB_PATH"
+
+      - name: Cache CPM dependencies
+        uses: actions/cache@v4
+        with:
+          path: groundcontrol/.cache/CPM
+          key: cpm-deps-${{ runner.os }}-${{ hashFiles('groundcontrol/cmake/modules/CPM.cmake', 'groundcontrol/CMakeLists.txt') }}
+          restore-keys: |
+            cpm-deps-${{ runner.os }}-
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S groundcontrol \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_PREFIX_PATH="${{ env.QT_ROOT_DIR }}" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DQGC_BUILD_TESTING=ON \
+            -DQGC_USE_CACHE=ON
+
+      - name: Compile QGroundControl
+        run: |
+          cmake --build build --parallel $(nproc)
+
+      - name: Run Unit Tests
+        run: |
+          xvfb-run --auto-servernum ctest --test-dir build --output-on-failure
