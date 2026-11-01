@@ -1,29 +1,28 @@
-projects: ["CankayaUniversity/31"]
 name: "Task"
-description: "Create a concrete engineering, testing, or implementation task."
+description: "Create a concrete engineering, testing, or implementation step."
 title: "[TASK]: "
 labels: ["Tasks"]
+projects: ["CankayaUniversity/31"]
 body:
   - type: input
     id: parent_req
     attributes:
       label: Parent Requirement
-      description: Reference the requirement this task belongs to (e.g., #12).
+      description: Which Requirement does this task fulfill? (e.g., #12)
       placeholder: "#12"
     validations:
       required: true
   - type: textarea
-    id: task_description
+    id: task_details
     attributes:
-      label: Description
-      description: Outline the concrete technical implementation or testing steps.
-      placeholder: "Implement the endpoint, create DB schema, write unit tests..."
+      label: Implementation Details
+      description: What exactly needs to be built? (API endpoint, DB schema, UI component, etc.)
     validations:
       required: true
   - type: dropdown
     id: story_points
     attributes:
-      label: Story Points
+      label: Estimated Story Points
       description: Estimated effort using the Fibonacci sequence.
       options:
         - "1"
@@ -38,10 +37,9 @@ body:
     id: definition_of_done
     attributes:
       label: Definition of Done (DoD)
-      description: Conditions that must be met before this task can be marked as complete.
+      description: Conditions that must be met before submitting a PR.
       placeholder: |
-        - [ ] Code passes linting and formatting
-        - [ ] Unit/Integration tests written and passing
-        - [ ] PR reviewed and approved
+        - [ ] Code is written and formatted
+        - [ ] Unit tests are passing
     validations:
       required: false

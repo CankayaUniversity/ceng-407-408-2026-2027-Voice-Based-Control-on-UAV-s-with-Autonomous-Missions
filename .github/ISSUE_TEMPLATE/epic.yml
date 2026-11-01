@@ -1,0 +1,24 @@
+name: "Epic"
+description: "Define a major feature, subsystem, or core module."
+title: "[EPIC]: "
+labels: ["Epic"]
+projects: ["CankayaUniversity/31"]
+body:
+  - type: textarea
+    id: epic_description
+    attributes:
+      label: Epic Description & Goal
+      description: What value does this subsystem bring to the project once completed?
+      placeholder: "This epic covers the end-to-end voice control infrastructure between the GCS and..."
+    validations:
+      required: true
+  - type: textarea
+    id: child_requirements
+    attributes:
+      label: Child Requirements
+      description: "List the requirement issues that belong to this Epic as a checklist (can be added later)."
+      placeholder: |
+        - [ ] #REQ_ISSUE_NO_1
+        - [ ] #REQ_ISSUE_NO_2
+    validations:
+      required: false

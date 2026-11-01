@@ -1,32 +1,41 @@
-projects: ["CankayaUniversity/31"]
 name: "Requirement"
-description: "Define system or user level requirement"
+description: "Define a verifiable system-level or functional requirement."
 title: "[REQ]: "
 labels: ["Requirements"]
+projects: ["CankayaUniversity/31"]
 body:
+  - type: input
+    id: parent_epic
+    attributes:
+      label: Parent Epic
+      description: Which Epic does this requirement belong to? (e.g., #5)
+      placeholder: "#5"
+    validations:
+      required: true
   - type: textarea
     id: description
     attributes:
-      label: Requirement Description
-      description: What defines and related to in the system
-      placeholder: "The system, makes..."
+      label: Requirement Details
+      description: What must the system do? (e.g., Paste REQ-CORE-001 to 005 here).
     validations:
       required: true
   - type: textarea
     id: acceptance_criteria
     attributes:
       label: Acceptance Criteria
-      description: How we are going to validate this requirement?
+      description: How will we verify that this requirement is successfully met?
       placeholder: |
-        - [ ] Criteria 1
-        - [ ] Criteria 2
+        - [ ] Criterion 1
+        - [ ] Criterion 2
     validations:
       required: true
   - type: textarea
     id: initial_tasks
     attributes:
-      label: First Tasks
-      description: Define potential task that relates with this requirement.
+      label: Child Tasks
+      description: Draft the list of tasks needed to complete this requirement. You can use GitHub's "Convert to issue" button later.
       placeholder: |
         - [ ] Task 1
         - [ ] Task 2
+    validations:
+      required: false
