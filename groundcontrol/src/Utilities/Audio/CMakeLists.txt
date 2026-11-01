@@ -1,4 +1,6 @@
 qt_add_library(QGCAudio STATIC
+    AudioDeviceManager.cc
+    AudioDeviceManager.h
     AudioOutput.cc
     AudioOutput.h
 )
@@ -6,6 +8,7 @@ qt_add_library(QGCAudio STATIC
 target_link_libraries(QGCAudio
     PUBLIC
         Qt6::Core
+        Qt6::Multimedia
         Qt6::TextToSpeech
     PRIVATE
         QGCLogging
