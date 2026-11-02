@@ -9,6 +9,8 @@ target_sources(${CMAKE_PROJECT_NAME}
         AudioCaptureTest.h
         AudioDeviceManagerTest.cc
         AudioDeviceManagerTest.h
+        AudioLevelMeterTest.cc
+        AudioLevelMeterTest.h
         AudioOutputTest.cc
         AudioOutputTest.h
         NoiseFilterTest.cc
@@ -19,5 +21,6 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_
 
 add_qgc_test(AudioCaptureTest LABELS Unit Utilities)
 add_qgc_test(AudioDeviceManagerTest LABELS Unit Utilities)
+add_qgc_test(AudioLevelMeterTest LABELS Unit Utilities)
 add_qgc_test(AudioOutputTest LABELS Unit Utilities)
 add_qgc_test(NoiseFilterTest LABELS Unit Utilities)
