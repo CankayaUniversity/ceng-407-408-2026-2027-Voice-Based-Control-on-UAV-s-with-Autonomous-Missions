@@ -14,6 +14,7 @@ QGC_LOGGING_CATEGORY(AudioLevelMeterLog, "Utilities.AudioLevelMeter")
 Q_APPLICATION_STATIC(AudioLevelMeter, _audioLevelMeter);
 
 constexpr float AudioLevelMeter::kCenterFrequencies[AudioLevelMeter::kDefaultBandCount];
+constexpr float AudioLevelMeter::kBandBoost[AudioLevelMeter::kDefaultBandCount];
 
 AudioLevelMeter::AudioLevelMeter(AudioCapture* capture, AudioDeviceManager* deviceManager, QObject* parent)
     : QObject(parent),
@@ -24,7 +25,7 @@ AudioLevelMeter::AudioLevelMeter(AudioCapture* capture, AudioDeviceManager* devi
     _frequencyBands.resize(kDefaultBandCount);
     _frequencyBands.fill(0.0);
 
-    _decayTimer->setInterval(30);
+    _decayTimer->setInterval(60);
     (void) connect(_decayTimer, &QTimer::timeout, this, &AudioLevelMeter::_decayLevels);
 
     if (_capture) {
@@ -123,6 +124,10 @@ void AudioLevelMeter::_onAudioStreamFrameReady(const QByteArray& pcmData, const 
     }
 
     _processAudioBuffer(pcmData, format);
+
+    if (_decayTimer->isActive()) {
+        _decayTimer->start();
+    }
 }
 
 void AudioLevelMeter::_processAudioBuffer(const QByteArray& chunk, const QAudioFormat& format)
@@ -176,61 +181,87 @@ void AudioLevelMeter::_processAudioBuffer(const QByteArray& chunk, const QAudioF
             return;
     }
 
-    const size_t N = samples.size();
-    if (N == 0) {
+    const size_t totalSamples = samples.size();
+    if (totalSamples == 0) {
         return;
     }
 
     float sumSquares = 0.0f;
     float peak = 0.0f;
-    for (size_t i = 0; i < N; ++i) {
+    for (size_t i = 0; i < totalSamples; ++i) {
         const float s = samples[i];
         sumSquares += s * s;
         peak = std::max(peak, std::abs(s));
     }
 
-    const float rms = std::sqrt(sumSquares / static_cast<float>(N));
-    _peakLevel = std::clamp(static_cast<qreal>(peak), 0.0, 1.0);
+    const float rms = std::sqrt(sumSquares / static_cast<float>(totalSamples));
+    _peakLevel = std::max(static_cast<qreal>(peak), _peakLevel * 0.94);
 
-    if (rms > _audioLevel) {
-        _audioLevel = _audioLevel * 0.25 + rms * 0.75;
+    const float effectiveInput = std::max(rms, peak * 0.5f);
+
+    constexpr float kMinDb = -48.0f;
+    float targetLevel = 0.0f;
+    if (effectiveInput > 1e-4f) {
+        const float db = 20.0f * std::log10(effectiveInput);
+        targetLevel = std::clamp((db - kMinDb) / (-kMinDb), 0.0f, 1.0f);
+    }
+
+    if (targetLevel > _audioLevel) {
+        _audioLevel = targetLevel;
     } else {
-        _audioLevel = _audioLevel * 0.85;
+        _audioLevel = _audioLevel * 0.88 + targetLevel * 0.12;
     }
     _audioLevel = std::clamp(_audioLevel, 0.0, 1.0);
 
-    const float fN = static_cast<float>(N);
+    const size_t evalN = std::min(totalSamples, static_cast<size_t>(256));
+    const size_t startOffset = totalSamples - evalN;
+    const float fN = static_cast<float>(evalN);
     const float nyquist = static_cast<float>(sampleRate) / 2.0f;
+    constexpr float kMinBandDb = -60.0f;
+    constexpr float kMaxBandDb = -15.0f;
+
+    std::vector<float> windowed(evalN);
+    const float twoPi = 2.0f * std::numbers::pi_v<float>;
+    const float denom = evalN > 1 ? static_cast<float>(evalN - 1) : 1.0f;
+    for (size_t i = 0; i < evalN; ++i) {
+        const float w = 0.5f * (1.0f - std::cos(twoPi * static_cast<float>(i) / denom));
+        windowed[i] = samples[startOffset + i] * w;
+    }
 
     for (int b = 0; b < kDefaultBandCount; ++b) {
-        const float targetFreq = kCenterFrequencies[b];
-        if (targetFreq >= nyquist) {
-            _frequencyBands[b] = _frequencyBands[b] * 0.85;
+        const float freq = kCenterFrequencies[b];
+        if (freq >= nyquist) {
+            _frequencyBands[b] = _frequencyBands[b] * 0.88;
             continue;
         }
 
-        const float omega = 2.0f * std::numbers::pi_v<float> * targetFreq / static_cast<float>(sampleRate);
+        const float omega = twoPi * freq / static_cast<float>(sampleRate);
         const float coeff = 2.0f * std::cos(omega);
 
         float s0 = 0.0f;
         float s1 = 0.0f;
         float s2 = 0.0f;
 
-        for (size_t i = 0; i < N; ++i) {
-            s0 = samples[i] + coeff * s1 - s2;
+        for (size_t i = 0; i < evalN; ++i) {
+            s0 = windowed[i] + coeff * s1 - s2;
             s2 = s1;
             s1 = s0;
         }
 
         const float power = s1 * s1 + s2 * s2 - s1 * s2 * coeff;
-        const float mag = std::sqrt(std::max(0.0f, power)) / fN;
+        const float mag = 2.0f * std::sqrt(std::max(0.0f, power)) / fN;
 
-        const float bandTarget = std::clamp(std::sqrt(mag * 8.0f), 0.0f, 1.0f);
+        const float weightedMag = mag * kBandBoost[b];
+        float bandTarget = 0.0f;
+        if (weightedMag > 1e-6f) {
+            const float bandDb = 20.0f * std::log10(weightedMag);
+            bandTarget = std::clamp((bandDb - kMinBandDb) / (kMaxBandDb - kMinBandDb), 0.0f, 1.0f);
+        }
 
         if (bandTarget > _frequencyBands[b]) {
-            _frequencyBands[b] = _frequencyBands[b] * 0.25 + bandTarget * 0.75;
+            _frequencyBands[b] = bandTarget;
         } else {
-            _frequencyBands[b] = _frequencyBands[b] * 0.85;
+            _frequencyBands[b] = _frequencyBands[b] * 0.88 + bandTarget * 0.12;
         }
         _frequencyBands[b] = std::clamp(_frequencyBands[b], 0.0, 1.0);
     }
@@ -243,8 +274,8 @@ void AudioLevelMeter::_decayLevels()
     bool changed = false;
 
     if (_audioLevel > 0.005 || _peakLevel > 0.005) {
-        _audioLevel = std::max(0.0, _audioLevel * 0.85);
-        _peakLevel = std::max(0.0, _peakLevel * 0.85);
+        _audioLevel = std::max(0.0, _audioLevel * 0.88);
+        _peakLevel = std::max(0.0, _peakLevel * 0.88);
         changed = true;
     } else if (_audioLevel > 0.0 || _peakLevel > 0.0) {
         _audioLevel = 0.0;
@@ -254,7 +285,7 @@ void AudioLevelMeter::_decayLevels()
 
     for (int b = 0; b < kDefaultBandCount; ++b) {
         if (_frequencyBands[b] > 0.005) {
-            _frequencyBands[b] = std::max(0.0, _frequencyBands[b] * 0.85);
+            _frequencyBands[b] = std::max(0.0, _frequencyBands[b] * 0.88);
             changed = true;
         } else if (_frequencyBands[b] > 0.0) {
             _frequencyBands[b] = 0.0;

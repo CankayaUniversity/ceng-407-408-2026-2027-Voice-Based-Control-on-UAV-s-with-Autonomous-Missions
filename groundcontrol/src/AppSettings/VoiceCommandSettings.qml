@@ -194,29 +194,34 @@ SettingsPage {
             RowLayout {
                 Layout.fillWidth: true
                 Layout.preferredHeight: ScreenTools.defaultFontPixelHeight * 2.5
-                spacing: ScreenTools.defaultFontPixelWidth
+                spacing: Math.max(2, Math.round(ScreenTools.defaultFontPixelWidth / 3))
 
                 Repeater {
-                    model: QGroundControl.audioLevelMeter.frequencyBands
+                    model: QGroundControl.audioLevelMeter.bandCount
 
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         color: qgcPal.windowShadeLight
-                        radius: ScreenTools.defaultBorderRadius
+                        radius: Math.min(2, ScreenTools.defaultBorderRadius)
+
+                        readonly property real bandValue: {
+                            var bands = QGroundControl.audioLevelMeter.frequencyBands
+                            return (bands && index < bands.length) ? bands[index] : 0.0
+                        }
 
                         Rectangle {
                             anchors.bottom: parent.bottom
                             anchors.left: parent.left
                             anchors.right: parent.right
-                            height: Math.max(ScreenTools.defaultFontPixelHeight / 4, parent.height * modelData)
-                            radius: ScreenTools.defaultBorderRadius
+                            height: Math.max(ScreenTools.defaultFontPixelHeight / 4, parent.height * bandValue)
+                            radius: Math.min(2, ScreenTools.defaultBorderRadius)
                             color: {
                                 if (!QGroundControl.audioLevelMeter.isTesting) {
                                     return qgcPal.button
                                 }
-                                if (modelData > 0.8) return qgcPal.colorRed
-                                if (modelData > 0.5) return qgcPal.colorOrange
+                                if (bandValue > 0.8) return qgcPal.colorRed
+                                if (bandValue > 0.5) return qgcPal.colorOrange
                                 return qgcPal.colorGreen
                             }
                             Behavior on height {

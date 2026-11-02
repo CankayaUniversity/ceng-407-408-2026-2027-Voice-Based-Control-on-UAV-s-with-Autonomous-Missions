@@ -125,11 +125,9 @@ void AudioLevelMeterTest::_testGoertzelFrequencyBands()
     const QList<qreal> bands = meter->frequencyBands();
     QCOMPARE(bands.size(), AudioLevelMeter::kDefaultBandCount);
 
-    // Band 3 (1000 Hz) should have significantly more energy than distant bands (e.g. Band 0 at 125Hz or Band 6 at
-    // 8000Hz)
-    QVERIFY(bands[3] > 0.2);
-    QVERIFY(bands[3] > bands[0]);
-    QVERIFY(bands[3] > bands[6]);
+    QVERIFY(bands[7] > 0.2);
+    QVERIFY(bands[7] > bands[0]);
+    QVERIFY(bands[7] > bands[15]);
 
     meter->stopTest();
 }
@@ -140,15 +138,15 @@ void AudioLevelMeterTest::_testDecayBehavior()
     meter->_isTesting = true;
     meter->_audioLevel = 0.8;
     meter->_peakLevel = 0.9;
-    meter->_frequencyBands[3] = 0.7;
+    meter->_frequencyBands[7] = 0.7;
 
     const qreal prevLevel = meter->audioLevel();
-    const qreal prevBand = meter->frequencyBands()[3];
+    const qreal prevBand = meter->frequencyBands()[7];
 
     meter->_decayLevels();
 
     QVERIFY(meter->audioLevel() < prevLevel);
-    QVERIFY(meter->frequencyBands()[3] < prevBand);
+    QVERIFY(meter->frequencyBands()[7] < prevBand);
 
     meter->stopTest();
 }

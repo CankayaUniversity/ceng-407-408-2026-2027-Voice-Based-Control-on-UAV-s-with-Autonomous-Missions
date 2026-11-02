@@ -21984,27 +21984,27 @@ If a vehicle still has this key configured, you will no longer be able to commun
       <translation>Sinyal Seviyesi:</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="233"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="238"/>
       <source>Speak into the microphone to verify audio input and signal levels in real time.</source>
       <translation>Ses girişini ve sinyal seviyelerini gerçek zamanlı doğrulamak için mikrofona konuşun.</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="240"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="245"/>
       <source>Audio Processing &amp; Recording</source>
       <translation>Ses İşleme ve Kayıt</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="245"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="250"/>
       <source>Noise Filter Strength</source>
       <translation>Gürültü Filtresi Gücü</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="254"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="259"/>
       <source>Max Recording Duration</source>
       <translation>Maksimum Kayıt Süresi</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="261"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="266"/>
       <source>Adjusts DSP noise suppression level and maximum recording duration before automatic cutoff.</source>
       <translation>DSP gürültü bastırma seviyesini ve otomatik durdurma öncesi maksimum kayıt süresini ayarlar.</translation>
     </message>

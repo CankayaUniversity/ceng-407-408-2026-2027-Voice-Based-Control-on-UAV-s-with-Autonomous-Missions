@@ -23,7 +23,7 @@ class AudioLevelMeter : public QObject
     friend class AudioLevelMeterTest;
 
 public:
-    static constexpr int kDefaultBandCount = 7;
+    static constexpr int kDefaultBandCount = 16;
 
     Q_PROPERTY(bool isTesting READ isTesting NOTIFY isTestingChanged)
     Q_PROPERTY(qreal audioLevel READ audioLevel NOTIFY levelsChanged)
@@ -80,6 +80,10 @@ private:
 
     QTimer* _decayTimer = nullptr;
 
-    static constexpr float kCenterFrequencies[kDefaultBandCount] = {125.0f,  250.0f,  500.0f, 1000.0f,
-                                                                    2000.0f, 4000.0f, 8000.0f};
+    static constexpr float kCenterFrequencies[kDefaultBandCount] = {
+        100.0f,  140.0f,  200.0f,  280.0f,  400.0f,  560.0f,  750.0f,  1000.0f,
+        1350.0f, 1800.0f, 2400.0f, 3200.0f, 4000.0f, 4800.0f, 5800.0f, 6800.0f};
+    static constexpr float kBandBoost[kDefaultBandCount] = {
+        1.8f, 1.5f, 1.3f, 1.2f, 1.2f, 1.3f, 1.4f, 1.6f,
+        1.8f, 2.0f, 2.4f, 2.8f, 3.2f, 3.6f, 4.0f, 4.5f};
 };
