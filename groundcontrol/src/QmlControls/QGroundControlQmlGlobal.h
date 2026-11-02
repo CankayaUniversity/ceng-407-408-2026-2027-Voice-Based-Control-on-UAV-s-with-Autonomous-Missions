@@ -10,6 +10,7 @@
 #include "qgc_version.h"
 
 class ADSBVehicleManager;
+class AudioCapture;
 class AudioDeviceManager;
 class FactGroup;
 class LinkManager;
@@ -26,6 +27,7 @@ class VideoManager;
 class QmlObjectListModel;
 
 Q_MOC_INCLUDE("ADSBVehicleManager.h")
+Q_MOC_INCLUDE("AudioCapture.h")
 Q_MOC_INCLUDE("AudioDeviceManager.h")
 Q_MOC_INCLUDE("NTRIPManager.h")
 Q_MOC_INCLUDE("FactGroup.h")
@@ -70,6 +72,7 @@ public:
     Q_PROPERTY(VideoManager*        videoManager            READ    videoManager            CONSTANT)
     Q_PROPERTY(SettingsManager*     settingsManager         READ    settingsManager         CONSTANT)
     Q_PROPERTY(AudioDeviceManager*  audioDeviceManager      READ    audioDeviceManager      CONSTANT)
+    Q_PROPERTY(AudioCapture*        audioCapture            READ    audioCapture      CONSTANT)
     Q_PROPERTY(ADSBVehicleManager*  adsbVehicleManager      READ    adsbVehicleManager      CONSTANT)
     Q_PROPERTY(NTRIPManager*        ntripManager            READ    ntripManager            CONSTANT)
     Q_PROPERTY(QGCCorePlugin*       corePlugin              READ    corePlugin              CONSTANT)
@@ -145,7 +148,7 @@ public:
         const QString& text,
         int buttons = kDefaultMessageDialogButtons,
         QJSValue acceptFunction = QJSValue(),
-        QJSValue closeFunction = QJSValue());
+                                       QJSValue closeFunction = QJSValue());
 
     // Test audio output
     Q_INVOKABLE void testAudioOutput();
@@ -224,6 +227,7 @@ private:
     MultiVehicleManager*    _multiVehicleManager    = nullptr;
     SettingsManager*        _settingsManager        = nullptr;
     AudioDeviceManager*     _audioDeviceManager     = nullptr;
+    AudioCapture*           _audioCapture           = nullptr;
     QGCCorePlugin*          _corePlugin             = nullptr;
     QGCPalette*             _globalPalette          = nullptr;
 #ifndef QGC_NO_SERIAL_LINK

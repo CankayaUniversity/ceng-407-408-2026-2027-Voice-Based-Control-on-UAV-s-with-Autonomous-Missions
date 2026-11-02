@@ -11,6 +11,7 @@
 #include "QGCMapEngineManager.h"
 #include "ADSBVehicleManager.h"
 #include "AudioDeviceManager.h"
+#include "AudioCapture.h"
 #include "AudioOutput.h"
 #include "NTRIPManager.h"
 #include "MAVLinkSigningKeys.h"
@@ -51,6 +52,7 @@ QGroundControlQmlGlobal::QGroundControlQmlGlobal(QObject *parent)
     , _multiVehicleManager(MultiVehicleManager::instance())
     , _settingsManager(SettingsManager::instance())
     , _audioDeviceManager(AudioDeviceManager::instance())
+    , _audioCapture(AudioCapture::instance())
     , _corePlugin(QGCCorePlugin::instance())
     , _globalPalette(new QGCPalette(this))
 #ifndef QGC_NO_SERIAL_LINK
@@ -295,18 +297,18 @@ QString QGroundControlQmlGlobal::qgcVersion(void)
 QString QGroundControlQmlGlobal::altitudeFrameExtraUnits(AltitudeFrame altFrame)
 {
     switch (altFrame) {
-    case AltitudeFrameNone:
-        return QString();
-    case AltitudeFrameRelative:
-        return tr("Rel");
-    case AltitudeFrameAbsolute:
-        return tr("AMSL");
-    case AltitudeFrameCalcAboveTerrain:
-        return tr("AGLC");
-    case AltitudeFrameTerrain:
-        return tr("AGL");
-    case AltitudeFrameMixed:
-        return tr("Mixed");
+        case AltitudeFrameNone:
+            return QString();
+        case AltitudeFrameRelative:
+            return tr("Rel");
+        case AltitudeFrameAbsolute:
+            return tr("AMSL");
+        case AltitudeFrameCalcAboveTerrain:
+            return tr("AGLC");
+        case AltitudeFrameTerrain:
+            return tr("AGL");
+        case AltitudeFrameMixed:
+            return tr("Mixed");
     }
 
     // Should never get here but makes some compilers happy
@@ -316,18 +318,18 @@ QString QGroundControlQmlGlobal::altitudeFrameExtraUnits(AltitudeFrame altFrame)
 QString QGroundControlQmlGlobal::altitudeFrameShortDescription(AltitudeFrame altFrame)
 {
     switch (altFrame) {
-    case AltitudeFrameNone:
-        return QString();
-    case AltitudeFrameRelative:
-        return tr("Relative (%1)").arg(altitudeFrameExtraUnits(altFrame));
-    case AltitudeFrameAbsolute:
-        return tr("Absolute (%1)").arg(altitudeFrameExtraUnits(altFrame));
-    case AltitudeFrameCalcAboveTerrain:
-        return tr("Above Terrain Calced (%1)").arg(altitudeFrameExtraUnits(altFrame));
-    case AltitudeFrameTerrain:
-        return tr("Above Terrain (%1)").arg(altitudeFrameExtraUnits(altFrame));
-    case AltitudeFrameMixed:
-        return tr("Mixed");
+        case AltitudeFrameNone:
+            return QString();
+        case AltitudeFrameRelative:
+            return tr("Relative (%1)").arg(altitudeFrameExtraUnits(altFrame));
+        case AltitudeFrameAbsolute:
+            return tr("Absolute (%1)").arg(altitudeFrameExtraUnits(altFrame));
+        case AltitudeFrameCalcAboveTerrain:
+            return tr("Above Terrain Calced (%1)").arg(altitudeFrameExtraUnits(altFrame));
+        case AltitudeFrameTerrain:
+            return tr("Above Terrain (%1)").arg(altitudeFrameExtraUnits(altFrame));
+        case AltitudeFrameMixed:
+            return tr("Mixed");
     }
 
     // Should never get here but makes some compilers happy
