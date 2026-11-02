@@ -32,7 +32,7 @@ void NoiseFilter::_updateHighPassCoefficients(int sampleRate)
     _currentSampleRate = sampleRate;
 
     constexpr float cutoffHz = 80.0f;
-    constexpr float q = 0.70710678f;,
+    constexpr float q = 0.70710678f;
 
     const float omega = 2.0f * static_cast<float>(M_PI) * cutoffHz / static_cast<float>(sampleRate);
     const float cosOmega = std::cos(omega);
