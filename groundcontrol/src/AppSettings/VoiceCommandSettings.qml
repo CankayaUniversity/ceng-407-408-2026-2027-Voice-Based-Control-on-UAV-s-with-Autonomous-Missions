@@ -12,6 +12,8 @@ SettingsPage {
 
     QGCPalette { id: qgcPal; colorGroupEnabled: true }
 
+    readonly property var _voiceSettings: QGroundControl.settingsManager.voiceCommandSettings
+
     SettingsGroupLayout {
         heading: qsTr("Microphone Device")
         Layout.fillWidth: true
@@ -122,6 +124,33 @@ SettingsPage {
                 text: QGroundControl.audioDeviceManager.isDefaultDevice ? qsTr("Yes") : qsTr("No")
                 font.pointSize: ScreenTools.smallFontPointSize
             }
+        }
+    }
+
+    SettingsGroupLayout {
+        heading: qsTr("Audio Processing & Recording")
+        Layout.fillWidth: true
+
+        FactTextFieldSlider {
+            Layout.fillWidth: true
+            label: qsTr("Noise Filter Strength")
+            fact: _voiceSettings.noiseFilterStrength
+            sliderMin: 0
+            sliderMax: 100
+            allowUsingMinMax: true
+        }
+
+        LabelledFactComboBox {
+            Layout.fillWidth: true
+            label: qsTr("Max Recording Duration")
+            fact: _voiceSettings.maxRecordingDuration
+        }
+
+        QGCLabel {
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: qsTr("Adjusts DSP noise suppression level and maximum recording duration before automatic cutoff.")
+            font.pointSize: ScreenTools.smallFontPointSize
         }
     }
 }

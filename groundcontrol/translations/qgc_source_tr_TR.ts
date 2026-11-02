@@ -21872,96 +21872,116 @@ If a vehicle still has this key configured, you will no longer be able to commun
   <context>
     <name>VoiceCommandSettings</name>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="16"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="18"/>
       <source>Microphone Device</source>
       <translation>Mikrofon Cihazı</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="24"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="26"/>
       <source>Audio Input Source</source>
       <translation>Ses Giriş Kaynağı</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="43"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="45"/>
       <source>Select the microphone to be used for voice control.</source>
       <translation>Sesli kontrol için kullanılacak mikrofonu seçin.</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="50"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="52"/>
       <source>No audio input devices detected on your system. Connect a microphone to enable voice commands.</source>
       <translation>Sisteminizde ses giriş cihazı algılanamadı. Sesli komutları etkinleştirmek için bir mikrofon bağlayın.</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="59"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="61"/>
       <source>Device Specifications</source>
       <translation>Cihaz Özellikleri</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="70"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="72"/>
       <source>Status:</source>
       <translation>Durum:</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="75"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="77"/>
       <source>Ready / Active</source>
       <translation>Hazır / Aktif</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="75"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="77"/>
       <source>Not Available</source>
       <translation>Kullanılamıyor</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="81"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="83"/>
       <source>Sample Rate:</source>
       <translation>Örnekleme Hızı:</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="86"/>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="101"/>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="112"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="88"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="103"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="114"/>
       <source>N/A</source>
       <translation>Yok</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="91"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="93"/>
       <source>Channels:</source>
       <translation>Kanal Sayısı:</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="98"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="100"/>
       <source>1 (Mono)</source>
       <translation>1 (Mono)</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="99"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="101"/>
       <source>2 (Stereo)</source>
       <translation>2 (Stereo)</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="100"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="102"/>
       <source>%1 channels</source>
       <translation>%1 kanal</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="107"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="109"/>
       <source>Sample Format:</source>
       <translation>Örnekleme Formatı:</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="117"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="119"/>
       <source>OS Default:</source>
       <translation>İşletim Sistemi Varsayılanı:</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="122"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="124"/>
       <source>Yes</source>
       <translation>Evet</translation>
     </message>
     <message>
-      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="122"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="124"/>
       <source>No</source>
       <translation>Hayır</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="131"/>
+      <source>Audio Processing &amp; Recording</source>
+      <translation>Ses İşleme ve Kayıt</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="136"/>
+      <source>Noise Filter Strength</source>
+      <translation>Gürültü Filtresi Gücü</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="145"/>
+      <source>Max Recording Duration</source>
+      <translation>Maksimum Kayıt Süresi</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="152"/>
+      <source>Adjusts DSP noise suppression level and maximum recording duration before automatic cutoff.</source>
+      <translation>DSP gürültü bastırma seviyesini ve otomatik durdurma öncesi maksimum kayıt süresini ayarlar.</translation>
     </message>
   </context>
   <context>
