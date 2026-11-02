@@ -1,5 +1,6 @@
 #include "QGroundControlQmlGlobal.h"
 
+#include "AudioLevelMeter.h"
 #include "QGCCorePlugin.h"
 #include "LinkManager.h"
 #include "MAVLinkProtocol.h"
@@ -53,6 +54,7 @@ QGroundControlQmlGlobal::QGroundControlQmlGlobal(QObject *parent)
     , _settingsManager(SettingsManager::instance())
     , _audioDeviceManager(AudioDeviceManager::instance())
     , _audioCapture(AudioCapture::instance())
+    , _audioLevelMeter(AudioLevelMeter::instance())
     , _corePlugin(QGCCorePlugin::instance())
     , _globalPalette(new QGCPalette(this))
 #ifndef QGC_NO_SERIAL_LINK

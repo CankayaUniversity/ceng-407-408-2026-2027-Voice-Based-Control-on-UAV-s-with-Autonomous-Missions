@@ -12,6 +12,7 @@
 class ADSBVehicleManager;
 class AudioCapture;
 class AudioDeviceManager;
+class AudioLevelMeter;
 class FactGroup;
 class LinkManager;
 class MAVLinkSigningKeys;
@@ -29,6 +30,7 @@ class QmlObjectListModel;
 Q_MOC_INCLUDE("ADSBVehicleManager.h")
 Q_MOC_INCLUDE("AudioCapture.h")
 Q_MOC_INCLUDE("AudioDeviceManager.h")
+Q_MOC_INCLUDE("AudioLevelMeter.h")
 Q_MOC_INCLUDE("NTRIPManager.h")
 Q_MOC_INCLUDE("FactGroup.h")
 Q_MOC_INCLUDE("LinkManager.h")
@@ -73,6 +75,7 @@ public:
     Q_PROPERTY(SettingsManager*     settingsManager         READ    settingsManager         CONSTANT)
     Q_PROPERTY(AudioDeviceManager*  audioDeviceManager      READ    audioDeviceManager      CONSTANT)
     Q_PROPERTY(AudioCapture*        audioCapture            READ    audioCapture            CONSTANT)
+    Q_PROPERTY(AudioLevelMeter*     audioLevelMeter         READ    audioLevelMeter         CONSTANT)
     Q_PROPERTY(ADSBVehicleManager*  adsbVehicleManager      READ    adsbVehicleManager      CONSTANT)
     Q_PROPERTY(NTRIPManager*        ntripManager            READ    ntripManager            CONSTANT)
     Q_PROPERTY(QGCCorePlugin*       corePlugin              READ    corePlugin              CONSTANT)
@@ -170,6 +173,7 @@ public:
     SettingsManager*        settingsManager     ()  { return _settingsManager; }
     AudioDeviceManager*     audioDeviceManager  ()  { return _audioDeviceManager; }
     AudioCapture*           audioCapture        ()  { return _audioCapture; }
+    AudioLevelMeter*        audioLevelMeter     ()  { return _audioLevelMeter; }
 #ifndef QGC_NO_SERIAL_LINK
     FactGroup*              gpsRtkFactGroup     ()  { return _gpsRtkFactGroup; }
 #endif
@@ -229,6 +233,7 @@ private:
     SettingsManager*        _settingsManager        = nullptr;
     AudioDeviceManager*     _audioDeviceManager     = nullptr;
     AudioCapture*           _audioCapture           = nullptr;
+    AudioLevelMeter*        _audioLevelMeter        = nullptr;
     QGCCorePlugin*          _corePlugin             = nullptr;
     QGCPalette*             _globalPalette          = nullptr;
 #ifndef QGC_NO_SERIAL_LINK
