@@ -47,6 +47,12 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             build-essential cmake ninja-build ccache mold \
             libfuse2 fuse3 pkgconf \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+            libgstreamer-plugins-bad1.0-dev libgstreamer-plugins-good1.0-dev \
+            libgstreamer-gl1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-gl \
+            gstreamer1.0-libav gstreamer1.0-x gstreamer1.0-tools \
+            libusb-1.0-0-dev libpulse-dev libspeechd2 \
             libatspi2.0-dev libfontconfig1-dev libfreetype-dev \
             libgtk-3-dev libsm-dev libx11-dev libx11-xcb-dev \
             libxcb-cursor-dev libxcb-glx0-dev libxcb-icccm4-dev \

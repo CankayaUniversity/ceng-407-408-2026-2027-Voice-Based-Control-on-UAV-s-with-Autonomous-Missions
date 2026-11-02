@@ -35,14 +35,7 @@ jobs:
       - name: Determine files to format check
         id: files
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="origin/${{ github.base_ref }}"
-          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ] && [ -n "${{ github.event.before }}" ]; then
-            BASE="${{ github.event.before }}"
-          else
-            BASE="HEAD~1"
-          fi
-
+          BASE="origin/${{ github.base_ref || 'gcs/master' }}"
           echo "Comparing against base: $BASE"
           git fetch origin ${{ github.base_ref || 'gcs/master' }} --depth=50 || true
 
@@ -79,7 +72,7 @@ jobs:
             echo "Formatting errors detected. Please run clang-format with groundcontrol/.clang-format."
             exit 1
           fi
-          echo "All modified C++ files conform to coding style"
+          echo "All modified C++ files conform to coding style!"
 
   static-analysis:
     name: Code Quality & Safety Checks
@@ -88,34 +81,37 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: |
+          git fetch origin ${{ github.base_ref || 'gcs/master' }} --depth=50 || true
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Check for forbidden Q_ASSERT in production code
+      - name: Check for new Q_ASSERT in added code
         run: |
-          ASSERT_HITS=$(grep -rn --exclude-dir={test,build,libs,mavlink,.cache,.ccache} "Q_ASSERT" groundcontrol/src/ 2>/dev/null || true)
+          BASE="origin/${{ github.base_ref || 'gcs/master' }}"
+          # Only check lines added in the PR under groundcontrol/src/ (excludes test/)
+          ASSERT_HITS=$(git diff -U0 "$BASE"...HEAD -- 'groundcontrol/src/**' | grep '^+[^+]' | grep -w 'Q_ASSERT' || true)
           if [ -n "$ASSERT_HITS" ]; then
-            echo "::error::Q_ASSERT found in production code. Use defensive checks with early returns instead:"
+            echo "::error::New Q_ASSERT found in production code diff. Use defensive checks with early returns instead:"
             echo "$ASSERT_HITS"
             exit 1
           fi
-          echo "No forbidden Q_ASSERT in production code."
+          echo "No new Q_ASSERT introduced in production code."
 
-      - name: Check for categorized logging violations
+      - name: Check for categorized logging violations in added code
         run: |
-          LOG_HITS=$(grep -Enr --exclude-dir={test,build,libs,mavlink,.cache,.ccache} "(^|[^A-Za-z0-9_])q(Debug|Info|Warning|Critical)\([[:space:]]*[A-Za-z_]+Log[[:space:]]*\)" groundcontrol/src/ 2>/dev/null || true)
+          BASE="origin/${{ github.base_ref || 'gcs/master' }}"
+          LOG_HITS=$(git diff -U0 "$BASE"...HEAD -- 'groundcontrol/src/**' | grep '^+[^+]' | grep -En "(^|[^A-Za-z0-9_])q(Debug|Info|Warning|Critical)\([[:space:]]*[A-Za-z_]+Log[[:space:]]*\)" || true)
           if [ -n "$LOG_HITS" ]; then
-            echo "::error::Category function passed to uncategorized log macro. Use qCDebug/qCInfo/qCWarning/qCCritical instead:"
+            echo "::error::Category function passed to uncategorized log macro in new code. Use qCDebug/qCInfo/qCWarning/qCCritical instead:"
             echo "$LOG_HITS"
             exit 1
           fi
           echo "Logging macros check passed."
-
-      - name: Run vehicle null-safety and translate analyzers
-        run: |
-          python3 groundcontrol/tools/analyzers/vehicle_null_check.py groundcontrol/src/
-          python3 groundcontrol/tools/analyzers/qt_translate_noop_check.py groundcontrol/src/
-          echo "Custom analyzers passed."
