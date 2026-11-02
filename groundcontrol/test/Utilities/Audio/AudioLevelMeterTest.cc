@@ -11,6 +11,9 @@
 void AudioLevelMeterTest::init()
 {
     UnitTest::init();
+    ignoreLogMessage("qt.multimedia.pipewire.registry", QtWarningMsg,
+                     QRegularExpression(QStringLiteral("Failed to connect to pipewire")));
+    ignoreLogMessage("default", QtWarningMsg, QRegularExpression(QStringLiteral("PulseAudioService|secure directory")));
 }
 
 void AudioLevelMeterTest::cleanup()
@@ -166,3 +169,5 @@ void AudioLevelMeterTest::_testResetLevels()
         QCOMPARE(b, 0.0);
     }
 }
+
+UT_REGISTER_TEST(AudioLevelMeterTest, TestLabel::Unit, TestLabel::Utilities)

@@ -148,3 +148,5 @@ void NoiseFilterTest::_testReset()
     QCOMPARE(filter._hpZ2, 0.0f);
     QCOMPARE(filter._currentGain, 1.0f);
 }
+
+UT_REGISTER_TEST(NoiseFilterTest, TestLabel::Unit, TestLabel::Utilities)

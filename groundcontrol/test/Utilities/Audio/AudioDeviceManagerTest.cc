@@ -8,6 +8,9 @@
 void AudioDeviceManagerTest::init()
 {
     UnitTest::init();
+    ignoreLogMessage("qt.multimedia.pipewire.registry", QtWarningMsg,
+                     QRegularExpression(QStringLiteral("Failed to connect to pipewire")));
+    ignoreLogMessage("default", QtWarningMsg, QRegularExpression(QStringLiteral("PulseAudioService|secure directory")));
 }
 
 void AudioDeviceManagerTest::cleanup()

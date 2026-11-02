@@ -8,6 +8,9 @@
 void AudioCaptureTest::init()
 {
     UnitTest::init();
+    ignoreLogMessage("qt.multimedia.pipewire.registry", QtWarningMsg,
+                     QRegularExpression(QStringLiteral("Failed to connect to pipewire")));
+    ignoreLogMessage("default", QtWarningMsg, QRegularExpression(QStringLiteral("PulseAudioService|secure directory")));
 }
 
 void AudioCaptureTest::cleanup()
@@ -183,3 +186,5 @@ void AudioCaptureTest::_testDeviceDisconnectionHandling()
     QCOMPARE(capture->captureState(), AudioCapture::CaptureState::Stopped);
     QCOMPARE(errorSpy.count(), 1);
 }
+
+UT_REGISTER_TEST(AudioCaptureTest, TestLabel::Unit, TestLabel::Utilities)
