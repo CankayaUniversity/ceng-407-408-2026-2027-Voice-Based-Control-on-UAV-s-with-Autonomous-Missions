@@ -10,6 +10,30 @@
             "default": "",
             "label": "Microphone",
             "keywords": "microphone,voice,audio,input"
+        },
+        {
+            "name": "noiseFilterStrength",
+            "shortDesc": "Noise suppression strength applied to audio capture.",
+            "longDesc": "Controls the aggressiveness of background noise filtering on incoming microphone audio.",
+            "type": "uint32",
+            "default": 50,
+            "min": 0,
+            "max": 100,
+            "units": "%",
+            "label": "Noise Filter Strength",
+            "keywords": "voice,audio,filter,noise,suppression"
+        },
+        {
+            "name": "maxRecordingDuration",
+            "shortDesc": "Maximum recording duration for voice commands before automatic stop.",
+            "longDesc": "Limits voice command recording duration to prevent runaway audio capture. Automatically stops recording when reached.",
+            "type": "uint32",
+            "enumStrings": "5 s,10 s,15 s,20 s,30 s",
+            "enumValues": "5,10,15,20,30",
+            "default": 15,
+            "units": "s",
+            "label": "Max Recording Duration",
+            "keywords": "voice,command,recording,timeout,duration"
         }
     ]
 }
