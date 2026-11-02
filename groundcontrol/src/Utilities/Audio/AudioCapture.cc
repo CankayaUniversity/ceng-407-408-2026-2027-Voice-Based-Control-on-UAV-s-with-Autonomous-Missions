@@ -179,7 +179,7 @@ bool AudioCapture::_startCapture(CaptureState state)
 
     if (!_deviceManager || !_deviceManager->isMicrophoneActive()) {
         qCWarning(AudioCaptureLog) << "Cannot start capture: no active microphone selected.";
-        
+
         emit captureError(QStringLiteral("No active microphone available"));
         return false;
     }
@@ -286,7 +286,7 @@ void AudioCapture::_onReadyRead()
 void AudioCapture::_onAudioSourceStateChanged(QAudio::State state)
 {
     qCDebug(AudioCaptureLog) << "QAudioSource state changed:" << state;
-    
+
     if (state == QAudio::StoppedState) {
         if (_audioSource && _audioSource->error() != QAudio::NoError) {
             qCWarning(AudioCaptureLog) << "QAudioSource error encountered:" << _audioSource->error();
