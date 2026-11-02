@@ -1,8 +1,12 @@
 qt_add_library(QGCAudio STATIC
+    AudioCapture.cc
+    AudioCapture.h
     AudioDeviceManager.cc
     AudioDeviceManager.h
     AudioOutput.cc
     AudioOutput.h
+    NoiseFilter.cc
+    NoiseFilter.h
 )
 
 target_link_libraries(QGCAudio
