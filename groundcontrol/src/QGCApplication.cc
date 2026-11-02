@@ -692,10 +692,12 @@ bool QGCApplication::compressEvent(QEvent* event, QObject* receiver, QPostEventL
     }
 
     // QMetaCallEvent::id() was removed in 6.11; its protected Data is reachable from a derived helper.
-    struct MetaCallHelper : public QMetaCallEvent {
+    struct MetaCallHelper : public QMetaCallEvent
+    {
         int id() const { return d.method_offset_ + d.method_relative_; }
     };
-    const auto methodId = [](const QMetaCallEvent *e) { return static_cast<const MetaCallHelper*>(e)->id(); };
+
+    const auto methodId = [](const QMetaCallEvent* e) { return static_cast<const MetaCallHelper*>(e)->id(); };
 
     for (QPostEventList::iterator it = postedEvents->begin(); it != postedEvents->end(); ++it) {
         QPostEvent& cur = *it;
