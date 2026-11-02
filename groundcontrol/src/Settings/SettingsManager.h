@@ -25,6 +25,7 @@ class UnitsSettings;
 class NTRIPSettings;
 class VideoSettings;
 class Viewer3DSettings;
+class VoiceCommandSettings;
 class MavlinkSettings;
 class FactMetaData;
 class JoystickManagerSettings;
@@ -62,6 +63,7 @@ class SettingsManager : public QObject
     Q_MOC_INCLUDE("LogManagerSettings.h")
     Q_MOC_INCLUDE("LogViewerSettings.h")
     Q_MOC_INCLUDE("Viewer3DSettings.h")
+    Q_MOC_INCLUDE("VoiceCommandSettings.h")
     Q_PROPERTY(QObject *adsbVehicleManagerSettings      READ adsbVehicleManagerSettings     CONSTANT)
     Q_PROPERTY(QObject *apmMavlinkStreamRateSettings    READ apmMavlinkStreamRateSettings   CONSTANT)
     Q_PROPERTY(QObject *appSettings                     READ appSettings                    CONSTANT)
@@ -86,6 +88,7 @@ class SettingsManager : public QObject
     Q_PROPERTY(QObject *logManagerSettings              READ logManagerSettings              CONSTANT)
     Q_PROPERTY(QObject *logViewerSettings               READ logViewerSettings               CONSTANT)
     Q_PROPERTY(QObject *viewer3DSettings                READ viewer3DSettings               CONSTANT)
+    Q_PROPERTY(QObject *voiceCommandSettings            READ voiceCommandSettings           CONSTANT)
 public:
     SettingsManager(QObject *parent = nullptr);
     ~SettingsManager();
@@ -124,6 +127,7 @@ public:
     LogManagerSettings *logManagerSettings() const;
     LogViewerSettings *logViewerSettings() const;
     Viewer3DSettings *viewer3DSettings() const;
+    VoiceCommandSettings *voiceCommandSettings() const;
 
 private:
     void _loadSettingsFiles();
@@ -152,6 +156,7 @@ private:
     LogManagerSettings *_logManagerSettings = nullptr;
     LogViewerSettings *_logViewerSettings = nullptr;
     Viewer3DSettings *_viewer3DSettings = nullptr;
+    VoiceCommandSettings *_voiceCommandSettings = nullptr;
 
     QMap<QString, QMap<QString, QJsonObject>> _settingsFileOverrides;   // groupName:settingName:metaDataObject
 

@@ -25,6 +25,7 @@
 #include "LogManagerSettings.h"
 #include "LogViewerSettings.h"
 #include "Viewer3DSettings.h"
+#include "VoiceCommandSettings.h"
 #include "JsonParsing.h"
 #include "QGCCorePlugin.h"
 
@@ -77,6 +78,7 @@ void SettingsManager::init()
     _logManagerSettings = new LogManagerSettings(this);
     _logViewerSettings = new LogViewerSettings(this);
     _viewer3DSettings = new Viewer3DSettings(this);
+    _voiceCommandSettings = new VoiceCommandSettings(this);
     _adsbVehicleManagerSettings = new ADSBVehicleManagerSettings(this);
     _apmMavlinkStreamRateSettings = new APMMavlinkStreamRateSettings(this);
 }
@@ -105,6 +107,7 @@ JoystickManagerSettings *SettingsManager::joystickManagerSettings() const { retu
 LogManagerSettings *SettingsManager::logManagerSettings() const { return _logManagerSettings; }
 LogViewerSettings *SettingsManager::logViewerSettings() const { return _logViewerSettings; }
 Viewer3DSettings *SettingsManager::viewer3DSettings() const { return _viewer3DSettings; }
+VoiceCommandSettings *SettingsManager::voiceCommandSettings() const { return _voiceCommandSettings; }
 
 void SettingsManager::_loadSettingsFiles()
 {

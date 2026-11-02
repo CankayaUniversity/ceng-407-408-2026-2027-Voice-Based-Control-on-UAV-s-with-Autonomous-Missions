@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "fileType": "FactMetaData",
+    "QGC.MetaData.Facts": [
+        {
+            "name": "selectedMicrophone",
+            "shortDesc": "Selected audio input device for voice commands.",
+            "longDesc": "Selected audio input device for voice commands.",
+            "type": "string",
+            "default": "",
+            "label": "Microphone",
+            "keywords": "microphone,voice,audio,input"
+        }
+    ]
+}

@@ -21870,6 +21870,101 @@ If a vehicle still has this key configured, you will no longer be able to commun
     </message>
   </context>
   <context>
+    <name>VoiceCommandSettings</name>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="16"/>
+      <source>Microphone Device</source>
+      <translation>Mikrofon Cihazı</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="24"/>
+      <source>Audio Input Source</source>
+      <translation>Ses Giriş Kaynağı</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="43"/>
+      <source>Select the microphone to be used for voice control.</source>
+      <translation>Sesli kontrol için kullanılacak mikrofonu seçin.</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="50"/>
+      <source>No audio input devices detected on your system. Connect a microphone to enable voice commands.</source>
+      <translation>Sisteminizde ses giriş cihazı algılanamadı. Sesli komutları etkinleştirmek için bir mikrofon bağlayın.</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="59"/>
+      <source>Device Specifications</source>
+      <translation>Cihaz Özellikleri</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="70"/>
+      <source>Status:</source>
+      <translation>Durum:</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="75"/>
+      <source>Ready / Active</source>
+      <translation>Hazır / Aktif</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="75"/>
+      <source>Not Available</source>
+      <translation>Kullanılamıyor</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="81"/>
+      <source>Sample Rate:</source>
+      <translation>Örnekleme Hızı:</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="86"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="101"/>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="112"/>
+      <source>N/A</source>
+      <translation>Yok</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="91"/>
+      <source>Channels:</source>
+      <translation>Kanal Sayısı:</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="98"/>
+      <source>1 (Mono)</source>
+      <translation>1 (Mono)</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="99"/>
+      <source>2 (Stereo)</source>
+      <translation>2 (Stereo)</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="100"/>
+      <source>%1 channels</source>
+      <translation>%1 kanal</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="107"/>
+      <source>Sample Format:</source>
+      <translation>Örnekleme Formatı:</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="117"/>
+      <source>OS Default:</source>
+      <translation>İşletim Sistemi Varsayılanı:</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="122"/>
+      <source>Yes</source>
+      <translation>Evet</translation>
+    </message>
+    <message>
+      <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="122"/>
+      <source>No</source>
+      <translation>Hayır</translation>
+    </message>
+  </context>
+  <context>
     <name>main</name>
     <message>
       <location filename="../src/Utilities/Platform/Platform.cc" line="245"/>

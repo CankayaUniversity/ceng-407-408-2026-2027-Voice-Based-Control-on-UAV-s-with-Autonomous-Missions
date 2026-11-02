@@ -10,6 +10,7 @@
 #include "PositionManager.h"
 #include "QGCMapEngineManager.h"
 #include "ADSBVehicleManager.h"
+#include "AudioDeviceManager.h"
 #include "AudioOutput.h"
 #include "NTRIPManager.h"
 #include "MAVLinkSigningKeys.h"
@@ -49,6 +50,7 @@ QGroundControlQmlGlobal::QGroundControlQmlGlobal(QObject *parent)
     , _linkManager(LinkManager::instance())
     , _multiVehicleManager(MultiVehicleManager::instance())
     , _settingsManager(SettingsManager::instance())
+    , _audioDeviceManager(AudioDeviceManager::instance())
     , _corePlugin(QGCCorePlugin::instance())
     , _globalPalette(new QGCPalette(this))
 #ifndef QGC_NO_SERIAL_LINK

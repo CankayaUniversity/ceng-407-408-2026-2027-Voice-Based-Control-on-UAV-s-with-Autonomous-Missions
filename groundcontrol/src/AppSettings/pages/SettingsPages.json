@@ -93,6 +93,11 @@
             "visible": "QGroundControl.settingsManager.videoSettings.userVisible"
         },
         {
+            "name": "Voice Command",
+            "qml": "VoiceCommandSettings.qml",
+            "icon": "qrc:/InstrumentValueIcons/mic.svg"
+        },
+        {
             "divider": true
         },
         {

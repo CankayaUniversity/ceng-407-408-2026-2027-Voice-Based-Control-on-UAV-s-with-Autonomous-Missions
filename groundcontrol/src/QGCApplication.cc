@@ -16,6 +16,7 @@
 #include <QtSvg/QSvgRenderer>
 
 #include "AppSettings.h"
+#include "AudioDeviceManager.h"
 #include "AudioOutput.h"
 #include "ColoredSvgImageProvider.h"
 #include "FollowMe.h"
@@ -40,6 +41,7 @@
 #include "SettingsManager.h"
 #include "Vehicle.h"
 #include "VideoManager.h"
+#include "VoiceCommandSettings.h"
 #include "qgc_version.h"
 
 #ifndef QGC_NO_SERIAL_LINK
@@ -302,6 +304,7 @@ void QGCApplication::_initForNormalAppBoot()
 
     AudioOutput::instance()->init(SettingsManager::instance()->appSettings()->audioVolume(),
                                   SettingsManager::instance()->appSettings()->audioMuted());
+    AudioDeviceManager::instance()->init(SettingsManager::instance()->voiceCommandSettings()->selectedMicrophone());
     FollowMe::instance()->init();
     QGCPositionManager::instance()->init();
     NTRIPManager::instance()->init();
