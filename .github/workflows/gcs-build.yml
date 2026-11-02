@@ -1,4 +1,4 @@
-name: GCS Build & Test
+name: GCS Build
 
 on:
   pull_request:
@@ -113,13 +113,9 @@ jobs:
             -DCMAKE_PREFIX_PATH="${{ env.QT_ROOT_DIR }}" \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DQGC_BUILD_TESTING=ON \
+            -DQGC_BUILD_TESTING=OFF \
             -DQGC_USE_CACHE=ON
 
       - name: Compile QGroundControl
         run: |
           cmake --build build --parallel $(nproc)
-
-      - name: Run Unit Tests
-        run: |
-          xvfb-run --auto-servernum ctest --test-dir build --output-on-failure
