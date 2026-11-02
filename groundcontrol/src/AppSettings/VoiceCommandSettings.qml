@@ -128,6 +128,115 @@ SettingsPage {
     }
 
     SettingsGroupLayout {
+        heading: qsTr("Microphone Test & Level")
+        Layout.fillWidth: true
+        visible: QGroundControl.audioDeviceManager.isMicrophoneActive
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: ScreenTools.defaultFontPixelHeight / 2
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: ScreenTools.defaultFontPixelWidth * 2
+
+                QGCButton {
+                    id: testMicButton
+                    text: QGroundControl.audioLevelMeter.isTesting ? qsTr("Stop Test") : qsTr("Test Microphone")
+                    primary: QGroundControl.audioLevelMeter.isTesting
+                    onClicked: QGroundControl.audioLevelMeter.toggleTest()
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        QGCLabel {
+                            text: qsTr("Signal Level:")
+                            font.pointSize: ScreenTools.smallFontPointSize
+                            font.bold: true
+                        }
+                        QGCLabel {
+                            Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignRight
+                            text: Math.round(QGroundControl.audioLevelMeter.audioLevel * 100) + "%"
+                            font.pointSize: ScreenTools.smallFontPointSize
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: Math.max(6, ScreenTools.defaultFontPixelHeight / 3)
+                        radius: height / 2
+                        color: qgcPal.windowShadeLight
+
+                        Rectangle {
+                            height: parent.height
+                            radius: parent.radius
+                            width: parent.width * QGroundControl.audioLevelMeter.audioLevel
+                            color: {
+                                var lvl = QGroundControl.audioLevelMeter.audioLevel
+                                if (lvl > 0.85) return qgcPal.colorRed
+                                if (lvl > 0.65) return qgcPal.colorOrange
+                                return qgcPal.colorGreen
+                            }
+                            Behavior on width {
+                                NumberAnimation { duration: 50 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Frequency spectrum equalizer bars
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: ScreenTools.defaultFontPixelHeight * 2.5
+                spacing: ScreenTools.defaultFontPixelWidth
+
+                Repeater {
+                    model: QGroundControl.audioLevelMeter.frequencyBands
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        color: qgcPal.windowShadeLight
+                        radius: ScreenTools.defaultBorderRadius
+
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            height: Math.max(ScreenTools.defaultFontPixelHeight / 4, parent.height * modelData)
+                            radius: ScreenTools.defaultBorderRadius
+                            color: {
+                                if (!QGroundControl.audioLevelMeter.isTesting) {
+                                    return qgcPal.button
+                                }
+                                if (modelData > 0.8) return qgcPal.colorRed
+                                if (modelData > 0.5) return qgcPal.colorOrange
+                                return qgcPal.colorGreen
+                            }
+                            Behavior on height {
+                                NumberAnimation { duration: 60 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            QGCLabel {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: qsTr("Speak into the microphone to verify audio input and signal levels in real time.")
+                font.pointSize: ScreenTools.smallFontPointSize
+            }
+        }
+    }
+
+    SettingsGroupLayout {
         heading: qsTr("Audio Processing & Recording")
         Layout.fillWidth: true
 
@@ -151,6 +260,12 @@ SettingsPage {
             wrapMode: Text.WordWrap
             text: qsTr("Adjusts DSP noise suppression level and maximum recording duration before automatic cutoff.")
             font.pointSize: ScreenTools.smallFontPointSize
+        }
+    }
+
+    Component.onDestruction: {
+        if (QGroundControl.audioLevelMeter.isTesting) {
+            QGroundControl.audioLevelMeter.stopTest()
         }
     }
 }

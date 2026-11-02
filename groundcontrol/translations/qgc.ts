@@ -21905,21 +21905,46 @@ If a vehicle still has this key configured, you will no longer be able to commun
     </message>
     <message>
         <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="131"/>
-        <source>Audio Processing &amp; Recording</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="136"/>
-        <source>Noise Filter Strength</source>
+        <source>Microphone Test &amp; Level</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="145"/>
+        <source>Stop Test</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="145"/>
+        <source>Test Microphone</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="157"/>
+        <source>Signal Level:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="233"/>
+        <source>Speak into the microphone to verify audio input and signal levels in real time.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="240"/>
+        <source>Audio Processing &amp; Recording</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="245"/>
+        <source>Noise Filter Strength</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="254"/>
         <source>Max Recording Duration</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="152"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="261"/>
         <source>Adjusts DSP noise suppression level and maximum recording duration before automatic cutoff.</source>
         <translation type="unfinished"></translation>
     </message>
