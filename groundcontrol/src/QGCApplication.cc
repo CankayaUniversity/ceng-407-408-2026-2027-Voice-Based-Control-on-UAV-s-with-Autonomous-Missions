@@ -16,6 +16,7 @@
 #include <QtSvg/QSvgRenderer>
 
 #include "AppSettings.h"
+#include "AudioCapture.h"
 #include "AudioDeviceManager.h"
 #include "AudioOutput.h"
 #include "ColoredSvgImageProvider.h"
@@ -305,6 +306,7 @@ void QGCApplication::_initForNormalAppBoot()
     AudioOutput::instance()->init(SettingsManager::instance()->appSettings()->audioVolume(),
                                   SettingsManager::instance()->appSettings()->audioMuted());
     AudioDeviceManager::instance()->init(SettingsManager::instance()->voiceCommandSettings()->selectedMicrophone());
+    AudioCapture::instance()->init(SettingsManager::instance()->voiceCommandSettings()->noiseFilterStrength());
     FollowMe::instance()->init();
     QGCPositionManager::instance()->init();
     NTRIPManager::instance()->init();
