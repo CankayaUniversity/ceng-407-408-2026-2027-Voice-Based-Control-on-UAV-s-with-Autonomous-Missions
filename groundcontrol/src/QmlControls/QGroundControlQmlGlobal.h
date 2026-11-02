@@ -72,7 +72,7 @@ public:
     Q_PROPERTY(VideoManager*        videoManager            READ    videoManager            CONSTANT)
     Q_PROPERTY(SettingsManager*     settingsManager         READ    settingsManager         CONSTANT)
     Q_PROPERTY(AudioDeviceManager*  audioDeviceManager      READ    audioDeviceManager      CONSTANT)
-    Q_PROPERTY(AudioCapture*        audioCapture            READ    audioCapture      CONSTANT)
+    Q_PROPERTY(AudioCapture*        audioCapture            READ    audioCapture            CONSTANT)
     Q_PROPERTY(ADSBVehicleManager*  adsbVehicleManager      READ    adsbVehicleManager      CONSTANT)
     Q_PROPERTY(NTRIPManager*        ntripManager            READ    ntripManager            CONSTANT)
     Q_PROPERTY(QGCCorePlugin*       corePlugin              READ    corePlugin              CONSTANT)
@@ -169,6 +169,7 @@ public:
     QGCCorePlugin*          corePlugin          ()  { return _corePlugin; }
     SettingsManager*        settingsManager     ()  { return _settingsManager; }
     AudioDeviceManager*     audioDeviceManager  ()  { return _audioDeviceManager; }
+    AudioCapture*           audioCapture        ()  { return _audioCapture; }
 #ifndef QGC_NO_SERIAL_LINK
     FactGroup*              gpsRtkFactGroup     ()  { return _gpsRtkFactGroup; }
 #endif
