@@ -1,62 +1,38 @@
-#include "NoiseFilterTest.h"
+#include "DspNoiseFilterTest.h"
 
 #include <algorithm>
 #include <cmath>
 
-#include "NoiseFilter.h"
+#include "DspNoiseFilter.h"
 
-void NoiseFilterTest::init()
+void DspNoiseFilterTest::init()
 {
     UnitTest::init();
 }
 
-void NoiseFilterTest::cleanup()
+void DspNoiseFilterTest::cleanup()
 {
     UnitTest::cleanup();
 }
 
-void NoiseFilterTest::_testDefaultAndSetStrength()
+void DspNoiseFilterTest::_testDefaultAndSetLevel()
 {
-    NoiseFilter filter;
-    QCOMPARE(filter.strength(), 50);
+    DspNoiseFilter filter;
+    QCOMPARE(filter.level(), NoiseFilterInterface::Level::Moderate);
 
-    filter.setStrength(80);
-    QCOMPARE(filter.strength(), 80);
+    filter.setLevel(NoiseFilterInterface::Level::High);
+    QCOMPARE(filter.level(), NoiseFilterInterface::Level::High);
 
-    filter.setStrength(-10);
-    QCOMPARE(filter.strength(), 0);
+    filter.setLevel(NoiseFilterInterface::Level::Low);
+    QCOMPARE(filter.level(), NoiseFilterInterface::Level::Low);
 
-    filter.setStrength(150);
-    QCOMPARE(filter.strength(), 100);
+    QCOMPARE(filter.name(), QStringLiteral("DSP (High-Pass + Dynamic Gate)"));
 }
 
-void NoiseFilterTest::_testBypassWhenZero()
+void DspNoiseFilterTest::_testHighPassFilterRumbleSuppression()
 {
-    NoiseFilter filter;
-    filter.setStrength(0);  // Bypass
-
-    QAudioFormat format;
-    format.setSampleRate(16000);
-    format.setChannelCount(1);
-    format.setSampleFormat(QAudioFormat::Int16);
-
-    QByteArray pcmData;
-    pcmData.resize(256 * sizeof(qint16));
-    auto* samples = reinterpret_cast<qint16*>(pcmData.data());
-    for (int i = 0; i < 256; ++i) {
-        samples[i] = static_cast<qint16>(i * 50);
-    }
-
-    const QByteArray originalData = pcmData;
-    filter.process(pcmData, format);
-
-    QCOMPARE(pcmData, originalData);
-}
-
-void NoiseFilterTest::_testHighPassFilterRumbleSuppression()
-{
-    NoiseFilter filter;
-    filter.setStrength(100);
+    DspNoiseFilter filter;
+    filter.setLevel(NoiseFilterInterface::Level::High);
 
     QAudioFormat format;
     format.setSampleRate(16000);
@@ -104,10 +80,10 @@ void NoiseFilterTest::_testHighPassFilterRumbleSuppression()
     QVERIFY(rumblePeak < voicePeak);
 }
 
-void NoiseFilterTest::_testNoiseGateSuppression()
+void DspNoiseFilterTest::_testNoiseGateSuppression()
 {
-    NoiseFilter filter;
-    filter.setStrength(100);
+    DspNoiseFilter filter;
+    filter.setLevel(NoiseFilterInterface::Level::High);
 
     QAudioFormat format;
     format.setSampleRate(16000);
@@ -134,10 +110,11 @@ void NoiseFilterTest::_testNoiseGateSuppression()
     QVERIFY(rms < 80.0);
 }
 
-void NoiseFilterTest::_testReset()
+void DspNoiseFilterTest::_testReset()
 {
-    NoiseFilter filter;
-    filter.setStrength(75);
+    DspNoiseFilter filter;
+    
+    filter.setLevel(NoiseFilterInterface::Level::High);
     filter._hpZ1 = 1.0f;
     filter._hpZ2 = 2.0f;
     filter._currentGain = 0.5f;
@@ -149,4 +126,4 @@ void NoiseFilterTest::_testReset()
     QCOMPARE(filter._currentGain, 1.0f);
 }
 
-UT_REGISTER_TEST(NoiseFilterTest, TestLabel::Unit, TestLabel::Utilities)
+UT_REGISTER_TEST(DspNoiseFilterTest, TestLabel::Unit, TestLabel::Utilities)

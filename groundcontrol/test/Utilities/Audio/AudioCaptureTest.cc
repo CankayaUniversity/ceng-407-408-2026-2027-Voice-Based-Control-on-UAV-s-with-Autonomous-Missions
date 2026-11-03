@@ -1,9 +1,11 @@
 #include "AudioCaptureTest.h"
 
 #include <QtTest/QSignalSpy>
+#include <memory>
 
 #include "AudioCapture.h"
 #include "AudioDeviceManager.h"
+#include "DspNoiseFilter.h"
 
 void AudioCaptureTest::init()
 {
@@ -28,7 +30,8 @@ void AudioCaptureTest::_testInitialState()
     QVERIFY(!capture->isCapturing());
     QVERIFY(!capture->isRecording());
     QVERIFY(!capture->isStreaming());
-    QCOMPARE(capture->noiseFilterStrength(), 50);
+    QVERIFY(capture->isNoiseFilterEnabled());
+    QCOMPARE(capture->noiseFilterLevel(), NoiseFilterInterface::Level::Moderate);
 }
 
 void AudioCaptureTest::_testTargetFormat()
@@ -98,22 +101,64 @@ void AudioCaptureTest::_testStreamingLifecycle()
     }
 }
 
-void AudioCaptureTest::_testNoiseFilterStrength()
+void AudioCaptureTest::_testNoiseFilterSettings()
 {
     AudioCapture* capture = AudioCapture::instance();
-    QSignalSpy strengthSpy(capture, &AudioCapture::noiseFilterStrengthChanged);
+    QSignalSpy enabledSpy(capture, &AudioCapture::noiseFilterEnabledChanged);
+    QSignalSpy levelSpy(capture, &AudioCapture::noiseFilterLevelChanged);
 
-    capture->setNoiseFilterStrength(75);
-    QCOMPARE(capture->noiseFilterStrength(), 75);
-    QCOMPARE(strengthSpy.count(), 1);
+    // Test enabled toggle
+    const bool initialEnabled = capture->isNoiseFilterEnabled();
+    capture->setNoiseFilterEnabled(!initialEnabled);
+    QCOMPARE(capture->isNoiseFilterEnabled(), !initialEnabled);
+    QCOMPARE(enabledSpy.count(), 1);
 
-    capture->setNoiseFilterStrength(150);  // Clamped to 100
-    QCOMPARE(capture->noiseFilterStrength(), 100);
+    capture->setNoiseFilterEnabled(initialEnabled);
+    QCOMPARE(capture->isNoiseFilterEnabled(), initialEnabled);
+    QCOMPARE(enabledSpy.count(), 2);
 
-    capture->setNoiseFilterStrength(-20);  // Clamped to 0
-    QCOMPARE(capture->noiseFilterStrength(), 0);
+    // Test level setting
+    capture->setNoiseFilterLevel(NoiseFilterInterface::Level::High);
+    QCOMPARE(capture->noiseFilterLevel(), NoiseFilterInterface::Level::High);
+    QCOMPARE(capture->noiseFilterLevelInt(), static_cast<int>(NoiseFilterInterface::Level::High));
+    QCOMPARE(levelSpy.count(), 1);
 
-    capture->setNoiseFilterStrength(50);  // Reset
+    capture->setNoiseFilterLevelInt(static_cast<int>(NoiseFilterInterface::Level::Low));
+    QCOMPARE(capture->noiseFilterLevel(), NoiseFilterInterface::Level::Low);
+    QCOMPARE(capture->noiseFilterLevelInt(), 0);
+
+    // Reset back to Moderate
+    capture->setNoiseFilterLevel(NoiseFilterInterface::Level::Moderate);
+}
+
+void AudioCaptureTest::_testNoiseFilterSwapping()
+{
+    AudioCapture* capture = AudioCapture::instance();
+    QVERIFY(capture->noiseFilter() != nullptr);
+
+    class MockCustomFilter : public NoiseFilterInterface
+    {
+    public:
+        Level level() const override { return _level; }
+
+        void setLevel(Level lvl) override { _level = lvl; }
+
+        void reset() override {}
+
+        void process(QByteArray&, const QAudioFormat&) override {}
+
+        QString name() const override { return QStringLiteral("MockCustomFilter"); }
+
+    private:
+        Level _level = Level::Moderate;
+    };
+
+    capture->setNoiseFilter(std::make_unique<MockCustomFilter>());
+    QCOMPARE(capture->noiseFilter()->name(), QStringLiteral("MockCustomFilter"));
+
+    // Restore standard DSP filter
+    capture->setNoiseFilter(std::make_unique<DspNoiseFilter>());
+    QCOMPARE(capture->noiseFilter()->name(), QStringLiteral("DSP (High-Pass + Dynamic Gate)"));
 }
 
 void AudioCaptureTest::_testSafetyLimitReached()

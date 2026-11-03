@@ -13,8 +13,8 @@ target_sources(${CMAKE_PROJECT_NAME}
         AudioLevelMeterTest.h
         AudioOutputTest.cc
         AudioOutputTest.h
-        NoiseFilterTest.cc
-        NoiseFilterTest.h
+        DspNoiseFilterTest.cc
+        DspNoiseFilterTest.h
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

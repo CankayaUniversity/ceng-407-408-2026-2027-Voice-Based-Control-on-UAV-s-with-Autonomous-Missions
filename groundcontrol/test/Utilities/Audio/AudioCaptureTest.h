@@ -14,7 +14,8 @@ private slots:
     void _testTargetFormat();
     void _testCaptureLifecycle();
     void _testStreamingLifecycle();
-    void _testNoiseFilterStrength();
+    void _testNoiseFilterSettings();
+    void _testNoiseFilterSwapping();
     void _testSafetyLimitReached();
     void _testStreamingFrameEmission();
     void _testSignalEmissions();
