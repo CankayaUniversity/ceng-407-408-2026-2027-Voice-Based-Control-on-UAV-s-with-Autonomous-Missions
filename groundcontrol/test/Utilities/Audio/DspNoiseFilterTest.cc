@@ -113,7 +113,7 @@ void DspNoiseFilterTest::_testNoiseGateSuppression()
 void DspNoiseFilterTest::_testReset()
 {
     DspNoiseFilter filter;
-    
+
     filter.setLevel(NoiseFilterInterface::Level::High);
     filter._hpZ1 = 1.0f;
     filter._hpZ2 = 2.0f;

@@ -3,8 +3,8 @@
 #include <algorithm>
 
 #include "AudioDeviceManager.h"
-#include "Fact.h"
 #include "DspNoiseFilter.h"
+#include "Fact.h"
 #include "QGCLoggingCategory.h"
 
 QGC_LOGGING_CATEGORY(AudioCaptureLog, "Utilities.AudioCapture")
@@ -239,7 +239,7 @@ bool AudioCapture::_startCapture(CaptureState state)
 
     if (!_deviceManager || !_deviceManager->isMicrophoneActive()) {
         qCWarning(AudioCaptureLog) << "Cannot start capture: No valid active microphone.";
-        
+
         emit captureError(QStringLiteral("No active microphone available"));
         return false;
     }
@@ -368,7 +368,7 @@ void AudioCapture::_onAudioSourceStateChanged(QAudio::State state)
 void AudioCapture::_onDeviceAvailabilityChanged(bool active)
 {
     qCDebug(AudioCaptureLog) << "Microphone active state changed:" << active;
-    
+
     if (!active && _state != CaptureState::Stopped) {
         qCWarning(AudioCaptureLog) << "Active microphone disconnected while capturing. Stopping.";
         emit captureError(QStringLiteral("Microphone disconnected"));
