@@ -1,19 +1,22 @@
-#include "NoiseFilter.h"
+#include "DspNoiseFilter.h"
 
 #include <algorithm>
 #include <cmath>
 
-NoiseFilter::NoiseFilter()
+DspNoiseFilter::DspNoiseFilter()
 {
     reset();
 }
 
-void NoiseFilter::setStrength(int strengthPercent)
+void DspNoiseFilter::setLevel(Level level)
 {
-    _strength = std::clamp(strengthPercent, 0, 100);
+    if (_level != level) {
+        _level = level;
+        _currentSampleRate = 0;  // Force recalculation of high-pass coefficients
+    }
 }
 
-void NoiseFilter::reset()
+void DspNoiseFilter::reset()
 {
     _hpZ1 = 0.0f;
     _hpZ2 = 0.0f;
@@ -23,7 +26,7 @@ void NoiseFilter::reset()
     _currentSampleRate = 0;
 }
 
-void NoiseFilter::_updateHighPassCoefficients(int sampleRate)
+void DspNoiseFilter::_updateHighPassCoefficients(int sampleRate)
 {
     if (sampleRate <= 0 || sampleRate == _currentSampleRate) {
         return;
@@ -31,7 +34,19 @@ void NoiseFilter::_updateHighPassCoefficients(int sampleRate)
 
     _currentSampleRate = sampleRate;
 
-    constexpr float cutoffHz = 80.0f;
+    float cutoffHz = 80.0f;
+    switch (_level) {
+        case Level::Low:
+            cutoffHz = 60.0f;
+            break;
+        case Level::Moderate:
+            cutoffHz = 80.0f;
+            break;
+        case Level::High:
+            cutoffHz = 120.0f;
+            break;
+    }
+
     constexpr float q = 0.70710678f;
 
     const float omega = 2.0f * static_cast<float>(M_PI) * cutoffHz / static_cast<float>(sampleRate);
@@ -47,7 +62,7 @@ void NoiseFilter::_updateHighPassCoefficients(int sampleRate)
     _a2 = (1.0f - alpha) / a0;
 }
 
-float NoiseFilter::_processSample(float sample)
+float DspNoiseFilter::_processSample(float sample)
 {
     const float hpOut = _b0 * sample + _hpZ1;
     _hpZ1 = _b1 * sample - _a1 * hpOut + _hpZ2;
@@ -68,8 +83,25 @@ float NoiseFilter::_processSample(float sample)
     }
     _noiseFloor = std::clamp(_noiseFloor, 0.0005f, 0.5f);
 
-    const float threshold = _noiseFloor * (1.5f + 1.5f * (static_cast<float>(_strength) / 100.0f));
-    const float minGain = 1.0f - (static_cast<float>(_strength) / 100.0f) * 0.95f;  // 0% -> 1.0, 100% -> 0.05
+    float thresholdMultiplier = 2.3f;
+    float minGain = 0.10f;
+
+    switch (_level) {
+        case Level::Low:
+            thresholdMultiplier = 1.8f;
+            minGain = 0.30f;
+            break;
+        case Level::Moderate:
+            thresholdMultiplier = 2.3f;
+            minGain = 0.10f;
+            break;
+        case Level::High:
+            thresholdMultiplier = 3.0f;
+            minGain = 0.02f;
+            break;
+    }
+
+    const float threshold = _noiseFloor * thresholdMultiplier;
 
     float targetGain = 1.0f;
     if (_envelope < threshold) {
@@ -82,9 +114,9 @@ float NoiseFilter::_processSample(float sample)
     return std::clamp(hpOut * _currentGain, -1.0f, 1.0f);
 }
 
-void NoiseFilter::process(QByteArray& pcmData, const QAudioFormat& format)
+void DspNoiseFilter::process(QByteArray& pcmData, const QAudioFormat& format)
 {
-    if (_strength == 0 || pcmData.isEmpty()) {
+    if (pcmData.isEmpty()) {
         return;
     }
 
@@ -106,26 +138,6 @@ void NoiseFilter::process(QByteArray& pcmData, const QAudioFormat& format)
             auto* samples = reinterpret_cast<float*>(pcmData.data());
             for (int i = 0; i < totalSamples; ++i) {
                 samples[i] = _processSample(samples[i]);
-            }
-            break;
-        }
-        case QAudioFormat::Int32: {
-            const int totalSamples = pcmData.size() / sizeof(qint32);
-            auto* samples = reinterpret_cast<qint32*>(pcmData.data());
-            for (int i = 0; i < totalSamples; ++i) {
-                const float inVal = static_cast<float>(samples[i]) / 2147483648.0f;
-                const float outVal = _processSample(inVal);
-                samples[i] = static_cast<qint32>(std::clamp(outVal * 2147483647.0f, -2147483648.0f, 2147483647.0f));
-            }
-            break;
-        }
-        case QAudioFormat::UInt8: {
-            const int totalSamples = pcmData.size();
-            auto* samples = reinterpret_cast<quint8*>(pcmData.data());
-            for (int i = 0; i < totalSamples; ++i) {
-                const float inVal = (static_cast<float>(samples[i]) - 128.0f) / 128.0f;
-                const float outVal = _processSample(inVal);
-                samples[i] = static_cast<quint8>(std::clamp(outVal * 127.0f + 128.0f, 0.0f, 255.0f));
             }
             break;
         }

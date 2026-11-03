@@ -7,14 +7,15 @@
 #include <QtMultimedia/QAudioFormat>
 #include <QtMultimedia/QAudioSource>
 #include <QtQmlIntegration/QtQmlIntegration>
+#include <memory>
 
-#include "NoiseFilter.h"
+#include "NoiseFilterInterface.h"
 
 class Fact;
 class AudioDeviceManager;
 class AudioCaptureTest;
 
-/// \brief AudioCapture manages raw hardware audio acquisition via QAudioSource and applies DSP noise filtering.
+/// \brief AudioCapture manages raw hardware audio acquisition via QAudioSource and applies noise filtering.
 ///
 class AudioCapture : public QObject
 {
@@ -41,7 +42,9 @@ public:
     Q_PROPERTY(bool isRecording READ isRecording NOTIFY captureStateChanged)
     Q_PROPERTY(bool isStreaming READ isStreaming NOTIFY captureStateChanged)
     Q_PROPERTY(
-        int noiseFilterStrength READ noiseFilterStrength WRITE setNoiseFilterStrength NOTIFY noiseFilterStrengthChanged)
+        bool noiseFilterEnabled READ isNoiseFilterEnabled WRITE setNoiseFilterEnabled NOTIFY noiseFilterEnabledChanged)
+    Q_PROPERTY(
+        int noiseFilterLevel READ noiseFilterLevelInt WRITE setNoiseFilterLevelInt NOTIFY noiseFilterLevelChanged)
     Q_PROPERTY(QAudioFormat actualAudioFormat READ actualAudioFormat NOTIFY audioFormatChanged)
 
     explicit AudioCapture(AudioDeviceManager* deviceManager = nullptr, QObject* parent = nullptr);
@@ -49,8 +52,8 @@ public:
 
     static AudioCapture* instance();
 
-    /// Initialize with settings Fact for noise filter persistence.
-    void init(Fact* noiseFilterStrengthFact = nullptr);
+    /// Initialize with settings Facts for noise filter persistence.
+    void init(Fact* noiseFilterEnabledFact = nullptr, Fact* noiseFilterLevelFact = nullptr);
 
     CaptureState captureState() const { return _state; }
 
@@ -60,10 +63,23 @@ public:
 
     bool isStreaming() const { return _state == CaptureState::Streaming; }
 
-    /// Noise filter strength percentage [0, 100]. 0 = bypass, 100 = maximum suppression.
-    int noiseFilterStrength() const { return _noiseFilter.strength(); }
+    /// Noise suppression on/off state
+    bool isNoiseFilterEnabled() const { return _noiseFilterEnabled; }
 
-    void setNoiseFilterStrength(int strengthPercent);
+    void setNoiseFilterEnabled(bool enabled);
+
+    /// Noise suppression aggressiveness level
+    NoiseFilterInterface::Level noiseFilterLevel() const;
+    void setNoiseFilterLevel(NoiseFilterInterface::Level level);
+
+    int noiseFilterLevelInt() const { return static_cast<int>(noiseFilterLevel()); }
+
+    void setNoiseFilterLevelInt(int level);
+
+    /// Active filter instance (can be swapped with different algorithms)
+    NoiseFilterInterface* noiseFilter() const { return _noiseFilter.get(); }
+
+    void setNoiseFilter(std::unique_ptr<NoiseFilterInterface> filter);
 
     /// Desired format for capture (defaults to 16 kHz, 1 channel, Int16 for speech recognition).
     QAudioFormat targetAudioFormat() const { return _targetFormat; }
@@ -91,7 +107,8 @@ public:
 signals:
     void captureStateChanged(CaptureState state);
     void audioFormatChanged(const QAudioFormat& format);
-    void noiseFilterStrengthChanged(int strength);
+    void noiseFilterEnabledChanged(bool enabled);
+    void noiseFilterLevelChanged(NoiseFilterInterface::Level level);
     void captureError(const QString& errorMessage);
 
     /// Emitted continuously in Streaming mode for subscribers.
@@ -109,7 +126,8 @@ private slots:
     void _onDeviceAvailabilityChanged(bool active);
     void _onSelectedDeviceChanged();
     void _onSafetyLimitReached();
-    void _onNoiseFactValueChanged();
+    void _onNoiseEnabledFactValueChanged();
+    void _onNoiseLevelFactValueChanged();
 
 private:
     bool _startCapture(CaptureState state);
@@ -117,7 +135,8 @@ private:
     QAudioFormat _determineFormat(const QAudioDevice& device);
 
     AudioDeviceManager* _deviceManager = nullptr;
-    QPointer<Fact> _noiseFilterStrengthFact;
+    QPointer<Fact> _noiseFilterEnabledFact;
+    QPointer<Fact> _noiseFilterLevelFact;
 
     QAudioSource* _audioSource = nullptr;
     QIODevice* _audioIODevice = nullptr;
@@ -126,7 +145,8 @@ private:
     QAudioFormat _targetFormat;
     QAudioFormat _actualFormat;
 
-    NoiseFilter _noiseFilter;
+    bool _noiseFilterEnabled = true;
+    std::unique_ptr<NoiseFilterInterface> _noiseFilter;
 
     QByteArray _recordedBuffer;
     QTimer* _safetyLimitTimer = nullptr;

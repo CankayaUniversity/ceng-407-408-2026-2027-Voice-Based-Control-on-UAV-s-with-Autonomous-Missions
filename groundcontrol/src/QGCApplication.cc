@@ -306,7 +306,8 @@ void QGCApplication::_initForNormalAppBoot()
     AudioOutput::instance()->init(SettingsManager::instance()->appSettings()->audioVolume(),
                                   SettingsManager::instance()->appSettings()->audioMuted());
     AudioDeviceManager::instance()->init(SettingsManager::instance()->voiceCommandSettings()->selectedMicrophone());
-    AudioCapture::instance()->init(SettingsManager::instance()->voiceCommandSettings()->noiseFilterStrength());
+    AudioCapture::instance()->init(SettingsManager::instance()->voiceCommandSettings()->noiseFilterEnabled(),
+                                   SettingsManager::instance()->voiceCommandSettings()->noiseFilterLevel());
     FollowMe::instance()->init();
     QGCPositionManager::instance()->init();
     NTRIPManager::instance()->init();

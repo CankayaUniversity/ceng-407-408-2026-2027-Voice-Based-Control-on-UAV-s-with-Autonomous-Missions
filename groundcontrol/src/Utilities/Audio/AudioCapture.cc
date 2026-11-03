@@ -4,6 +4,7 @@
 
 #include "AudioDeviceManager.h"
 #include "Fact.h"
+#include "DspNoiseFilter.h"
 #include "QGCLoggingCategory.h"
 
 QGC_LOGGING_CATEGORY(AudioCaptureLog, "Utilities.AudioCapture")
@@ -13,6 +14,7 @@ Q_APPLICATION_STATIC(AudioCapture, _audioCapture);
 AudioCapture::AudioCapture(AudioDeviceManager* deviceManager, QObject* parent)
     : QObject(parent),
       _deviceManager(deviceManager ? deviceManager : AudioDeviceManager::instance()),
+      _noiseFilter(std::make_unique<DspNoiseFilter>()),
       _safetyLimitTimer(new QTimer(this))
 {
     _targetFormat.setSampleRate(16000);
@@ -22,7 +24,7 @@ AudioCapture::AudioCapture(AudioDeviceManager* deviceManager, QObject* parent)
     _safetyLimitTimer->setSingleShot(true);
     (void) connect(_safetyLimitTimer, &QTimer::timeout, this, &AudioCapture::_onSafetyLimitReached);
 
-    if (_deviceManager) {
+    if (_deviceManager != nullptr) {
         (void) connect(_deviceManager, &AudioDeviceManager::isMicrophoneActiveChanged, this,
                        &AudioCapture::_onDeviceAvailabilityChanged);
         (void) connect(_deviceManager, &AudioDeviceManager::selectedMicrophoneChanged, this,
@@ -40,51 +42,108 @@ AudioCapture* AudioCapture::instance()
     return _audioCapture();
 }
 
-void AudioCapture::init(Fact* noiseFilterStrengthFact)
+void AudioCapture::init(Fact* noiseFilterEnabledFact, Fact* noiseFilterLevelFact)
 {
-    if (_noiseFilterStrengthFact == noiseFilterStrengthFact) {
-        return;
+    if (_noiseFilterEnabledFact != noiseFilterEnabledFact) {
+        if (_noiseFilterEnabledFact) {
+            (void) disconnect(_noiseFilterEnabledFact, &Fact::rawValueChanged, this,
+                              &AudioCapture::_onNoiseEnabledFactValueChanged);
+        }
+        _noiseFilterEnabledFact = noiseFilterEnabledFact;
+        if (_noiseFilterEnabledFact) {
+            (void) connect(_noiseFilterEnabledFact, &Fact::rawValueChanged, this,
+                           &AudioCapture::_onNoiseEnabledFactValueChanged);
+            _onNoiseEnabledFactValueChanged();
+        }
     }
 
-    if (_noiseFilterStrengthFact) {
-        (void) disconnect(_noiseFilterStrengthFact, &Fact::rawValueChanged, this,
-                          &AudioCapture::_onNoiseFactValueChanged);
-    }
-
-    _noiseFilterStrengthFact = noiseFilterStrengthFact;
-
-    if (_noiseFilterStrengthFact) {
-        (void) connect(_noiseFilterStrengthFact, &Fact::rawValueChanged, this, &AudioCapture::_onNoiseFactValueChanged);
-        _onNoiseFactValueChanged();
+    if (_noiseFilterLevelFact != noiseFilterLevelFact) {
+        if (_noiseFilterLevelFact) {
+            (void) disconnect(_noiseFilterLevelFact, &Fact::rawValueChanged, this,
+                              &AudioCapture::_onNoiseLevelFactValueChanged);
+        }
+        _noiseFilterLevelFact = noiseFilterLevelFact;
+        if (_noiseFilterLevelFact) {
+            (void) connect(_noiseFilterLevelFact, &Fact::rawValueChanged, this,
+                           &AudioCapture::_onNoiseLevelFactValueChanged);
+            _onNoiseLevelFactValueChanged();
+        }
     }
 }
 
-void AudioCapture::_onNoiseFactValueChanged()
+void AudioCapture::_onNoiseEnabledFactValueChanged()
 {
-    if (!_noiseFilterStrengthFact) {
+    if (!_noiseFilterEnabledFact) {
         return;
     }
 
-    const int strength = _noiseFilterStrengthFact->rawValue().toInt();
-    if (_noiseFilter.strength() != strength) {
-        setNoiseFilterStrength(strength);
+    const bool enabled = _noiseFilterEnabledFact->rawValue().toBool();
+    if (_noiseFilterEnabled != enabled) {
+        setNoiseFilterEnabled(enabled);
     }
 }
 
-void AudioCapture::setNoiseFilterStrength(int strengthPercent)
+void AudioCapture::_onNoiseLevelFactValueChanged()
 {
-    const int clamped = std::clamp(strengthPercent, 0, 100);
-    if (_noiseFilter.strength() == clamped) {
+    if (!_noiseFilterLevelFact) {
         return;
     }
 
-    _noiseFilter.setStrength(clamped);
+    const int levelInt = _noiseFilterLevelFact->rawValue().toInt();
+    const auto level = static_cast<NoiseFilterInterface::Level>(std::clamp(levelInt, 0, 2));
+    if (noiseFilterLevel() != level) {
+        setNoiseFilterLevel(level);
+    }
+}
 
-    if (_noiseFilterStrengthFact && _noiseFilterStrengthFact->rawValue().toInt() != clamped) {
-        _noiseFilterStrengthFact->setRawValue(clamped);
+void AudioCapture::setNoiseFilterEnabled(bool enabled)
+{
+    if (_noiseFilterEnabled == enabled) {
+        return;
     }
 
-    emit noiseFilterStrengthChanged(clamped);
+    _noiseFilterEnabled = enabled;
+
+    if (_noiseFilterEnabledFact && _noiseFilterEnabledFact->rawValue().toBool() != enabled) {
+        _noiseFilterEnabledFact->setRawValue(enabled);
+    }
+
+    emit noiseFilterEnabledChanged(enabled);
+}
+
+NoiseFilterInterface::Level AudioCapture::noiseFilterLevel() const
+{
+    return _noiseFilter ? _noiseFilter->level() : NoiseFilterInterface::Level::Moderate;
+}
+
+void AudioCapture::setNoiseFilterLevel(NoiseFilterInterface::Level level)
+{
+    if (_noiseFilter) {
+        if (_noiseFilter->level() == level) {
+            return;
+        }
+        _noiseFilter->setLevel(level);
+    }
+
+    if (_noiseFilterLevelFact && _noiseFilterLevelFact->rawValue().toInt() != static_cast<int>(level)) {
+        _noiseFilterLevelFact->setRawValue(static_cast<int>(level));
+    }
+
+    emit noiseFilterLevelChanged(level);
+}
+
+void AudioCapture::setNoiseFilterLevelInt(int level)
+{
+    const int clamped = std::clamp(level, 0, 2);
+    setNoiseFilterLevel(static_cast<NoiseFilterInterface::Level>(clamped));
+}
+
+void AudioCapture::setNoiseFilter(std::unique_ptr<NoiseFilterInterface> filter)
+{
+    _noiseFilter = std::move(filter);
+    if (_noiseFilter) {
+        _noiseFilter->reset();
+    }
 }
 
 void AudioCapture::setTargetAudioFormat(const QAudioFormat& format)
@@ -141,12 +200,12 @@ void AudioCapture::_onSafetyLimitReached()
         return;
     }
 
-    qCWarning(AudioCaptureLog) << "Safety recording limit reached (60s). Stopping capture to prevent memory overflow.";
-    const QByteArray buffer = _recordedBuffer;
-    const QAudioFormat format = _actualFormat;
+    qCWarning(AudioCaptureLog) << "Recording safety limit reached (60s). Force stopping capture.";
 
+    const QByteArray recordedData = _recordedBuffer;
     stopCapture();
-    emit recordingSafetyLimitReached(buffer, format);
+
+    emit recordingSafetyLimitReached(recordedData, _actualFormat);
 }
 
 void AudioCapture::stopCapture()
@@ -156,16 +215,17 @@ void AudioCapture::stopCapture()
     }
 
     _safetyLimitTimer->stop();
+    _cleanupAudioSource();
 
     const CaptureState previousState = _state;
-    const QByteArray finishedBuffer = _recordedBuffer;
     _state = CaptureState::Stopped;
 
-    _cleanupAudioSource();
-    _noiseFilter.reset();
+    if (_noiseFilter) {
+        _noiseFilter->reset();
+    }
 
     if (previousState == CaptureState::Recording) {
-        emit recordingFinished(finishedBuffer, _actualFormat);
+        emit recordingFinished(_recordedBuffer, _actualFormat);
     }
 
     emit captureStateChanged(_state);
@@ -173,30 +233,31 @@ void AudioCapture::stopCapture()
 
 bool AudioCapture::_startCapture(CaptureState state)
 {
-    if (_state == state) {
-        return true;
+    if (_state != CaptureState::Stopped) {
+        stopCapture();
     }
 
     if (!_deviceManager || !_deviceManager->isMicrophoneActive()) {
-        qCWarning(AudioCaptureLog) << "Cannot start capture: no active microphone selected.";
-
+        qCWarning(AudioCaptureLog) << "Cannot start capture: No valid active microphone.";
+        
         emit captureError(QStringLiteral("No active microphone available"));
         return false;
     }
 
     const QAudioDevice device = _deviceManager->selectedAudioDevice();
     if (device.isNull()) {
-        qCWarning(AudioCaptureLog) << "Cannot start capture: selected QAudioDevice is null.";
+        qCWarning(AudioCaptureLog) << "Cannot start capture: Selected audio device is null.";
 
-        emit captureError(QStringLiteral("Selected audio device is null"));
+        emit captureError(QStringLiteral("Selected microphone is unavailable"));
         return false;
     }
 
-    const QAudioFormat previousFormat = _actualFormat;
     _actualFormat = _determineFormat(device);
+    if (!_actualFormat.isValid()) {
+        qCWarning(AudioCaptureLog) << "Cannot start capture: Failed to determine valid audio format.";
 
-    if (_actualFormat != previousFormat) {
-        emit audioFormatChanged(_actualFormat);
+        emit captureError(QStringLiteral("Failed to negotiate audio format with hardware"));
+        return false;
     }
 
     _cleanupAudioSource();
@@ -207,6 +268,7 @@ bool AudioCapture::_startCapture(CaptureState state)
     _audioIODevice = _audioSource->start();
     if (!_audioIODevice) {
         qCWarning(AudioCaptureLog) << "Failed to start QAudioSource IO device.";
+
         _cleanupAudioSource();
         emit captureError(QStringLiteral("Failed to open audio input stream"));
         return false;
@@ -219,11 +281,15 @@ bool AudioCapture::_startCapture(CaptureState state)
         _recordedBuffer.clear();
     }
 
-    _noiseFilter.reset();
+    if (_noiseFilter) {
+        _noiseFilter->reset();
+    }
+
     qCDebug(AudioCaptureLog) << "Audio capture started in mode:" << static_cast<int>(_state)
                              << "device:" << device.description() << "rate:" << _actualFormat.sampleRate()
                              << "channels:" << _actualFormat.channelCount()
-                             << "noiseFilterStrength:" << _noiseFilter.strength();
+                             << "noiseFilterEnabled:" << _noiseFilterEnabled
+                             << "noiseFilterLevel:" << static_cast<int>(noiseFilterLevel());
 
     emit captureStateChanged(_state);
     return true;
@@ -274,7 +340,9 @@ void AudioCapture::_onReadyRead()
         return;
     }
 
-    _noiseFilter.process(chunk, _actualFormat);
+    if (_noiseFilterEnabled && _noiseFilter) {
+        _noiseFilter->process(chunk, _actualFormat);
+    }
 
     if (_state == CaptureState::Recording) {
         _recordedBuffer.append(chunk);
@@ -299,19 +367,20 @@ void AudioCapture::_onAudioSourceStateChanged(QAudio::State state)
 
 void AudioCapture::_onDeviceAvailabilityChanged(bool active)
 {
+    qCDebug(AudioCaptureLog) << "Microphone active state changed:" << active;
+    
     if (!active && _state != CaptureState::Stopped) {
-        qCWarning(AudioCaptureLog) << "Selected microphone became unavailable during capture.";
-
-        stopCapture();
+        qCWarning(AudioCaptureLog) << "Active microphone disconnected while capturing. Stopping.";
         emit captureError(QStringLiteral("Microphone disconnected"));
+        stopCapture();
     }
 }
 
 void AudioCapture::_onSelectedDeviceChanged()
 {
-    if (_state != CaptureState::Stopped) {
-        qCDebug(AudioCaptureLog) << "Selected microphone changed during capture. Restarting capture...";
+    qCDebug(AudioCaptureLog) << "Selected microphone changed.";
 
+    if (_state != CaptureState::Stopped) {
         const CaptureState currentState = _state;
         stopCapture();
         _startCapture(currentState);

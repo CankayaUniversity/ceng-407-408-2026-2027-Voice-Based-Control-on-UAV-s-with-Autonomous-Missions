@@ -245,25 +245,29 @@ SettingsPage {
         heading: qsTr("Audio Processing & Recording")
         Layout.fillWidth: true
 
-        FactTextFieldSlider {
+        FactCheckBoxSlider {
             Layout.fillWidth: true
-            label: qsTr("Noise Filter Strength")
-            fact: _voiceSettings.noiseFilterStrength
-            sliderMin: 0
-            sliderMax: 100
-            allowUsingMinMax: true
+            text: qsTr("Noise Suppression")
+            fact: root._voiceSettings.noiseFilterEnabled
+        }
+
+        LabelledFactComboBox {
+            Layout.fillWidth: true
+            label: qsTr("Suppression Level")
+            fact: root._voiceSettings.noiseFilterLevel
+            visible: root._voiceSettings.noiseFilterEnabled.rawValue
         }
 
         LabelledFactComboBox {
             Layout.fillWidth: true
             label: qsTr("Max Recording Duration")
-            fact: _voiceSettings.maxRecordingDuration
+            fact: root._voiceSettings.maxRecordingDuration
         }
 
         QGCLabel {
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
-            text: qsTr("Adjusts DSP noise suppression level and maximum recording duration before automatic cutoff.")
+            text: qsTr("Filters ambient environmental noise and propeller buzz. Higher levels apply more aggressive filtering.")
             font.pointSize: ScreenTools.smallFontPointSize
         }
     }
