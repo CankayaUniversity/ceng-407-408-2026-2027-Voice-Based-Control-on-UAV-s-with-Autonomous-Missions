@@ -49,3 +49,8 @@ If the concept you need isn't in the glossary yet, that's a signal: either you'r
 If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
 
 > _Contradicts ADR-0007 (event-sourced orders), but worth reopening because…_
+
+## Synchronize with Wiki Requirements and Issues
+
+When creating or updating an ADR, immediately propagate any changes to the wiki requirements (`Requirement,-Functionalities-and-System-Architecture.md`) and GitHub `[REQ]` / `[TASK]` issues. See `docs/agents/sync.md`.
+
