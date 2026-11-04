@@ -1,0 +1,20 @@
+#pragma once
+
+#include "UnitTest.h"
+
+class VoiceCommandManagerTest : public UnitTest
+{
+    Q_OBJECT
+
+private slots:
+    void init();
+    void cleanup();
+
+    void _testInitialState();
+    void _testPushToTalkKeyConfiguration();
+    void _testRecordingLifecycleDelegation();
+    void _testSignalPropagation();
+    void _testKeyEventFilter();
+    void _testAutoRepeatIgnored();
+    void _testVehicleConnectedGating();
+};
