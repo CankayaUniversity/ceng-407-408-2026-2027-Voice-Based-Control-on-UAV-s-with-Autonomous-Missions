@@ -26,7 +26,7 @@ void DspNoiseFilterTest::_testDefaultAndSetLevel()
     filter.setLevel(NoiseFilterInterface::Level::Low);
     QCOMPARE(filter.level(), NoiseFilterInterface::Level::Low);
 
-    QCOMPARE(filter.name(), QStringLiteral("DSP (High-Pass + Dynamic Gate)"));
+    QCOMPARE(filter.name(), QStringLiteral("DSP"));
 }
 
 void DspNoiseFilterTest::_testHighPassFilterRumbleSuppression()
