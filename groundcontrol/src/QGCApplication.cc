@@ -19,7 +19,6 @@
 #include "AudioCapture.h"
 #include "AudioDeviceManager.h"
 #include "AudioOutput.h"
-#include "VoiceCommandManager.h"
 #include "ColoredSvgImageProvider.h"
 #include "FollowMe.h"
 #include "GraphicsSetup.h"
@@ -43,6 +42,7 @@
 #include "SettingsManager.h"
 #include "Vehicle.h"
 #include "VideoManager.h"
+#include "VoiceCommandManager.h"
 #include "VoiceCommandSettings.h"
 #include "qgc_version.h"
 
