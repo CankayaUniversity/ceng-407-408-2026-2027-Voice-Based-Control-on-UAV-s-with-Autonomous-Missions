@@ -6,6 +6,7 @@
 #include "AudioDeviceManager.h"
 #include "AudioLevelMeter.h"
 #include "AudioOutput.h"
+#include "VoiceCommandManager.h"
 #include "FirmwarePluginManager.h"
 #include "FlightMapSettings.h"
 #include "LinkManager.h"
@@ -55,6 +56,7 @@ QGroundControlQmlGlobal::QGroundControlQmlGlobal(QObject* parent)
       _audioDeviceManager(AudioDeviceManager::instance()),
       _audioCapture(AudioCapture::instance()),
       _audioLevelMeter(AudioLevelMeter::instance()),
+      _voiceCommandManager(VoiceCommandManager::instance()),
       _corePlugin(QGCCorePlugin::instance()),
       _globalPalette(new QGCPalette(this))
 #ifndef QGC_NO_SERIAL_LINK
