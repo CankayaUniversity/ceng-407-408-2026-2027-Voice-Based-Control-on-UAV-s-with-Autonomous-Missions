@@ -63,6 +63,7 @@ qt_add_qml_module(FlyViewModule
         PreFlightSoundCheck.qml
         ProximityRadarValues.qml
         ProximityRadarVideoView.qml
+        PushToTalkButton.qml
         RoverChecklist.qml
         SubChecklist.qml
         TelemetryValuesBar.qml
