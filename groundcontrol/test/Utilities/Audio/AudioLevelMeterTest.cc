@@ -14,6 +14,8 @@ void AudioLevelMeterTest::init()
     ignoreLogMessage("qt.multimedia.pipewire.registry", QtWarningMsg,
                      QRegularExpression(QStringLiteral("Failed to connect to pipewire")));
     ignoreLogMessage("default", QtWarningMsg, QRegularExpression(QStringLiteral("PulseAudioService|secure directory")));
+    ignoreLogMessage("Utilities.AudioLevelMeter", QtWarningMsg,
+                     QRegularExpression(QStringLiteral("Cannot start test: no active microphone.")));
 }
 
 void AudioLevelMeterTest::cleanup()
