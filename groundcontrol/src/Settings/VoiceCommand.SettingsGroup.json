@@ -42,6 +42,15 @@
             "units": "s",
             "label": "Max Recording Duration",
             "keywords": "voice,command,recording,timeout,duration"
+        },
+        {
+            "name": "pushToTalkKey",
+            "shortDesc": "Keyboard shortcut key for Push-to-Talk voice commanding.",
+            "longDesc": "Physical keyboard key held down to record voice commands.",
+            "type": "string",
+            "default": "P",
+            "label": "PTT Shortcut Key",
+            "keywords": "voice,ptt,key,shortcut,keyboard"
         }
     ]
 }
