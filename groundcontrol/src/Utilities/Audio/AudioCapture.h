@@ -9,6 +9,7 @@
 #include <QtQmlIntegration/QtQmlIntegration>
 #include <memory>
 
+#include "AudioDownsampler.h"
 #include "NoiseFilterInterface.h"
 
 class Fact;
@@ -63,6 +64,9 @@ public:
 
     bool isStreaming() const { return _state == CaptureState::Streaming; }
 
+    /// Canonical audio format contract (16 kHz Mono Int16 PCM) as specified by ADR-0008.
+    static QAudioFormat canonicalAudioFormat();
+
     /// Noise suppression on/off state
     bool isNoiseFilterEnabled() const { return _noiseFilterEnabled; }
 
@@ -89,13 +93,16 @@ public:
     /// Actual format negotiated with the audio hardware.
     QAudioFormat actualAudioFormat() const { return _actualFormat; }
 
+    /// Injects an external QIODevice (e.g. QBuffer) for testing without physical audio hardware.
+    void setAudioInputDeviceForTesting(QIODevice* device, const QAudioFormat& format = QAudioFormat());
+
     /// Starts real-time streaming of filtered audio frames.
     Q_INVOKABLE bool startStreaming();
 
     /// Stops real-time streaming.
     Q_INVOKABLE void stopStreaming();
 
-    /// Starts recording audio into internal buffer. Failsafe auto-stops at 60 seconds.
+    /// Starts recording audio into internal buffer. Pre-empts streaming if active. Failsafe auto-stops at 60 seconds.
     Q_INVOKABLE bool startRecording();
 
     /// Stops recording and returns the recorded PCM audio buffer.
@@ -111,13 +118,17 @@ signals:
     void noiseFilterLevelChanged(NoiseFilterInterface::Level level);
     void captureError(const QString& errorMessage);
 
-    /// Emitted continuously in Streaming mode for subscribers.
+    /// Emitted when an active streaming session is pre-empted by voice recording.
+    void captureWarning(const QString& warningMessage);
+
+    /// Emitted continuously in Streaming mode for subscribers (guaranteed 16 kHz Mono Int16).
     void audioStreamFrameReady(const QByteArray& filteredPcmData, const QAudioFormat& format);
 
-    /// Emitted when a recording session finishes, containing the entire PCM buffer.
+    /// Emitted when a recording session finishes, containing the entire PCM buffer (guaranteed 16 kHz Mono Int16).
     void recordingFinished(const QByteArray& recordedPcmData, const QAudioFormat& format);
 
-    /// Emitted if recording reaches the 60-second memory safety limit and is force-stopped.
+    /// Emitted if recording reaches the 60-second memory safety limit and is force-stopped (guaranteed 16 kHz Mono
+    /// Int16).
     void recordingSafetyLimitReached(const QByteArray& recordedPcmData, const QAudioFormat& format);
 
 private slots:
@@ -141,12 +152,17 @@ private:
     QAudioSource* _audioSource = nullptr;
     QIODevice* _audioIODevice = nullptr;
 
+    QIODevice* _testInputDevice = nullptr;
+    QAudioFormat _testInputFormat;
+
     CaptureState _state = CaptureState::Stopped;
     QAudioFormat _targetFormat;
     QAudioFormat _actualFormat;
 
     bool _noiseFilterEnabled = true;
     std::unique_ptr<NoiseFilterInterface> _noiseFilter;
+
+    AudioDownsampler _downsampler;
 
     QByteArray _recordedBuffer;
     QTimer* _safetyLimitTimer = nullptr;
