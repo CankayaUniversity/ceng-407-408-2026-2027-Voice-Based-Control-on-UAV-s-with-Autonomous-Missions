@@ -28,6 +28,7 @@ class VoiceCommandManager : public QObject
     Q_PROPERTY(bool isRecording READ isRecording NOTIFY isRecordingChanged)
     Q_PROPERTY(QString pushToTalkKey READ pushToTalkKey WRITE setPushToTalkKey NOTIFY pushToTalkKeyChanged)
     Q_PROPERTY(bool isMicrophoneActive READ isMicrophoneActive NOTIFY microphoneActiveChanged)
+    Q_PROPERTY(bool isVehicleConnected READ isVehicleConnected NOTIFY vehicleConnectedChanged)
 
 public:
     explicit VoiceCommandManager(AudioCapture* capture = nullptr, AudioDeviceManager* deviceManager = nullptr,
@@ -43,6 +44,8 @@ public:
     void setPushToTalkKey(const QString& key);
 
     bool isMicrophoneActive() const;
+    bool isVehicleConnected() const;
+    void setVehicleCheckEnabled(bool enabled);
 
     /// Starts audio recording for a voice command.
     Q_INVOKABLE bool startRecording();
@@ -54,6 +57,7 @@ signals:
     void isRecordingChanged(bool isRecording);
     void pushToTalkKeyChanged(const QString& key);
     void microphoneActiveChanged(bool active);
+    void vehicleConnectedChanged(bool connected);
 
     /// Emitted when a Push-to-Talk session is completed, providing the canonical audio buffer.
     void voiceCommandRecorded(const QByteArray& pcmData, const QAudioFormat& format);
@@ -82,4 +86,5 @@ private:
     QString _pushToTalkKey = QStringLiteral("P");
     bool _isKeyPressed = false;
     bool _isEventFilterInstalled = false;
+    bool _vehicleCheckEnabled = true;
 };

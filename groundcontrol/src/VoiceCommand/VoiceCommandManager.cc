@@ -8,6 +8,7 @@
 #include "AudioCapture.h"
 #include "AudioDeviceManager.h"
 #include "Fact.h"
+#include "MultiVehicleManager.h"
 #include "QGCApplication.h"
 #include "QGCLoggingCategory.h"
 
@@ -32,6 +33,11 @@ VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManag
     if (_deviceManager) {
         (void) connect(_deviceManager, &AudioDeviceManager::isMicrophoneActiveChanged, this,
                        &VoiceCommandManager::_onMicrophoneActiveChanged);
+    }
+
+    if (MultiVehicleManager::instance()) {
+        (void) connect(MultiVehicleManager::instance(), &MultiVehicleManager::activeVehicleChanged, this,
+                       [this]() { emit vehicleConnectedChanged(isVehicleConnected()); });
     }
 }
 
@@ -103,6 +109,23 @@ bool VoiceCommandManager::isMicrophoneActive() const
     return _deviceManager ? _deviceManager->isMicrophoneActive() : false;
 }
 
+bool VoiceCommandManager::isVehicleConnected() const
+{
+    if (!_vehicleCheckEnabled) {
+        return true;
+    }
+    MultiVehicleManager* mvm = MultiVehicleManager::instance();
+    return mvm ? (mvm->activeVehicle() != nullptr) : false;
+}
+
+void VoiceCommandManager::setVehicleCheckEnabled(bool enabled)
+{
+    if (_vehicleCheckEnabled != enabled) {
+        _vehicleCheckEnabled = enabled;
+        emit vehicleConnectedChanged(isVehicleConnected());
+    }
+}
+
 bool VoiceCommandManager::startRecording()
 {
     if (!_audioCapture) {
@@ -112,6 +135,11 @@ bool VoiceCommandManager::startRecording()
 
     if (!isMicrophoneActive()) {
         qCDebug(VoiceCommandManagerLog) << "Cannot start recording: Microphone is not active";
+        return false;
+    }
+
+    if (!isVehicleConnected()) {
+        qCDebug(VoiceCommandManagerLog) << "Cannot start recording: No active vehicle connected";
         return false;
     }
 
@@ -157,6 +185,10 @@ bool VoiceCommandManager::eventFilter(QObject* watched, QEvent* event)
         }
 
         if (_matchesPttKey(keyEvent->key(), keyEvent->text())) {
+            if (!isVehicleConnected()) {
+                qCDebug(VoiceCommandManagerLog) << "PTT key ignored: No active vehicle connected";
+                return false;
+            }
             _isKeyPressed = true;
             (void) startRecording();
             return true;
