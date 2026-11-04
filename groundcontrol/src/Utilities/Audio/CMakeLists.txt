@@ -3,6 +3,8 @@ qt_add_library(QGCAudio STATIC
     AudioCapture.h
     AudioDeviceManager.cc
     AudioDeviceManager.h
+    AudioDownsampler.cc
+    AudioDownsampler.h
     AudioLevelMeter.cc
     AudioLevelMeter.h
     AudioOutput.cc
