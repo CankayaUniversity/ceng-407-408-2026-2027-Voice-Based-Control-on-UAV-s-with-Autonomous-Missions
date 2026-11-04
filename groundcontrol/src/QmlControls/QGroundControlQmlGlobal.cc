@@ -6,7 +6,6 @@
 #include "AudioDeviceManager.h"
 #include "AudioLevelMeter.h"
 #include "AudioOutput.h"
-#include "VoiceCommandManager.h"
 #include "FirmwarePluginManager.h"
 #include "FlightMapSettings.h"
 #include "LinkManager.h"
@@ -21,6 +20,7 @@
 #include "QGCMapEngineManager.h"
 #include "SettingsManager.h"
 #include "VideoManager.h"
+#include "VoiceCommandManager.h"
 #ifndef QGC_NO_SERIAL_LINK
 #include "GPSManager.h"
 #include "GPSRtk.h"
