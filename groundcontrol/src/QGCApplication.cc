@@ -19,6 +19,7 @@
 #include "AudioCapture.h"
 #include "AudioDeviceManager.h"
 #include "AudioOutput.h"
+#include "VoiceCommandManager.h"
 #include "ColoredSvgImageProvider.h"
 #include "FollowMe.h"
 #include "GraphicsSetup.h"
@@ -308,6 +309,7 @@ void QGCApplication::_initForNormalAppBoot()
     AudioDeviceManager::instance()->init(SettingsManager::instance()->voiceCommandSettings()->selectedMicrophone());
     AudioCapture::instance()->init(SettingsManager::instance()->voiceCommandSettings()->noiseFilterEnabled(),
                                    SettingsManager::instance()->voiceCommandSettings()->noiseFilterLevel());
+    VoiceCommandManager::instance()->init(SettingsManager::instance()->voiceCommandSettings()->pushToTalkKey());
     FollowMe::instance()->init();
     QGCPositionManager::instance()->init();
     NTRIPManager::instance()->init();
