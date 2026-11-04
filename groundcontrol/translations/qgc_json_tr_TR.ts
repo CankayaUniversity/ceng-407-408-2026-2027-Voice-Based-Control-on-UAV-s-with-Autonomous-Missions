@@ -5396,6 +5396,63 @@
       <source>microphone,voice,audio,input</source>
       <translation>mikrofon,ses,sesli komut,giriş</translation>
     </message>
+    <message>
+      <extracomment>.QGC.MetaData.Facts[noiseFilterStrength].shortDesc</extracomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json"/>
+      <source>Noise suppression strength applied to audio capture.</source>
+      <translation>Ses yakalamaya uygulanan gürültü bastırma seviyesi.</translation>
+    </message>
+    <message>
+      <extracomment>.QGC.MetaData.Facts[noiseFilterStrength].longDesc</extracomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json"/>
+      <source>Controls the aggressiveness of background noise filtering on incoming microphone audio.</source>
+      <translation>Gelen mikrofon sesindeki arka plan gürültüsü filtreleme sertliğini kontrol eder.</translation>
+    </message>
+    <message>
+      <extracomment>.QGC.MetaData.Facts[noiseFilterStrength].label</extracomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json"/>
+      <source>Noise Filter Strength</source>
+      <translation>Gürültü Filtresi Seviyesi</translation>
+    </message>
+    <message>
+      <extracomment>.QGC.MetaData.Facts[noiseFilterStrength].keywords</extracomment>
+      <translatorcomment>Only use english comma ',' to separate strings</translatorcomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json"/>
+      <source>voice,audio,filter,noise,suppression</source>
+      <translation>sesli,ses,filtre,gürültü,bastırma</translation>
+    </message>
+    <message>
+      <extracomment>.QGC.MetaData.Facts[maxRecordingDuration].shortDesc</extracomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json"/>
+      <source>Maximum recording duration for voice commands before automatic stop.</source>
+      <translation>Otomatik durdurma öncesinde sesli komutlar için maksimum kayıt süresi.</translation>
+    </message>
+    <message>
+      <extracomment>.QGC.MetaData.Facts[maxRecordingDuration].longDesc</extracomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json"/>
+      <source>Limits voice command recording duration to prevent runaway audio capture. Automatically stops recording when reached.</source>
+      <translation>Kontrolsüz ses kaydını önlemek için sesli komut kayıt süresini sınırlar. Ulaşıldığında kaydı otomatik olarak durdurur.</translation>
+    </message>
+    <message>
+      <extracomment>.QGC.MetaData.Facts[maxRecordingDuration].enumStrings</extracomment>
+      <translatorcomment>Only use english comma ',' to separate strings</translatorcomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json"/>
+      <source>5 s,10 s,15 s,20 s,30 s</source>
+      <translation>5 sn,10 sn,15 sn,20 sn,30 sn</translation>
+    </message>
+    <message>
+      <extracomment>.QGC.MetaData.Facts[maxRecordingDuration].label</extracomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json"/>
+      <source>Max Recording Duration</source>
+      <translation>Maksimum Kayıt Süresi</translation>
+    </message>
+    <message>
+      <extracomment>.QGC.MetaData.Facts[maxRecordingDuration].keywords</extracomment>
+      <translatorcomment>Only use english comma ',' to separate strings</translatorcomment>
+      <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json"/>
+      <source>voice,command,recording,timeout,duration</source>
+      <translation>sesli,komut,kayıt,zaman aşımı,süre</translation>
+    </message>
   </context>
   <context>
     <name>AutoConnect.SettingsGroup.json</name>

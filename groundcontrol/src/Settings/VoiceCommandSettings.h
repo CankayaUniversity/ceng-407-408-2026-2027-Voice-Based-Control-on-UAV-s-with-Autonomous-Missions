@@ -17,4 +17,7 @@ public:
     DEFINE_SETTING_NAME_GROUP()
 
     DEFINE_SETTINGFACT(selectedMicrophone)
+    DEFINE_SETTINGFACT(noiseFilterEnabled)
+    DEFINE_SETTINGFACT(noiseFilterLevel)
+    DEFINE_SETTINGFACT(maxRecordingDuration)
 };

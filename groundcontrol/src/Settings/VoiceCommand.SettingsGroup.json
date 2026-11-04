@@ -10,6 +10,38 @@
             "default": "",
             "label": "Microphone",
             "keywords": "microphone,voice,audio,input"
+        },
+        {
+            "name": "noiseFilterEnabled",
+            "shortDesc": "Enable or disable real-time noise suppression.",
+            "longDesc": "Filters background environmental noise (wind, propeller buzz) from incoming microphone audio.",
+            "type": "bool",
+            "default": true,
+            "label": "Noise Suppression",
+            "keywords": "voice,audio,filter,noise,suppression,enable"
+        },
+        {
+            "name": "noiseFilterLevel",
+            "shortDesc": "Noise suppression aggressiveness level.",
+            "longDesc": "Controls the aggressiveness of background noise filtering on incoming microphone audio.",
+            "type": "uint32",
+            "enumStrings": "Low,Moderate,High",
+            "enumValues": "0,1,2",
+            "default": 1,
+            "label": "Suppression Level",
+            "keywords": "voice,audio,filter,noise,suppression,level"
+        },
+        {
+            "name": "maxRecordingDuration",
+            "shortDesc": "Maximum recording duration for voice commands before automatic stop.",
+            "longDesc": "Limits voice command recording duration to prevent runaway audio capture. Automatically stops recording when reached.",
+            "type": "uint32",
+            "enumStrings": "5 s,10 s,15 s,20 s,30 s",
+            "enumValues": "5,10,15,20,30",
+            "default": 15,
+            "units": "s",
+            "label": "Max Recording Duration",
+            "keywords": "voice,command,recording,timeout,duration"
         }
     ]
 }

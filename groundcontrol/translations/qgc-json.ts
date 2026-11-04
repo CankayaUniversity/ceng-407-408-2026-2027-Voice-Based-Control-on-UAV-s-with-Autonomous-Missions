@@ -5396,6 +5396,63 @@
             <source>microphone,voice,audio,input</source>
             <translation type="unfinished" />
         </message>
+        <message>
+            <extracomment>.QGC.MetaData.Facts[noiseFilterStrength].shortDesc</extracomment>
+            <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json" />
+            <source>Noise suppression strength applied to audio capture.</source>
+            <translation type="unfinished" />
+        </message>
+        <message>
+            <extracomment>.QGC.MetaData.Facts[noiseFilterStrength].longDesc</extracomment>
+            <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json" />
+            <source>Controls the aggressiveness of background noise filtering on incoming microphone audio.</source>
+            <translation type="unfinished" />
+        </message>
+        <message>
+            <extracomment>.QGC.MetaData.Facts[noiseFilterStrength].label</extracomment>
+            <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json" />
+            <source>Noise Filter Strength</source>
+            <translation type="unfinished" />
+        </message>
+        <message>
+            <extracomment>.QGC.MetaData.Facts[noiseFilterStrength].keywords</extracomment>
+            <translatorcomment>Only use english comma ',' to separate strings</translatorcomment>
+            <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json" />
+            <source>voice,audio,filter,noise,suppression</source>
+            <translation type="unfinished" />
+        </message>
+        <message>
+            <extracomment>.QGC.MetaData.Facts[maxRecordingDuration].shortDesc</extracomment>
+            <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json" />
+            <source>Maximum recording duration for voice commands before automatic stop.</source>
+            <translation type="unfinished" />
+        </message>
+        <message>
+            <extracomment>.QGC.MetaData.Facts[maxRecordingDuration].longDesc</extracomment>
+            <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json" />
+            <source>Limits voice command recording duration to prevent runaway audio capture. Automatically stops recording when reached.</source>
+            <translation type="unfinished" />
+        </message>
+        <message>
+            <extracomment>.QGC.MetaData.Facts[maxRecordingDuration].enumStrings</extracomment>
+            <translatorcomment>Only use english comma ',' to separate strings</translatorcomment>
+            <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json" />
+            <source>5 s,10 s,15 s,20 s,30 s</source>
+            <translation type="unfinished" />
+        </message>
+        <message>
+            <extracomment>.QGC.MetaData.Facts[maxRecordingDuration].label</extracomment>
+            <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json" />
+            <source>Max Recording Duration</source>
+            <translation type="unfinished" />
+        </message>
+        <message>
+            <extracomment>.QGC.MetaData.Facts[maxRecordingDuration].keywords</extracomment>
+            <translatorcomment>Only use english comma ',' to separate strings</translatorcomment>
+            <location filename="/home/runner/work/qgroundcontrol/qgroundcontrol/src/Settings/VoiceCommand.SettingsGroup.json" />
+            <source>voice,command,recording,timeout,duration</source>
+            <translation type="unfinished" />
+        </message>
     </context>
     <context>
         <name>AutoConnect.SettingsGroup.json</name>

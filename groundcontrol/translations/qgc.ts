@@ -21812,95 +21812,140 @@ If a vehicle still has this key configured, you will no longer be able to commun
 <context>
     <name>VoiceCommandSettings</name>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="16"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="18"/>
         <source>Microphone Device</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="24"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="26"/>
         <source>Audio Input Source</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="43"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="45"/>
         <source>Select the microphone to be used for voice control.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="50"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="52"/>
         <source>No audio input devices detected on your system. Connect a microphone to enable voice commands.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="59"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="61"/>
         <source>Device Specifications</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="70"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="72"/>
         <source>Status:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="75"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="77"/>
         <source>Ready / Active</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="75"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="77"/>
         <source>Not Available</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="81"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="83"/>
         <source>Sample Rate:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="86"/>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="101"/>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="112"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="88"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="103"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="114"/>
         <source>N/A</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="91"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="93"/>
         <source>Channels:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="98"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="100"/>
         <source>1 (Mono)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="99"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="101"/>
         <source>2 (Stereo)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="100"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="102"/>
         <source>%1 channels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="107"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="109"/>
         <source>Sample Format:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="117"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="119"/>
         <source>OS Default:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="122"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="124"/>
         <source>Yes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="122"/>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="124"/>
         <source>No</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="131"/>
+        <source>Microphone Test &amp; Level</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="145"/>
+        <source>Stop Test</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="145"/>
+        <source>Test Microphone</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="157"/>
+        <source>Signal Level:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="238"/>
+        <source>Speak into the microphone to verify audio input and signal levels in real time.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="245"/>
+        <source>Audio Processing &amp; Recording</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="250"/>
+        <source>Noise Filter Strength</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="259"/>
+        <source>Max Recording Duration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/AppSettings/VoiceCommandSettings.qml" line="266"/>
+        <source>Adjusts DSP noise suppression level and maximum recording duration before automatic cutoff.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
