@@ -8,10 +8,11 @@ Offline speech-to-text engines (`whisper.cpp`, ONNX runtimes, Vosk/Kaldi) vary i
    - Define a pure, synchronous C++ interface (`SpeechToTextInterface`) accepting canonical 16 kHz Mono Int16 PCM buffers (`const QByteArray&`) in batch mode upon Push-to-Talk release.
    - Configure backends via `SttConfig` (`modelPath`, `language` [`"en"`, `"tr"`], `threadCount`, `useGpu`, and optional `vocabularyHints` defaulted to empty so natural phrasing and future free-form intent extraction are not degraded by aggressive prompt bias).
    - Return structured `SttResult` outputs (`bool success`, `QString text`, `float confidence`, `qint64 inferenceTimeMs`, `QString errorMessage`).
-2. **Model-Driven Engine Factory (`SttEngineFactory`)**:
-   - Abstract engine selection from the operator. In `VoiceCommandSettings`, the user selects only the **Language** (`en`/`tr`) and **Speech Model Profile** (or custom model path).
-   - `SttEngineFactory` inspects the `SttModelDescriptor` (or file signature/manifest: `ggml-*.bin` -> `WhisperEngine`, `.onnx` -> `OnnxEngine`) and automatically instantiates the compatible `SpeechToTextInterface` implementation.
-   - Implement `WhisperEngine` (`whisper.cpp` compiled in-process via CMake/CPM) as the initial baseline backend.
+2. **Model-Driven Engine Factory (`SttEngineFactory`) & Dynamic Model Discovery (`SttModelResolver`)**:
+   - Do not hardcode model lists in source code or static settings enums. Instead, `SttModelResolver` dynamically scans the model directories for valid STT models (`*.bin`, `*.gguf`, `*.onnx`, `vosk-model-*`) and populates the `VoiceCommandSettings` model selector (`availableSttModels`) at runtime so adding a new model requires zero code changes.
+   - Abstract engine selection from the operator. In `VoiceCommandSettings`, the user selects only the **Language** (`en`/`tr`) and **Speech Model**.
+   - `SttEngineFactory` inspects the `SttModelDescriptor` (or file signature/manifest: `ggml-*.bin` / `.gguf` -> `WhisperEngine`, `.onnx` -> `OnnxEngine`, Kaldi directory -> `VoskEngine`) and automatically instantiates the compatible `SpeechToTextInterface` implementation.
+   - Implement `WhisperEngine` (`whisper.cpp` `v1.9.5` compiled in-process as a static git submodule) as the initial baseline backend.
 3. **Hardware Execution Policy (Optimized CPU + Optional GPU)**:
    - Compile `whisper.cpp` with native CPU SIMD intrinsics (AVX2/FMA on x86_64, NEON on ARM) and bound default CPU worker threads to `std::clamp(logicalCores / 2, 2, 4)` to preserve CPU headroom for QGC telemetry and video decoding.
    - Expose an optional `useGpu` setting in `VoiceCommandSettings` / `SttConfig` (with automatic CPU fallback if GPU initialization fails).
@@ -19,13 +20,11 @@ Offline speech-to-text engines (`whisper.cpp`, ONNX runtimes, Vosk/Kaldi) vary i
    - When the operator presses the PTT trigger (`startRecording`), if the STT model is currently unloaded, `VoiceCommandManager` immediately signals the background worker thread to pre-warm (`initialize`) the model in parallel while the operator is speaking.
    - Keep the model warm in memory across consecutive utterances for zero-load-latency transcription.
    - Run a configurable **Idle Unload Timer** (e.g., 5 minutes, toggleable in `VoiceCommandSettings` via *Keep Model in Memory / Idle Timeout*) that automatically calls `unload()` on the background worker when voice control is inactive.
-5. **Cross-Platform & Debug-Ready Model Path Resolution (`SttModelResolver`)**:
-   - Resolve model files on Linux and Windows using a 5-stage fallback cascade:
-     1. User-configured custom path in `VoiceCommandSettings`.
-     2. `QGC_STT_MODEL_DIR` environment variable (used by headless CI and custom overrides).
-     3. Executable-relative directory: `<applicationDirPath>/models/stt/` (portable / Release bundles).
-     4. Build/Source-tree directory: `<QGC_SOURCE_DIR>/models/stt/` or upward directory traversal from the Debug build binary so running directly from Qt Creator / VS Code / CLI in Debug mode works out of the box without manual copying.
-     5. OS application data directory: `QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/models/stt/"`.
+5. **Cross-Platform & Debug-Ready Model Path Resolution (`SttModelResolver`), Selection Management (`SttModelManager`), & Readiness Gating (`VoiceCommandManager`)**:
+   - Follow Single Responsibility Principle (SRP) by splitting model discovery, selection state, and orchestration across three focused classes:
+     - **`SttModelResolver`** (stateless filesystem scanner & resolver): Dynamically scans and resolves model files on Linux and Windows across the 4-stage fallback cascade (`QGC_STT_MODEL_DIR` -> `<applicationDirPath>/models/stt/` -> `<QGC_SOURCE_DIR>/models/stt/` & Debug upward traversal -> `AppLocalDataLocation/models/stt/`) without holding UI or `Fact` state.
+     - **`SttModelManager`** (stateful `QObject` sub-component, parallel to `AudioDeviceManager`): Manages the discovered model list (`availableModels`), active selection (`selectedModel`, `selectedModelIndex`), Settings `Fact` persistence (`sttSelectedModel`), and availability state (`isModelAvailable`), delegating filesystem scanning to `SttModelResolver`.
+     - **`VoiceCommandManager`** (coordinator): Coordinates `AudioCapture`, `AudioDeviceManager`, `SttModelManager`, and `MultiVehicleManager`, exposing `isSttModelAvailable` and `isReady` (`isMicrophoneActive && isVehicleConnected && isSttModelAvailable`). When no STT model is available (`isSttModelAvailable == false`), the Push-to-Talk button is visually disabled and triggering voice control emits `"Model for voice recognition is not found"`.
 
 ## Why
-This architecture isolates third-party ML headers behind a clean C++ seam, prevents invalid model-engine pairings in the UI, guarantees zero model-loading delay during active missions while reclaiming RAM when idle, and ensures frictionless execution across Linux, Windows, Release installers, and un-packaged Debug builds.
+This architecture isolates third-party ML headers behind a clean C++ seam, adheres to SOLID principles by keeping filesystem scanning (`SttModelResolver`), selection/Fact state (`SttModelManager`), and high-level coordination (`VoiceCommandManager`) decoupled, allows dropping new models into `models/stt/` without modifying code, and ensures frictionless execution across Linux, Windows, Release installers, and un-packaged Debug builds.

@@ -76,13 +76,21 @@ _Avoid_: Manual user engine selection, mismatched model-engine pairing
 An abstract, thread-agnostic C++ interface providing an extensible middle layer for offline batch speech recognition backends (`whisper.cpp`, ONNX runtimes), accepting canonical 16 kHz Mono Int16 PCM buffers along with `SttConfig` and returning structured `SttResult` outputs.
 _Avoid_: Hardcoded STT backend, monolithic transcriber
 
+**Speech-to-Text Model Manager (`SttModelManager`)**:
+A stateful `QObject` sub-component (parallel to `AudioDeviceManager`) that manages the list of discovered STT models (`availableModels`), active model selection (`selectedModel`, `selectedModelIndex`), Settings `Fact` persistence (`sttSelectedModel`, `sttCustomModelPath`), and model availability state (`isModelAvailable`), delegating filesystem scanning to `SttModelResolver`.
+_Avoid_: Embedding model selection state inside `VoiceCommandManager` or `SttModelResolver`
+
+**Speech-to-Text Model Resolver (`SttModelResolver`)**:
+A stateless utility class responsible solely for scanning the 5-stage cross-platform model directory cascade, inspecting model files/directories (`*.bin`, `*.gguf`, `*.onnx`, `vosk-model-*`), and resolving `SttConfig` paths.
+_Avoid_: Hardcoded model lists, stateful path resolver
+
 **Swarm Controller**:
 A distributed controller employing Model Predictive Control (MPC) to generate collision-free velocity and acceleration setpoints across UAVs in formation or non-formation flight.
 _Avoid_: Centralized autopilot, swarm master
 
 **VoiceCommandManager**:
-The central coordinator class in `groundcontrol/src/VoiceCommand/` managing Push-to-Talk lifecycle, utterance duration gating, asynchronous worker thread (`QThread`) orchestration, STT model pre-warming and idle unloading, intent parsing handoff, confirmation modal state, and sequential command execution.
-_Avoid_: VoiceManager, external voice daemon
+The central coordinator class in `groundcontrol/src/VoiceCommand/` delegating audio capture (`AudioCapture`), microphone management (`AudioDeviceManager`), and STT model state (`SttModelManager`) to sub-components while orchestrating Push-to-Talk lifecycle, readiness gating (`isReady`), asynchronous worker thread (`QThread`) execution, intent parsing handoff, confirmation modal state, and sequential command execution.
+_Avoid_: VoiceManager, external voice daemon, god object
 
 **VoiceCommand Subsystem**:
 The native C++ module residing in `groundcontrol/src/VoiceCommand/` encapsulating audio ingestion coordination, speech-to-text inference, intent parsing, confirmation dialog management, and command execution.

@@ -29,9 +29,13 @@ Parent-Folder/
 ├── ceng-407-408-2026-2027-.../          <-- Main clone (checked out to 'main')
 │   ├── .github/
 │   ├── Scripts/
-│   │   └── setup_worktrees.sh          <-- Setup script
+│   │   └── setup_worktrees.sh           <-- Setup script
 │   ├── Tools/
-│   │   └── uav-missions.code-workspace <-- VS Code multi-root workspace file
+│   │   └── uav-missions.code-workspace  <-- VS Code multi-root workspace file
+│   ├── docs/
+│   │   ├── adr/                         <-- Architectural decisions for both agents and us
+│   │   └── agents/                      <-- Skills for agents
+│   ├── AGENTS.md                        <-- Routing markdown for agents
 │   └── README.md
 │
 └── worktrees/                           <-- Sibling directory for all worktrees
