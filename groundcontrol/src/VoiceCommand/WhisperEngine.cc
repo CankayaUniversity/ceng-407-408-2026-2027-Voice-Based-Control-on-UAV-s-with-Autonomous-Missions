@@ -74,6 +74,8 @@ bool WhisperEngine::initialize(const SttConfig& config)
     if (_ctx != nullptr && _config.modelPath == canonicalPath && _config.useGpu == config.useGpu) {
         _config = config;
         _config.modelPath = canonicalPath;
+        qCDebug(WhisperEngineLog) << "WhisperEngine context reused with updated config. Model:" << canonicalPath
+                                  << "Language:" << _config.language << "Threads:" << _config.resolvedThreadCount();
         return true;
     }
 
