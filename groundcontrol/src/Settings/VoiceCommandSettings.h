@@ -21,4 +21,9 @@ public:
     DEFINE_SETTINGFACT(noiseFilterLevel)
     DEFINE_SETTINGFACT(maxRecordingDuration)
     DEFINE_SETTINGFACT(pushToTalkKey)
+    DEFINE_SETTINGFACT(sttLanguage)
+    DEFINE_SETTINGFACT(sttSelectedModel)
+    DEFINE_SETTINGFACT(sttCustomModelPath)
+    DEFINE_SETTINGFACT(sttIdleUnloadTimeout)
+    DEFINE_SETTINGFACT(sttUseGpu)
 };
