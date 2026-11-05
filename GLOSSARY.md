@@ -36,12 +36,16 @@ _Avoid_: Error pop-up, blocking alert
 The voice processing module embedded directly within the QGroundControl binary as a C++ subsystem, executing STT and command parsing in-process without external background daemons.
 _Avoid_: Voice daemon, external voice service, IPC voice bridge
 
+**Intent Parser Interface (`IntentParserInterface`)**:
+An abstract C++ interface responsible for mapping transcribed text and a `VehicleStateSnapshot` into an ordered list of `MissionIntent` structures (`IntentParseResult`). Enables swapping or chaining Tier 1 (`DeterministicMatcher`) and Tier 2 (Local LLM/ONNX NLU) parsers without modifying upstream orchestration.
+_Avoid_: Hardcoded regex parser, direct STT-to-MAVLink coupling
+
 **Local-Only Processing**:
 The architectural constraint requiring all audio capture, speech recognition, intent parsing, and flight control to execute strictly on local machine hardware with zero external cloud dependencies.
 _Avoid_: Cloud AI, hybrid cloud, remote API
 
 **Mission Intent**:
-A structured, intermediate semantic representation of an operator's voice command specifying target vehicle IDs, action types, spatial/temporal parameters, and confirmation flags prior to translation into MAVLink commands.
+A structured, intermediate semantic representation of an operator's voice command specifying target vehicle IDs, action types, spatial/temporal parameters, and display summaries prior to translation into MAVLink commands.High-level goal intents may expand into a multi-step `Command Sequence` based on current vehicle state, whereas atomic primitive commands evaluate strict pre-conditions directly.
 _Avoid_: Raw command, speech payload, voice packet
 
 **MoSCoW Prioritization**:
@@ -53,25 +57,33 @@ A PX4 flight mode where external velocity setpoints and acceleration feed-forwar
 _Avoid_: RC override, manual passthrough
 
 **Post-condition**:
-A flight telemetry condition (e.g. target altitude achieved within 3000ms) evaluated after command dispatch to confirm successful execution.
-_Avoid_: Completion test, success criteria
+A flight telemetry state transition or autopilot acknowledgment condition (e.g., armed state change, flight mode transition, or MAV_RESULT_ACCEPTED) evaluated within 3000ms after command dispatch to confirm successful execution initiation before advancing a `Command Sequence`.
+_Avoid_: Completion test, unbounded wait
 
 **Pre-condition**:
-A prerequisite vehicle state (e.g. armed status, GPS fix, flight mode) that must be satisfied before a confirmed command is permitted to execute.
-_Avoid_: Safety guard, prerequisite check
+A prerequisite vehicle state (e.g., armed status, GPS fix, flight mode) evaluated just-in-time immediately before a command in a `Command Sequence` is executed.
+_Avoid_: Static upfront guard, unverified dispatch
 
 **Push-to-Talk (PTT)**:
 An audio acquisition method where voice recording is explicitly triggered by operator action (e.g., keypress or UI button), capturing bounded audio processed through DSP noise filtering.
 _Avoid_: Always-listening, hotword activation, wake-word loop
 
+**Speech-to-Text Engine Factory (`SttEngineFactory`)**:
+A model-driven factory that inspects the selected `SttModelDescriptor` (or model file format/manifest) and automatically instantiates the matching `SpeechToTextInterface` backend (`WhisperEngine`, `OnnxEngine`, etc.), abstracting runtime engine selection from the operator.
+_Avoid_: Manual user engine selection, mismatched model-engine pairing
+
 **Speech-to-Text Interface (`SpeechToTextInterface`)**:
-An abstract C++ interface providing an extensible middle layer for offline speech recognition backends (e.g., `whisper.cpp`, ONNX runtimes), decoupling audio transcription from specific ML inference engines.
+An abstract, thread-agnostic C++ interface providing an extensible middle layer for offline batch speech recognition backends (`whisper.cpp`, ONNX runtimes), accepting canonical 16 kHz Mono Int16 PCM buffers along with `SttConfig` and returning structured `SttResult` outputs.
 _Avoid_: Hardcoded STT backend, monolithic transcriber
 
 **Swarm Controller**:
 A distributed controller employing Model Predictive Control (MPC) to generate collision-free velocity and acceleration setpoints across UAVs in formation or non-formation flight.
 _Avoid_: Centralized autopilot, swarm master
 
+**VoiceCommandManager**:
+The central coordinator class in `groundcontrol/src/VoiceCommand/` managing Push-to-Talk lifecycle, utterance duration gating, asynchronous worker thread (`QThread`) orchestration, STT model pre-warming and idle unloading, intent parsing handoff, confirmation modal state, and sequential command execution.
+_Avoid_: VoiceManager, external voice daemon
+
 **VoiceCommand Subsystem**:
-The native C++ module residing in `groundcontrol/src/VoiceCommand/` encapsulating audio ingestion, speech-to-text inference, deterministic intent matching, and confirmation dialog management.
+The native C++ module residing in `groundcontrol/src/VoiceCommand/` encapsulating audio ingestion coordination, speech-to-text inference, intent parsing, confirmation dialog management, and command execution.
 _Avoid_: Voice plugin, speech script, external voice daemon
