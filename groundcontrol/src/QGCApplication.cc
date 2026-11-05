@@ -309,7 +309,10 @@ void QGCApplication::_initForNormalAppBoot()
     AudioDeviceManager::instance()->init(SettingsManager::instance()->voiceCommandSettings()->selectedMicrophone());
     AudioCapture::instance()->init(SettingsManager::instance()->voiceCommandSettings()->noiseFilterEnabled(),
                                    SettingsManager::instance()->voiceCommandSettings()->noiseFilterLevel());
-    VoiceCommandManager::instance()->init(SettingsManager::instance()->voiceCommandSettings()->pushToTalkKey());
+    VoiceCommandManager::instance()->init(
+        SettingsManager::instance()->voiceCommandSettings()->pushToTalkKey(),
+        SettingsManager::instance()->voiceCommandSettings()->sttSelectedModel(),
+        SettingsManager::instance()->voiceCommandSettings()->sttCustomModelPath());
     FollowMe::instance()->init();
     QGCPositionManager::instance()->init();
     NTRIPManager::instance()->init();
