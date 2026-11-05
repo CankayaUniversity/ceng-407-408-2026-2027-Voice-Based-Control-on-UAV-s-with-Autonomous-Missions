@@ -42,6 +42,7 @@
 #include "SettingsManager.h"
 #include "Vehicle.h"
 #include "VideoManager.h"
+#include "VoiceCommandManager.h"
 #include "VoiceCommandSettings.h"
 #include "qgc_version.h"
 
@@ -308,6 +309,7 @@ void QGCApplication::_initForNormalAppBoot()
     AudioDeviceManager::instance()->init(SettingsManager::instance()->voiceCommandSettings()->selectedMicrophone());
     AudioCapture::instance()->init(SettingsManager::instance()->voiceCommandSettings()->noiseFilterEnabled(),
                                    SettingsManager::instance()->voiceCommandSettings()->noiseFilterLevel());
+    VoiceCommandManager::instance()->init(SettingsManager::instance()->voiceCommandSettings()->pushToTalkKey());
     FollowMe::instance()->init();
     QGCPositionManager::instance()->init();
     NTRIPManager::instance()->init();

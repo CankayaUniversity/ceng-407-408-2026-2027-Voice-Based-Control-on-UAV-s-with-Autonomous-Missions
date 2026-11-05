@@ -20,6 +20,7 @@
 #include "QGCMapEngineManager.h"
 #include "SettingsManager.h"
 #include "VideoManager.h"
+#include "VoiceCommandManager.h"
 #ifndef QGC_NO_SERIAL_LINK
 #include "GPSManager.h"
 #include "GPSRtk.h"
@@ -55,6 +56,7 @@ QGroundControlQmlGlobal::QGroundControlQmlGlobal(QObject* parent)
       _audioDeviceManager(AudioDeviceManager::instance()),
       _audioCapture(AudioCapture::instance()),
       _audioLevelMeter(AudioLevelMeter::instance()),
+      _voiceCommandManager(VoiceCommandManager::instance()),
       _corePlugin(QGCCorePlugin::instance()),
       _globalPalette(new QGCPalette(this))
 #ifndef QGC_NO_SERIAL_LINK

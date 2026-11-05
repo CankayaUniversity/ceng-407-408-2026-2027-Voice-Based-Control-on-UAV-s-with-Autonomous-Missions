@@ -20,4 +20,5 @@ public:
     DEFINE_SETTINGFACT(noiseFilterEnabled)
     DEFINE_SETTINGFACT(noiseFilterLevel)
     DEFINE_SETTINGFACT(maxRecordingDuration)
+    DEFINE_SETTINGFACT(pushToTalkKey)
 };

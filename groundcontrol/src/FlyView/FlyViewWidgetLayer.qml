@@ -87,6 +87,14 @@ Item {
         property real rightEdgeBottomInset:     width + _layoutMargin
     }
 
+    PushToTalkButton {
+        id:                         pttButton
+        anchors.top:                toolStrip.bottom
+        anchors.topMargin:          _root._toolsMargin
+        anchors.horizontalCenter:   toolStrip.horizontalCenter
+        z:                          QGroundControl.zOrderWidgets
+    }
+
     FlyViewMissionCompleteDialog {
         missionController:      _missionController
         geoFenceController:     _geoFenceController

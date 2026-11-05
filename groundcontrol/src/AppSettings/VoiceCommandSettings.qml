@@ -264,6 +264,12 @@ SettingsPage {
             fact: root._voiceSettings.maxRecordingDuration
         }
 
+        LabelledFactTextField {
+            Layout.fillWidth: true
+            label: qsTr("Push-to-Talk Shortcut Key")
+            fact: root._voiceSettings.pushToTalkKey
+        }
+
         QGCLabel {
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
