@@ -20,26 +20,18 @@ SttModelManager* SttModelManager::instance()
     return _sttModelManager();
 }
 
-void SttModelManager::init(Fact* selectedModelFact, Fact* customModelPathFact)
+void SttModelManager::init(Fact* selectedModelFact)
 {
     if (_selectedModelFact) {
         disconnect(_selectedModelFact, &Fact::rawValueChanged, this, &SttModelManager::_onSelectedModelFactChanged);
     }
-    if (_customModelPathFact) {
-        disconnect(_customModelPathFact, &Fact::rawValueChanged, this, &SttModelManager::refreshModels);
-    }
 
     _selectedModelFact = selectedModelFact;
-    _customModelPathFact = customModelPathFact;
 
     if (_selectedModelFact) {
         _selectedModelName = _selectedModelFact->rawValue().toString().trimmed();
         (void) connect(_selectedModelFact, &Fact::rawValueChanged, this,
                        &SttModelManager::_onSelectedModelFactChanged);
-    }
-
-    if (_customModelPathFact) {
-        (void) connect(_customModelPathFact, &Fact::rawValueChanged, this, &SttModelManager::refreshModels);
     }
 
     refreshModels();
@@ -93,7 +85,7 @@ void SttModelManager::refreshModels()
 {
     const bool prevAvailable = isModelAvailable();
 
-    _discoveredModels = SttModelResolver::discoverModels(_customModelPath(), QString(), _searchOverrideDir,
+    _discoveredModels = SttModelResolver::discoverModels(QString(), _searchOverrideDir,
                                                          _isolateSearchToOverride);
 
     emit availableModelsChanged();
@@ -106,7 +98,7 @@ void SttModelManager::refreshModels()
 
 SttConfig SttModelManager::currentResolvedConfig(int languageSettingIndex, bool useGpu) const
 {
-    return SttModelResolver::resolveConfig(languageSettingIndex, _selectedModelName, _customModelPath(), useGpu,
+    return SttModelResolver::resolveConfig(languageSettingIndex, _selectedModelName, useGpu,
                                            QString(), _searchOverrideDir, _isolateSearchToOverride);
 }
 
@@ -171,9 +163,4 @@ void SttModelManager::_updateSelectedModel()
     if (indexChanged) {
         emit selectedModelIndexChanged(_selectedModelIndex);
     }
-}
-
-QString SttModelManager::_customModelPath() const
-{
-    return _customModelPathFact ? _customModelPathFact->rawValue().toString().trimmed() : QString();
 }

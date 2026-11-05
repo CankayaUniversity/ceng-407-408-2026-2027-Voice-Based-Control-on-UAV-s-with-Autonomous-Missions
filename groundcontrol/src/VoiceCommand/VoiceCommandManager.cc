@@ -63,7 +63,7 @@ VoiceCommandManager* VoiceCommandManager::instance()
     return _voiceCommandManager();
 }
 
-void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFact, Fact* sttCustomModelPathFact)
+void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFact)
 {
     if (_pushToTalkKeyFact) {
         disconnect(_pushToTalkKeyFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onFactValueChanged);
@@ -80,7 +80,7 @@ void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFa
     }
 
     if (_modelManager) {
-        _modelManager->init(sttSelectedModelFact, sttCustomModelPathFact);
+        _modelManager->init(sttSelectedModelFact);
     }
 
     if (!_isEventFilterInstalled && qApp) {

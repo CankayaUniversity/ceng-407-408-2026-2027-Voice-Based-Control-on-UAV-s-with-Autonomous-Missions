@@ -33,8 +33,8 @@ public:
 
     static SttModelManager* instance();
 
-    /// Initializes Fact bindings for selected model and optional custom model path, then refreshes models.
-    void init(Fact* selectedModelFact = nullptr, Fact* customModelPathFact = nullptr);
+    /// Initializes Fact bindings for selected model, then refreshes models.
+    void init(Fact* selectedModelFact = nullptr);
 
     /// Human-readable display names of dynamically discovered STT models on disk.
     QStringList availableModels() const;
@@ -50,7 +50,7 @@ public:
     /// True if at least one valid STT model is available on disk.
     bool isModelAvailable() const;
 
-    /// Re-scans the 5-stage model directory cascade via SttModelResolver and updates selection/availability.
+    /// Re-scans the model directory cascade via SttModelResolver and updates selection/availability.
     Q_INVOKABLE void refreshModels();
 
     /// Resolves the active SttConfig for the current selection and given language/GPU settings.
@@ -70,10 +70,8 @@ private slots:
 
 private:
     void _updateSelectedModel();
-    QString _customModelPath() const;
 
     QPointer<Fact> _selectedModelFact;
-    QPointer<Fact> _customModelPathFact;
 
     QString _selectedModelName;
     QList<SttModelDescriptor> _discoveredModels;

@@ -68,7 +68,7 @@ void SttEngineTest::_testDynamicModelDiscovery()
     const QDir dir(tempRoot.path());
 
     // 1. Empty directory must discover 0 models (no hardcoded models!)
-    QList<SttModelDescriptor> models = SttModelResolver::discoverModels(QString(), QString(), dir.absolutePath(), true);
+    QList<SttModelDescriptor> models = SttModelResolver::discoverModels(QString(), dir.absolutePath(), true);
     QVERIFY(models.isEmpty());
 
     // 2. Drop a Whisper .bin file, an ONNX .onnx file, a Vosk model directory, and an invalid 0-byte file
@@ -94,7 +94,7 @@ void SttEngineTest::_testDynamicModelDiscovery()
     emptyBin.close();
     QVERIFY(writeNonEmptyFile(dir.filePath(QStringLiteral("readme.txt"))));
 
-    models = SttModelResolver::discoverModels(QString(), QString(), dir.absolutePath(), true);
+    models = SttModelResolver::discoverModels(QString(), dir.absolutePath(), true);
     QCOMPARE(models.size(), 4);
 
     SttModelDescriptor tinyEn;
@@ -122,9 +122,8 @@ void SttEngineTest::_testModelResolverFiveStageCascade()
 
     const QDir rootDir(tempRoot.path());
 
-    // Create simulated directories for Stage 1 (custom), Stage 2 (env), Stage 3 (appDir/models/stt),
-    // and Stage 4 (parent source tree models/stt via upward traversal from fake build/Debug/ bin dir).
-    const QString customFilePath = rootDir.filePath(QStringLiteral("custom/my-custom-whisper.bin"));
+    // Create simulated directories for Stage 1 (env), Stage 2 (appDir/models/stt),
+    // and Stage 3 (parent source tree models/stt via upward traversal from fake build/Debug/ bin dir).
     const QString envSttDir = rootDir.filePath(QStringLiteral("env_models"));
     const QString releaseAppDir = rootDir.filePath(QStringLiteral("release_bundle"));
     const QString releaseSttDir = QDir(releaseAppDir).filePath(QStringLiteral("models/stt"));
@@ -132,7 +131,6 @@ void SttEngineTest::_testModelResolverFiveStageCascade()
     const QString debugSourceSttDir = QDir(debugSourceRoot).filePath(QStringLiteral("models/stt"));
     const QString debugBinaryDir = QDir(debugSourceRoot).filePath(QStringLiteral("build/Desktop_Debug/Debug"));
 
-    QVERIFY(QDir().mkpath(QFileInfo(customFilePath).absolutePath()));
     QVERIFY(QDir().mkpath(envSttDir));
     QVERIFY(QDir().mkpath(releaseSttDir));
     QVERIFY(QDir().mkpath(debugSourceSttDir));
@@ -154,29 +152,23 @@ void SttEngineTest::_testModelResolverFiveStageCascade()
 
     SttModelDescriptor desc;
 
-    // 1. Only Stage 4 (upward traversal from Debug binary dir to workspace_root/models/stt) exists
+    // 1. Only Stage 3 (upward traversal from Debug binary dir to workspace_root/models/stt) exists
     QVERIFY(touchFile(debugModelFile));
-    QVERIFY(SttModelResolver::resolveModel(QStringLiteral("ggml-base.en.bin"), QStringLiteral("en"), desc, QString(),
+    QVERIFY(SttModelResolver::resolveModel(QStringLiteral("ggml-base.en.bin"), QStringLiteral("en"), desc,
                                            debugBinaryDir, QString(), true));
     QCOMPARE(desc.absoluteFilePath, QFileInfo(debugModelFile).absoluteFilePath());
 
-    // 2. Stage 3 (executable-relative models/stt) takes priority over Stage 4
+    // 2. Stage 2 (executable-relative models/stt) takes priority over Stage 3
     QVERIFY(touchFile(releaseModelFile));
-    QVERIFY(SttModelResolver::resolveModel(QStringLiteral("ggml-base.en.bin"), QStringLiteral("en"), desc, QString(),
+    QVERIFY(SttModelResolver::resolveModel(QStringLiteral("ggml-base.en.bin"), QStringLiteral("en"), desc,
                                            releaseAppDir, QString(), true));
     QCOMPARE(desc.absoluteFilePath, QFileInfo(releaseModelFile).absoluteFilePath());
 
-    // 3. Stage 2 (QGC_STT_MODEL_DIR env override) takes priority over Stage 3 and Stage 4
+    // 3. Stage 1 (QGC_STT_MODEL_DIR env override) takes priority over Stage 2 and Stage 3
     QVERIFY(touchFile(envModelFile));
-    QVERIFY(SttModelResolver::resolveModel(QStringLiteral("ggml-base.en.bin"), QStringLiteral("en"), desc, QString(),
+    QVERIFY(SttModelResolver::resolveModel(QStringLiteral("ggml-base.en.bin"), QStringLiteral("en"), desc,
                                            releaseAppDir, envSttDir, true));
     QCOMPARE(desc.absoluteFilePath, QFileInfo(envModelFile).absoluteFilePath());
-
-    // 4. Stage 1 (Custom model file path) takes highest priority over all other stages
-    QVERIFY(touchFile(customFilePath));
-    QVERIFY(SttModelResolver::resolveModel(QStringLiteral("ggml-base.en.bin"), QStringLiteral("en"), desc,
-                                           customFilePath, releaseAppDir, envSttDir, true));
-    QCOMPARE(desc.absoluteFilePath, QFileInfo(customFilePath).absoluteFilePath());
 }
 
 void SttEngineTest::_testResolveConfigTurkishUpgrade()
@@ -206,7 +198,7 @@ void SttEngineTest::_testResolveConfigTurkishUpgrade()
     // 1. When no model is explicitly requested (empty), Turkish language selection
     // falls back to the first discovered model supporting Turkish ("ggml-base.bin").
     const SttConfig cfgFallback = SttModelResolver::resolveConfig(
-        1 /* Turkish */, QString(), QString(), true /* useGpu */, QString(), envDir.absolutePath(), true);
+        1 /* Turkish */, QString(), true /* useGpu */, QString(), envDir.absolutePath(), true);
     QCOMPARE(cfgFallback.language, QStringLiteral("tr"));
     QCOMPARE(cfgFallback.useGpu, true);
     QCOMPARE(cfgFallback.modelPath, QFileInfo(multiFile).absoluteFilePath());
@@ -214,13 +206,13 @@ void SttEngineTest::_testResolveConfigTurkishUpgrade()
     // 2. When the user explicitly selects a model by name/ID, that selection MUST be honored
     // even if language is Turkish and the model does not have explicit 'tr' in its name.
     const SttConfig cfgExplicitUniversal = SttModelResolver::resolveConfig(
-        1 /* Turkish */, QStringLiteral("whisper-large-v3-turbo.bin"), QString(), false, QString(),
+        1 /* Turkish */, QStringLiteral("whisper-large-v3-turbo.bin"), false, QString(),
         envDir.absolutePath(), true);
     QCOMPARE(cfgExplicitUniversal.modelPath, QFileInfo(customUniversal).absoluteFilePath());
 
     // 3. Explicitly selecting an English-only model with Turkish language is still honored.
     const SttConfig cfgExplicitEn = SttModelResolver::resolveConfig(
-        1 /* Turkish */, QStringLiteral("ggml-base.en.bin"), QString(), false, QString(),
+        1 /* Turkish */, QStringLiteral("ggml-base.en.bin"), false, QString(),
         envDir.absolutePath(), true);
     QCOMPARE(cfgExplicitEn.modelPath, QFileInfo(enOnlyFile).absoluteFilePath());
 }
@@ -305,14 +297,12 @@ void SttEngineTest::_testDiscoverModelsPrecedenceAndShadowing()
     QVERIFY(tempRoot.isValid());
     const QDir root(tempRoot.path());
 
-    const QString stage1CustomDir = root.filePath(QStringLiteral("stage1_custom"));
-    const QString stage2EnvDir = root.filePath(QStringLiteral("stage2_env"));
-    const QString stage3AppDir = root.filePath(QStringLiteral("stage3_app"));
-    const QString stage3ModelsDir = QDir(stage3AppDir).filePath(QStringLiteral("models/stt"));
+    const QString stage1EnvDir = root.filePath(QStringLiteral("stage1_env"));
+    const QString stage2AppDir = root.filePath(QStringLiteral("stage2_app"));
+    const QString stage2ModelsDir = QDir(stage2AppDir).filePath(QStringLiteral("models/stt"));
 
-    QVERIFY(QDir().mkpath(stage1CustomDir));
-    QVERIFY(QDir().mkpath(stage2EnvDir));
-    QVERIFY(QDir().mkpath(stage3ModelsDir));
+    QVERIFY(QDir().mkpath(stage1EnvDir));
+    QVERIFY(QDir().mkpath(stage2ModelsDir));
 
     auto writeDummy = [](const QString& path, const QByteArray& data) {
         QFile f(path);
@@ -324,44 +314,25 @@ void SttEngineTest::_testDiscoverModelsPrecedenceAndShadowing()
         return true;
     };
 
-    // Create a duplicate model name in both Stage 2 (env) and Stage 3 (app):
-    // Stage 2 has priority and must shadow Stage 3.
-    const QString envDupe = QDir(stage2EnvDir).filePath(QStringLiteral("shadow-model.bin"));
-    const QString appDupe = QDir(stage3ModelsDir).filePath(QStringLiteral("shadow-model.bin"));
-    const QString appUnique = QDir(stage3ModelsDir).filePath(QStringLiteral("app-unique.bin"));
+    // Create a duplicate model name in both Stage 1 (env) and Stage 2 (app):
+    // Stage 1 has priority and must shadow Stage 2.
+    const QString envDupe = QDir(stage1EnvDir).filePath(QStringLiteral("shadow-model.bin"));
+    const QString appDupe = QDir(stage2ModelsDir).filePath(QStringLiteral("shadow-model.bin"));
+    const QString appUnique = QDir(stage2ModelsDir).filePath(QStringLiteral("app-unique.bin"));
 
     QVERIFY(writeDummy(envDupe, "ENV_VERSION"));
     QVERIFY(writeDummy(appDupe, "APP_VERSION"));
     QVERIFY(writeDummy(appUnique, "APP_UNIQUE"));
 
     // Discover with env override and app dir override
-    QList<SttModelDescriptor> discovered = SttModelResolver::discoverModels(
-        QString(), stage3AppDir, stage2EnvDir, true /* isolate */);
+    const QList<SttModelDescriptor> discovered = SttModelResolver::discoverModels(
+        stage2AppDir, stage1EnvDir, true /* isolate */);
 
     // Should discover 2 models total: "shadow-model.bin" (from env) and "app-unique.bin" (from app)
     QCOMPARE(discovered.size(), 2);
     QCOMPARE(discovered[0].id, QStringLiteral("shadow-model.bin"));
     QCOMPARE(discovered[0].absoluteFilePath, QFileInfo(envDupe).absoluteFilePath());
     QCOMPARE(discovered[1].id, QStringLiteral("app-unique.bin"));
-
-    // Custom directory (Stage 1) priority over Stage 2:
-    const QString customDupe = QDir(stage1CustomDir).filePath(QStringLiteral("shadow-model.bin"));
-    QVERIFY(writeDummy(customDupe, "CUSTOM_VERSION"));
-
-    discovered = SttModelResolver::discoverModels(
-        stage1CustomDir, stage3AppDir, stage2EnvDir, true /* isolate */);
-    QCOMPARE(discovered.size(), 2);
-    QCOMPARE(discovered[0].id, QStringLiteral("shadow-model.bin"));
-    QCOMPARE(discovered[0].absoluteFilePath, QFileInfo(customDupe).absoluteFilePath());
-
-    // Custom direct file (Stage 1 file) takes highest priority and appears first
-    const QString directCustomFile = root.filePath(QStringLiteral("isolated-special.bin"));
-    QVERIFY(writeDummy(directCustomFile, "SPECIAL"));
-
-    discovered = SttModelResolver::discoverModels(
-        directCustomFile, stage3AppDir, stage2EnvDir, true /* isolate */);
-    QCOMPARE(discovered.first().id, QStringLiteral("isolated-special.bin"));
-    QCOMPARE(discovered.first().absoluteFilePath, QFileInfo(directCustomFile).absoluteFilePath());
 }
 
 void SttEngineTest::_testSttModelManager()

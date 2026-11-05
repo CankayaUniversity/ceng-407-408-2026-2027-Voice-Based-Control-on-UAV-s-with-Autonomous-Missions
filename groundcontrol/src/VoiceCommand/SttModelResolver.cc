@@ -69,21 +69,12 @@ QString SttModelResolver::languageCodeFromSettingIndex(int languageIndex)
     }
 }
 
-QStringList SttModelResolver::searchDirectories(const QString& customModelPath, const QString& appDirPathOverride,
+QStringList SttModelResolver::searchDirectories(const QString& appDirPathOverride,
                                                 const QString& envDirOverride, bool isolateToOverrides)
 {
     QStringList dirs;
 
-    // Stage 1 (if customModelPath is a directory): user-configured custom model directory
-    const QString trimmedCustom = customModelPath.trimmed();
-    if (!trimmedCustom.isEmpty()) {
-        const QFileInfo customInfo(QDir::fromNativeSeparators(trimmedCustom));
-        if (customInfo.exists() && customInfo.isDir()) {
-            appendUniqueNormalizedDir(dirs, customInfo.absoluteFilePath());
-        }
-    }
-
-    // Stage 2: QGC_STT_MODEL_DIR environment variable
+    // Stage 1: QGC_STT_MODEL_DIR environment variable
     const QString envDir = !envDirOverride.isEmpty()
                                ? envDirOverride
                                : (isolateToOverrides ? QString() : qEnvironmentVariable("QGC_STT_MODEL_DIR"));
@@ -91,7 +82,7 @@ QStringList SttModelResolver::searchDirectories(const QString& customModelPath, 
         appendUniqueNormalizedDir(dirs, envDir);
     }
 
-    // Stage 3: Executable-relative directory (<applicationDirPath>/models/stt)
+    // Stage 2: Executable-relative directory (<applicationDirPath>/models/stt)
     const QString appDir =
         !appDirPathOverride.isEmpty()
             ? appDirPathOverride
@@ -102,7 +93,7 @@ QStringList SttModelResolver::searchDirectories(const QString& customModelPath, 
         appendUniqueNormalizedDir(dirs, QDir(appDir).filePath(QStringLiteral("models/stt")));
     }
 
-    // Stage 4: Build / Source-tree directory for un-installed Debug / IDE execution
+    // Stage 3: Build / Source-tree directory for un-installed Debug / IDE execution
     if (!appDir.isEmpty()) {
         // Walk up to 5 parent levels from the build binary directory (e.g. build/Desktop_Qt_Debug/Debug/)
         QDir cursor(appDir);
@@ -122,7 +113,7 @@ QStringList SttModelResolver::searchDirectories(const QString& customModelPath, 
     }
 #endif
 
-    // Stage 5: OS application data directory (Linux ~/.local/share/..., Windows %LOCALAPPDATA%/...)
+    // Stage 4: OS application data directory (Linux ~/.local/share/..., Windows %LOCALAPPDATA%/...)
     if (!isolateToOverrides) {
         const QString appLocalData = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
         if (!appLocalData.isEmpty()) {
@@ -174,28 +165,14 @@ bool SttModelResolver::inspectModelFileOrDir(const QString& path, SttModelDescri
     return true;
 }
 
-QList<SttModelDescriptor> SttModelResolver::discoverModels(const QString& customModelPath,
-                                                           const QString& appDirPathOverride,
+QList<SttModelDescriptor> SttModelResolver::discoverModels(const QString& appDirPathOverride,
                                                            const QString& envDirOverride, bool isolateToOverrides)
 {
     QList<SttModelDescriptor> discovered;
     QSet<QString> seenModelIds;
 
-    // Stage 1: If customModelPath points directly to a valid model file, place it first
-    const QString trimmedCustom = customModelPath.trimmed();
-    if (!trimmedCustom.isEmpty()) {
-        const QFileInfo customInfo(QDir::fromNativeSeparators(trimmedCustom));
-        if (customInfo.exists() && customInfo.isFile()) {
-            SttModelDescriptor customDesc;
-            if (inspectModelFileOrDir(customInfo.absoluteFilePath(), customDesc)) {
-                discovered.append(customDesc);
-                seenModelIds.insert(customDesc.id.toLower());
-            }
-        }
-    }
-
-    // Stages 1(dir)..5: Scan each search directory in priority order
-    const QStringList dirs = searchDirectories(customModelPath, appDirPathOverride, envDirOverride, isolateToOverrides);
+    // Scan each search directory in priority order
+    const QStringList dirs = searchDirectories(appDirPathOverride, envDirOverride, isolateToOverrides);
     for (const QString& dirPath : dirs) {
         const QDir dir(dirPath);
         if (!dir.exists()) {
@@ -222,22 +199,12 @@ QList<SttModelDescriptor> SttModelResolver::discoverModels(const QString& custom
 }
 
 bool SttModelResolver::resolveModel(const QString& selectedModelIdOrName, const QString& languageCode,
-                                    SttModelDescriptor& outDescriptor, const QString& customModelPath,
+                                    SttModelDescriptor& outDescriptor,
                                     const QString& appDirPathOverride, const QString& envDirOverride,
                                     bool isolateToOverrides)
 {
-    // If customModelPath points directly to a valid file, it overrides everything
-    const QString trimmedCustom = customModelPath.trimmed();
-    if (!trimmedCustom.isEmpty()) {
-        const QFileInfo customInfo(QDir::fromNativeSeparators(trimmedCustom));
-        if (customInfo.exists() && customInfo.isFile() &&
-            inspectModelFileOrDir(customInfo.absoluteFilePath(), outDescriptor)) {
-            return true;
-        }
-    }
-
     const QList<SttModelDescriptor> models =
-        discoverModels(customModelPath, appDirPathOverride, envDirOverride, isolateToOverrides);
+        discoverModels(appDirPathOverride, envDirOverride, isolateToOverrides);
     if (models.isEmpty()) {
         return false;
     }
@@ -268,7 +235,7 @@ bool SttModelResolver::resolveModel(const QString& selectedModelIdOrName, const 
 }
 
 SttConfig SttModelResolver::resolveConfig(int languageSettingIndex, const QString& selectedModelIdOrName,
-                                          const QString& customModelPath, bool useGpu,
+                                          bool useGpu,
                                           const QString& appDirPathOverride, const QString& envDirOverride,
                                           bool isolateToOverrides)
 {
@@ -277,7 +244,7 @@ SttConfig SttModelResolver::resolveConfig(int languageSettingIndex, const QStrin
     cfg.useGpu = useGpu;
 
     SttModelDescriptor resolvedDesc;
-    if (resolveModel(selectedModelIdOrName, cfg.language, resolvedDesc, customModelPath, appDirPathOverride,
+    if (resolveModel(selectedModelIdOrName, cfg.language, resolvedDesc, appDirPathOverride,
                      envDirOverride, isolateToOverrides)) {
         cfg.modelPath = resolvedDesc.absoluteFilePath;
     }

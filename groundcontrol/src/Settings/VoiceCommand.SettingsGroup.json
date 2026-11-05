@@ -73,15 +73,6 @@
             "keywords": "voice,stt,model,whisper,onnx,vosk"
         },
         {
-            "name": "sttCustomModelPath",
-            "shortDesc": "Optional custom filesystem path to an STT model file or directory.",
-            "longDesc": "If non-empty, overrides or supplements the default speech model directory with a custom model file or directory path.",
-            "type": "string",
-            "default": "",
-            "label": "Custom Model Path",
-            "keywords": "voice,stt,model,path,custom"
-        },
-        {
             "name": "sttIdleUnloadTimeout",
             "shortDesc": "Idle duration before unloading the STT model from memory.",
             "longDesc": "Automatically releases STT model memory when voice control is inactive. Set to Always Keep Loaded to prevent unloading.",

@@ -311,8 +311,7 @@ void QGCApplication::_initForNormalAppBoot()
                                    SettingsManager::instance()->voiceCommandSettings()->noiseFilterLevel());
     VoiceCommandManager::instance()->init(
         SettingsManager::instance()->voiceCommandSettings()->pushToTalkKey(),
-        SettingsManager::instance()->voiceCommandSettings()->sttSelectedModel(),
-        SettingsManager::instance()->voiceCommandSettings()->sttCustomModelPath());
+        SettingsManager::instance()->voiceCommandSettings()->sttSelectedModel());
     FollowMe::instance()->init();
     QGCPositionManager::instance()->init();
     NTRIPManager::instance()->init();

@@ -323,7 +323,7 @@ SettingsPage {
             QGCLabel {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
-                text: qsTr("Model for voice recognition is not found. Place a model file (.bin, .gguf, .onnx, or vosk-model-*) in the models/stt directory or specify a Custom Model Path below.")
+                text: qsTr("Model for voice recognition is not found. Place a model file (.bin, .gguf, .onnx, or vosk-model-*) in the models/stt directory.")
                 visible: root._modelManager ? !root._modelManager.isModelAvailable : true
                 font.pointSize: ScreenTools.smallFontPointSize
                 color: qgcPal.colorOrange
@@ -334,12 +334,6 @@ SettingsPage {
             Layout.fillWidth: true
             label: qsTr("Speech Language")
             fact: root._voiceSettings.sttLanguage
-        }
-
-        LabelledFactTextField {
-            Layout.fillWidth: true
-            label: qsTr("Custom Model Path (Optional)")
-            fact: root._voiceSettings.sttCustomModelPath
         }
 
         LabelledFactComboBox {

@@ -23,7 +23,6 @@ public:
     DEFINE_SETTINGFACT(pushToTalkKey)
     DEFINE_SETTINGFACT(sttLanguage)
     DEFINE_SETTINGFACT(sttSelectedModel)
-    DEFINE_SETTINGFACT(sttCustomModelPath)
     DEFINE_SETTINGFACT(sttIdleUnloadTimeout)
     DEFINE_SETTINGFACT(sttUseGpu)
 };

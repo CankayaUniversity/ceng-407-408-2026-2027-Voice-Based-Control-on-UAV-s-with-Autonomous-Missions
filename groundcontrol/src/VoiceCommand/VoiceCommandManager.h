@@ -44,8 +44,7 @@ public:
 
     static VoiceCommandManager* instance();
 
-    void init(Fact* pushToTalkKeyFact = nullptr, Fact* sttSelectedModelFact = nullptr,
-              Fact* sttCustomModelPathFact = nullptr);
+    void init(Fact* pushToTalkKeyFact = nullptr, Fact* sttSelectedModelFact = nullptr);
 
     SttModelManager* sttModelManager() const { return _modelManager; }
 
