@@ -17,4 +17,5 @@ private slots:
     void _testKeyEventFilter();
     void _testAutoRepeatIgnored();
     void _testVehicleConnectedGating();
+    void _testSttModelAvailableGating();
 };

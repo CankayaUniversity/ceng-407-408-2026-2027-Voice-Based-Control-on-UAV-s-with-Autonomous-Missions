@@ -1,5 +1,8 @@
 #include "VoiceCommandManagerTest.h"
 
+#include <QtCore/QDir>
+#include <QtCore/QFile>
+#include <QtCore/QTemporaryDir>
 #include <QtGui/QKeyEvent>
 #include <QtTest/QSignalSpy>
 
@@ -18,6 +21,7 @@ void VoiceCommandManagerTest::init()
     VoiceCommandManager::instance()->init(nullptr);
     VoiceCommandManager::instance()->setPushToTalkKey(QStringLiteral("P"));
     VoiceCommandManager::instance()->setVehicleCheckEnabled(false);
+    VoiceCommandManager::instance()->setSttModelCheckEnabled(false);
 }
 
 void VoiceCommandManagerTest::cleanup()
@@ -25,6 +29,10 @@ void VoiceCommandManagerTest::cleanup()
     if (VoiceCommandManager::instance()->isRecording()) {
         VoiceCommandManager::instance()->stopRecording();
     }
+    if (VoiceCommandManager::instance()->sttModelManager()) {
+        VoiceCommandManager::instance()->sttModelManager()->setSearchOverride(QString(), false);
+    }
+    VoiceCommandManager::instance()->setSttModelCheckEnabled(false);
     UnitTest::cleanup();
 }
 
@@ -155,6 +163,60 @@ void VoiceCommandManagerTest::_testVehicleConnectedGating()
     // Restore vehicle check disabled for test harness
     manager->setVehicleCheckEnabled(false);
     QCOMPARE(manager->isVehicleConnected(), true);
+}
+
+void VoiceCommandManagerTest::_testSttModelAvailableGating()
+{
+    ignoreLogMessage("VoiceCommand.VoiceCommandManager", QtWarningMsg,
+                     QRegularExpression(QStringLiteral("Model for voice recognition is not found")));
+
+    VoiceCommandManager* manager = VoiceCommandManager::instance();
+    SttModelManager* modelManager = manager->sttModelManager();
+    QVERIFY(modelManager != nullptr);
+
+    QTemporaryDir emptyModelDir;
+    QVERIFY(emptyModelDir.isValid());
+
+    manager->setSttModelCheckEnabled(true);
+    modelManager->setSearchOverride(emptyModelDir.path(), true);
+
+    // 1. When no model files exist on disk, SttModelManager has 0 models and VoiceCommandManager is not ready
+    QCOMPARE(modelManager->isModelAvailable(), false);
+    QCOMPARE(manager->isSttModelAvailable(), false);
+    QCOMPARE(manager->isReady(), false);
+    QVERIFY(modelManager->availableModels().isEmpty());
+    QCOMPARE(modelManager->selectedModelIndex(), -1);
+
+    QSignalSpy warningSpy(manager, &VoiceCommandManager::voiceCommandWarning);
+
+    // Calling startRecording (e.g. pressing disabled PTT button) must emit "Model for voice recognition is not found"
+    const bool started = manager->startRecording();
+    QCOMPARE(started, false);
+    QCOMPARE(manager->isRecording(), false);
+    QCOMPARE(warningSpy.count(), 1);
+    QCOMPARE(warningSpy.first().first().toString(), QStringLiteral("Model for voice recognition is not found"));
+
+    // Pressing PTT shortcut key when no model is found must also emit the warning and not start recording
+    QKeyEvent pressEvent(QEvent::KeyPress, Qt::Key_P, Qt::NoModifier, QStringLiteral("p"));
+    const bool handledPress = manager->eventFilter(nullptr, &pressEvent);
+    QCOMPARE(handledPress, true);
+    QCOMPARE(manager->isRecording(), false);
+    QCOMPARE(warningSpy.count(), 2);
+    QCOMPARE(warningSpy.last().first().toString(), QStringLiteral("Model for voice recognition is not found"));
+
+    // 2. Dropping a valid .bin model into the directory and calling modelManager->refreshModels() makes it ready
+    const QString modelFile = QDir(emptyModelDir.path()).filePath(QStringLiteral("ggml-base.en.bin"));
+    QFile f(modelFile);
+    QVERIFY(f.open(QIODevice::WriteOnly));
+    f.write("GGML_MODEL");
+    f.close();
+
+    modelManager->refreshModels();
+    QCOMPARE(modelManager->isModelAvailable(), true);
+    QCOMPARE(manager->isSttModelAvailable(), true);
+    QCOMPARE(modelManager->availableModels().size(), 1);
+    QCOMPARE(modelManager->selectedModel(), QStringLiteral("ggml-base.en.bin"));
+    QCOMPARE(modelManager->selectedModelIndex(), 0);
 }
 
 UT_REGISTER_TEST(VoiceCommandManagerTest, TestLabel::Unit, TestLabel::Utilities)
