@@ -188,13 +188,8 @@ SttResult WhisperEngine::transcribe(const QByteArray& pcm16kMono)
 
     const QString langTrimmed = _config.language.trimmed().toLower();
     const QByteArray langUtf8 = (langTrimmed.isEmpty() ? QStringLiteral("en") : langTrimmed).toUtf8();
-    if (langUtf8 == "auto") {
-        wparams.language = "auto";
-        wparams.detect_language = false;
-    } else {
-        wparams.language = langUtf8.constData();
-        wparams.detect_language = false;
-    }
+    wparams.language = langUtf8.constData();
+    wparams.detect_language = false;
 
     QByteArray promptUtf8;
     if (!_config.vocabularyHints.isEmpty()) {

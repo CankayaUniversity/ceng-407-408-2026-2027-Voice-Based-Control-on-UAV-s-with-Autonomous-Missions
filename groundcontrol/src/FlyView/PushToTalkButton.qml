@@ -12,8 +12,8 @@ Item {
     width: ScreenTools.defaultFontPixelWidth * 7
     height: width
 
-    readonly property bool isMicrophoneActive: QGroundControl.audioDeviceManager ? QGroundControl.audioDeviceManager.isMicrophoneActive : false
-    readonly property bool isVehicleConnected: QGroundControl.multiVehicleManager ? (QGroundControl.multiVehicleManager.activeVehicle !== null) : false
+    readonly property bool isMicrophoneActive: QGroundControl.voiceCommandManager ? QGroundControl.voiceCommandManager.isMicrophoneActive : false
+    readonly property bool isVehicleConnected: QGroundControl.voiceCommandManager ? QGroundControl.voiceCommandManager.isVehicleConnected : false
     readonly property bool isSttModelAvailable: QGroundControl.voiceCommandManager ? QGroundControl.voiceCommandManager.isSttModelAvailable : false
     readonly property bool isReady: QGroundControl.voiceCommandManager ? QGroundControl.voiceCommandManager.isReady : false
 
@@ -74,12 +74,12 @@ Item {
             }
         }
         onReleased: {
-            if (root.isReady && QGroundControl.voiceCommandManager) {
+            if (QGroundControl.voiceCommandManager) {
                 QGroundControl.voiceCommandManager.stopRecording()
             }
         }
         onCanceled: {
-            if (root.isReady && QGroundControl.voiceCommandManager) {
+            if (QGroundControl.voiceCommandManager) {
                 QGroundControl.voiceCommandManager.stopRecording()
             }
         }

@@ -331,5 +331,6 @@ bool VoiceCommandManager::_isTextInputFocused()
     return (className.contains(QStringLiteral("TextInput"), Qt::CaseInsensitive) ||
             className.contains(QStringLiteral("TextEdit"), Qt::CaseInsensitive) ||
             className.contains(QStringLiteral("TextField"), Qt::CaseInsensitive) ||
-            className.contains(QStringLiteral("FactTextField"), Qt::CaseInsensitive));
+            className.contains(QStringLiteral("FactTextField"), Qt::CaseInsensitive) ||
+            className.contains(QStringLiteral("LineEdit"), Qt::CaseInsensitive));
 }

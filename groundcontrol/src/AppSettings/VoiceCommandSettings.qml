@@ -363,7 +363,7 @@ SettingsPage {
     }
 
     Component.onDestruction: {
-        if (QGroundControl.audioLevelMeter.isTesting) {
+        if (QGroundControl.audioLevelMeter && QGroundControl.audioLevelMeter.isTesting) {
             QGroundControl.audioLevelMeter.stopTest()
         }
     }

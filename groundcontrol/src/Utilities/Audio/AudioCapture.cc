@@ -249,6 +249,9 @@ void AudioCapture::stopCapture()
         emit recordingFinished(_recordedBuffer, canonicalAudioFormat());
     }
 
+    _recordedBuffer.clear();
+    _recordedBuffer.squeeze();
+
     emit captureStateChanged(_state);
 }
 
