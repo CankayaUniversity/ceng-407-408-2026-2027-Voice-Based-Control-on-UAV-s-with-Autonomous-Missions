@@ -16,10 +16,12 @@ QGC_LOGGING_CATEGORY(VoiceCommandManagerLog, "VoiceCommand.VoiceCommandManager")
 
 Q_APPLICATION_STATIC(VoiceCommandManager, _voiceCommandManager);
 
-VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManager* deviceManager, QObject* parent)
+VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManager* deviceManager,
+                                         SttModelManager* modelManager, QObject* parent)
     : QObject(parent),
       _audioCapture(capture ? capture : AudioCapture::instance()),
-      _deviceManager(deviceManager ? deviceManager : AudioDeviceManager::instance())
+      _deviceManager(deviceManager ? deviceManager : AudioDeviceManager::instance()),
+      _modelManager(modelManager ? modelManager : SttModelManager::instance())
 {
     if (_audioCapture) {
         (void) connect(_audioCapture, &AudioCapture::recordingFinished, this,
@@ -35,9 +37,16 @@ VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManag
                        &VoiceCommandManager::_onMicrophoneActiveChanged);
     }
 
+    if (_modelManager) {
+        (void) connect(_modelManager, &SttModelManager::isModelAvailableChanged, this,
+                       &VoiceCommandManager::_onSttModelAvailableChanged);
+    }
+
     if (MultiVehicleManager::instance()) {
-        (void) connect(MultiVehicleManager::instance(), &MultiVehicleManager::activeVehicleChanged, this,
-                       [this]() { emit vehicleConnectedChanged(isVehicleConnected()); });
+        (void) connect(MultiVehicleManager::instance(), &MultiVehicleManager::activeVehicleChanged, this, [this]() {
+            emit vehicleConnectedChanged(isVehicleConnected());
+            emit readyChanged(isReady());
+        });
     }
 }
 
@@ -54,7 +63,7 @@ VoiceCommandManager* VoiceCommandManager::instance()
     return _voiceCommandManager();
 }
 
-void VoiceCommandManager::init(Fact* pushToTalkKeyFact)
+void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFact, Fact* sttCustomModelPathFact)
 {
     if (_pushToTalkKeyFact) {
         disconnect(_pushToTalkKeyFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onFactValueChanged);
@@ -68,6 +77,10 @@ void VoiceCommandManager::init(Fact* pushToTalkKeyFact)
             _pushToTalkKey = savedKey;
         }
         (void) connect(_pushToTalkKeyFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onFactValueChanged);
+    }
+
+    if (_modelManager) {
+        _modelManager->init(sttSelectedModelFact, sttCustomModelPathFact);
     }
 
     if (!_isEventFilterInstalled && qApp) {
@@ -123,6 +136,29 @@ void VoiceCommandManager::setVehicleCheckEnabled(bool enabled)
     if (_vehicleCheckEnabled != enabled) {
         _vehicleCheckEnabled = enabled;
         emit vehicleConnectedChanged(isVehicleConnected());
+        emit readyChanged(isReady());
+    }
+}
+
+bool VoiceCommandManager::isSttModelAvailable() const
+{
+    if (!_sttModelCheckEnabled) {
+        return true;
+    }
+    return _modelManager ? _modelManager->isModelAvailable() : false;
+}
+
+bool VoiceCommandManager::isReady() const
+{
+    return isMicrophoneActive() && isVehicleConnected() && isSttModelAvailable();
+}
+
+void VoiceCommandManager::setSttModelCheckEnabled(bool enabled)
+{
+    if (_sttModelCheckEnabled != enabled) {
+        _sttModelCheckEnabled = enabled;
+        emit sttModelAvailableChanged(isSttModelAvailable());
+        emit readyChanged(isReady());
     }
 }
 
@@ -133,13 +169,23 @@ bool VoiceCommandManager::startRecording()
         return false;
     }
 
-    if (!isMicrophoneActive()) {
-        qCDebug(VoiceCommandManagerLog) << "Cannot start recording: Microphone is not active";
+    if (!isVehicleConnected()) {
+        qCDebug(VoiceCommandManagerLog) << "Cannot start recording: No active vehicle connected";
         return false;
     }
 
-    if (!isVehicleConnected()) {
-        qCDebug(VoiceCommandManagerLog) << "Cannot start recording: No active vehicle connected";
+    if (!isSttModelAvailable()) {
+        const QString msg = tr("Model for voice recognition is not found");
+        qCWarning(VoiceCommandManagerLog) << msg;
+        emit voiceCommandWarning(msg);
+        if (qgcApp() && !qgcApp()->runningUnitTests()) {
+            qgcApp()->showAppMessage(msg);
+        }
+        return false;
+    }
+
+    if (!isMicrophoneActive()) {
+        qCDebug(VoiceCommandManagerLog) << "Cannot start recording: Microphone is not active";
         return false;
     }
 
@@ -233,6 +279,14 @@ void VoiceCommandManager::_onRecordingSafetyLimitReached(const QByteArray& recor
 void VoiceCommandManager::_onMicrophoneActiveChanged(bool active)
 {
     emit microphoneActiveChanged(active);
+    emit readyChanged(isReady());
+}
+
+void VoiceCommandManager::_onSttModelAvailableChanged(bool available)
+{
+    Q_UNUSED(available);
+    emit sttModelAvailableChanged(isSttModelAvailable());
+    emit readyChanged(isReady());
 }
 
 void VoiceCommandManager::_onCaptureStateChanged()

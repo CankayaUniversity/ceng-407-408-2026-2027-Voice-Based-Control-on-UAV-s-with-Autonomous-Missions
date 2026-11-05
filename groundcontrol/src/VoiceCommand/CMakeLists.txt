@@ -8,6 +8,10 @@ target_sources(${CMAKE_PROJECT_NAME}
         SpeechToTextInterface.h
         SttEngineFactory.cc
         SttEngineFactory.h
+        SttModelManager.cc
+        SttModelManager.h
+        SttModelResolver.cc
+        SttModelResolver.h
         VoiceCommandManager.cc
         VoiceCommandManager.h
         WhisperEngine.cc
@@ -17,6 +21,12 @@ target_sources(${CMAKE_PROJECT_NAME}
 target_include_directories(${CMAKE_PROJECT_NAME}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/models/stt")
+target_compile_definitions(${CMAKE_PROJECT_NAME}
+    PRIVATE
+        QGC_STT_SOURCE_MODEL_DIR="${CMAKE_SOURCE_DIR}/models/stt"
 )
 
 message(STATUS "QGC: Building whisper.cpp STT engine")
