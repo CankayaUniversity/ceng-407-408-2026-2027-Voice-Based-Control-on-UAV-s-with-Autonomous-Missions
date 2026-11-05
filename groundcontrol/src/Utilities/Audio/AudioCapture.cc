@@ -1,6 +1,7 @@
 #include "AudioCapture.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "AudioDeviceManager.h"
 #include "DspNoiseFilter.h"
@@ -40,6 +41,20 @@ AudioCapture::~AudioCapture()
 AudioCapture* AudioCapture::instance()
 {
     return _audioCapture();
+}
+
+QAudioFormat AudioCapture::canonicalAudioFormat()
+{
+    return AudioDownsampler::canonicalFormat();
+}
+
+void AudioCapture::setAudioInputDeviceForTesting(QIODevice* device, const QAudioFormat& format)
+{
+    if (_state != CaptureState::Stopped) {
+        stopCapture();
+    }
+    _testInputDevice = device;
+    _testInputFormat = format;
 }
 
 void AudioCapture::init(Fact* noiseFilterEnabledFact, Fact* noiseFilterLevelFact)
@@ -175,6 +190,12 @@ void AudioCapture::stopStreaming()
 
 bool AudioCapture::startRecording()
 {
+    if (_state == CaptureState::Streaming) {
+        qCWarning(AudioCaptureLog) << "Pre-empting active streaming session for recording.";
+        emit captureWarning(QStringLiteral("Streaming session pre-empted by voice recording"));
+        stopCapture();
+    }
+
     const bool started = _startCapture(CaptureState::Recording);
     if (started) {
         _safetyLimitTimer->start(kHardRecordingLimitMs);
@@ -205,7 +226,7 @@ void AudioCapture::_onSafetyLimitReached()
     const QByteArray recordedData = _recordedBuffer;
     stopCapture();
 
-    emit recordingSafetyLimitReached(recordedData, _actualFormat);
+    emit recordingSafetyLimitReached(recordedData, canonicalAudioFormat());
 }
 
 void AudioCapture::stopCapture()
@@ -225,7 +246,7 @@ void AudioCapture::stopCapture()
     }
 
     if (previousState == CaptureState::Recording) {
-        emit recordingFinished(_recordedBuffer, _actualFormat);
+        emit recordingFinished(_recordedBuffer, canonicalAudioFormat());
     }
 
     emit captureStateChanged(_state);
@@ -235,6 +256,44 @@ bool AudioCapture::_startCapture(CaptureState state)
 {
     if (_state != CaptureState::Stopped) {
         stopCapture();
+    }
+
+    _cleanupAudioSource();
+    _downsampler.reset();
+
+    if (_testInputDevice != nullptr) {
+        _actualFormat = _testInputFormat.isValid() ? _testInputFormat : canonicalAudioFormat();
+        _audioIODevice = _testInputDevice;
+
+        if (!_audioIODevice->isOpen()) {
+            if (!_audioIODevice->open(QIODevice::ReadOnly)) {
+                qCWarning(AudioCaptureLog) << "Failed to open test input device.";
+                emit captureError(QStringLiteral("Failed to open test input stream"));
+                return false;
+            }
+        }
+
+        (void) connect(_audioIODevice, &QIODevice::readyRead, this, &AudioCapture::_onReadyRead);
+
+        _state = state;
+        if (_state == CaptureState::Recording) {
+            _recordedBuffer.clear();
+        }
+
+        if (_noiseFilter) {
+            _noiseFilter->reset();
+        }
+
+        qCDebug(AudioCaptureLog) << "Audio capture started with test device in mode:" << static_cast<int>(_state)
+                                 << "rate:" << _actualFormat.sampleRate()
+                                 << "channels:" << _actualFormat.channelCount();
+
+        emit captureStateChanged(_state);
+
+        if (_audioIODevice->bytesAvailable() > 0) {
+            _onReadyRead();
+        }
+        return true;
     }
 
     if (!_deviceManager || !_deviceManager->isMicrophoneActive()) {
@@ -259,8 +318,6 @@ bool AudioCapture::_startCapture(CaptureState state)
         emit captureError(QStringLiteral("Failed to negotiate audio format with hardware"));
         return false;
     }
-
-    _cleanupAudioSource();
 
     _audioSource = new QAudioSource(device, _actualFormat, this);
     (void) connect(_audioSource, &QAudioSource::stateChanged, this, &AudioCapture::_onAudioSourceStateChanged);
@@ -308,6 +365,8 @@ void AudioCapture::_cleanupAudioSource()
         delete _audioSource;
         _audioSource = nullptr;
     }
+
+    _downsampler.reset();
 }
 
 QAudioFormat AudioCapture::_determineFormat(const QAudioDevice& device)
@@ -335,19 +394,26 @@ void AudioCapture::_onReadyRead()
         return;
     }
 
-    QByteArray chunk = _audioIODevice->readAll();
-    if (chunk.isEmpty()) {
+    const QByteArray rawBytes = _audioIODevice->readAll();
+    if (rawBytes.isEmpty()) {
         return;
     }
 
+    QByteArray canonicalChunk = _downsampler.process(rawBytes, _actualFormat);
+    if (canonicalChunk.isEmpty()) {
+        return;
+    }
+
+    const QAudioFormat canonicalFormat = canonicalAudioFormat();
+
     if (_noiseFilterEnabled && _noiseFilter) {
-        _noiseFilter->process(chunk, _actualFormat);
+        _noiseFilter->process(canonicalChunk, canonicalFormat);
     }
 
     if (_state == CaptureState::Recording) {
-        _recordedBuffer.append(chunk);
+        _recordedBuffer.append(canonicalChunk);
     } else if (_state == CaptureState::Streaming) {
-        emit audioStreamFrameReady(chunk, _actualFormat);
+        emit audioStreamFrameReady(canonicalChunk, canonicalFormat);
     }
 }
 

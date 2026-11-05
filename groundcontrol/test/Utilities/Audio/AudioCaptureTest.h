@@ -12,12 +12,14 @@ private slots:
 
     void _testInitialState();
     void _testTargetFormat();
-    void _testCaptureLifecycle();
-    void _testStreamingLifecycle();
+    void _testCaptureLifecycleWithTestSeam();
+    void _testStreamingLifecycleWithTestSeam();
+    void _testConflictPreemption();
+    void _testDownmixStereoToMono();
+    void _testResamplingTo16kHz();
     void _testNoiseFilterSettings();
     void _testNoiseFilterSwapping();
+    void _testNoiseFilterProcessingWithInjectedAudio();
     void _testSafetyLimitReached();
-    void _testStreamingFrameEmission();
-    void _testSignalEmissions();
     void _testDeviceDisconnectionHandling();
 };
