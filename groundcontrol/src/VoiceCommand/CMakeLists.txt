@@ -14,6 +14,8 @@ target_sources(${CMAKE_PROJECT_NAME}
         SttModelResolver.h
         VoiceCommandManager.cc
         VoiceCommandManager.h
+        VoiceCommandWorker.cc
+        VoiceCommandWorker.h
         WhisperEngine.cc
         WhisperEngine.h
 )
