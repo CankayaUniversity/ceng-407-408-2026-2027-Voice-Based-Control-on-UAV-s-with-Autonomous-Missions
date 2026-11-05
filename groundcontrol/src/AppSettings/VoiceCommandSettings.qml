@@ -336,6 +336,7 @@ SettingsPage {
             fact: root._voiceSettings.sttLanguage
         }
 
+        // shortcut: idle model unload timer wired in worker pipeline PR, when background worker thread is added
         LabelledFactComboBox {
             Layout.fillWidth: true
             label: qsTr("Model Memory Timeout")

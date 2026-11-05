@@ -3,6 +3,7 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QFileInfo>
 #include <cstdint>
+#include <cstring>
 #include <mutex>
 #include <vector>
 
@@ -147,12 +148,14 @@ bool WhisperEngine::convertPcm16ToFloat(const QByteArray& pcm16kMono, std::vecto
     }
 
     const auto sampleCount = static_cast<size_t>(pcm16kMono.size()) / sizeof(int16_t);
-    const auto* rawSamples = reinterpret_cast<const int16_t*>(pcm16kMono.constData());
+    const char* pcmPtr = pcm16kMono.constData();
 
     outSamples.resize(sampleCount);
     constexpr float kInvInt16Scale = 1.0f / 32768.0f;
     for (size_t i = 0; i < sampleCount; ++i) {
-        outSamples[i] = static_cast<float>(rawSamples[i]) * kInvInt16Scale;
+        int16_t sample = 0;
+        std::memcpy(&sample, pcmPtr + (i * sizeof(int16_t)), sizeof(int16_t));
+        outSamples[i] = static_cast<float>(sample) * kInvInt16Scale;
     }
 
     return true;
@@ -219,7 +222,12 @@ SttResult WhisperEngine::transcribe(const QByteArray& pcm16kMono)
     for (int i = 0; i < segmentCount; ++i) {
         const char* segText = whisper_full_get_segment_text(_ctx, i);
         if (segText != nullptr) {
-            transcript.append(QString::fromUtf8(segText));
+            const QString segStr = QString::fromUtf8(segText);
+            if (!transcript.isEmpty() && !segStr.isEmpty() && !transcript.endsWith(QLatin1Char(' ')) &&
+                !segStr.startsWith(QLatin1Char(' '))) {
+                transcript.append(QLatin1Char(' '));
+            }
+            transcript.append(segStr);
         }
 
         const int segTokens = whisper_full_n_tokens(_ctx, i);

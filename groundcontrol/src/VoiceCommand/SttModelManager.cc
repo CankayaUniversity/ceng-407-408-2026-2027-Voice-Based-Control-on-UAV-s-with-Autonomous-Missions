@@ -125,9 +125,20 @@ void SttModelManager::_onSelectedModelFactChanged()
 void SttModelManager::_updateSelectedModel()
 {
     if (_discoveredModels.isEmpty()) {
+        const bool nameChanged = !_selectedModelName.isEmpty();
+        _selectedModelName.clear();
+
+        if (_selectedModelFact && !_selectedModelFact->rawValue().toString().isEmpty()) {
+            _selectedModelFact->setRawValue(QString());
+        }
+
         if (_selectedModelIndex != -1) {
             _selectedModelIndex = -1;
             emit selectedModelIndexChanged(_selectedModelIndex);
+        }
+
+        if (nameChanged) {
+            emit selectedModelChanged(_selectedModelName);
         }
         return;
     }

@@ -215,6 +215,13 @@ void SttEngineTest::_testResolveConfigTurkishUpgrade()
         1 /* Turkish */, QStringLiteral("ggml-base.en.bin"), false, QString(),
         envDir.absolutePath(), true);
     QCOMPARE(cfgExplicitEn.modelPath, QFileInfo(enOnlyFile).absoluteFilePath());
+
+    // 4. When a non-existent model name is requested with Turkish language,
+    // it falls back to a model supporting Turkish rather than blindly taking the first model.
+    const SttConfig cfgMissingFallback = SttModelResolver::resolveConfig(
+        1 /* Turkish */, QStringLiteral("nonexistent-model.bin"), false, QString(),
+        envDir.absolutePath(), true);
+    QCOMPARE(cfgMissingFallback.modelPath, QFileInfo(multiFile).absoluteFilePath());
 }
 
 void SttEngineTest::_testInspectModelFileOrDirBoundary()
@@ -399,6 +406,19 @@ void SttEngineTest::_testSttModelManager()
     // Resolving config through manager
     const SttConfig cfg = manager.currentResolvedConfig(0 /* English */, false /* useGpu */);
     QCOMPARE(cfg.modelPath, QFileInfo(modelA).absoluteFilePath());
+
+    // Removing models and refreshing must reset selectedModel to empty and index to -1
+    QVERIFY(QFile::remove(modelA));
+    QVERIFY(QFile::remove(modelB));
+
+    QSignalSpy modelChangedSpy(&manager, &SttModelManager::selectedModelChanged);
+    manager.refreshModels();
+
+    QCOMPARE(manager.isModelAvailable(), false);
+    QCOMPARE(manager.availableModels().size(), 0);
+    QCOMPARE(manager.selectedModelIndex(), -1);
+    QVERIFY(manager.selectedModel().isEmpty());
+    QCOMPARE(modelChangedSpy.count(), 1);
 }
 
 void SttEngineTest::_testPcm16ToFloatConversion()

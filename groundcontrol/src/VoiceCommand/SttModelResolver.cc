@@ -219,13 +219,13 @@ bool SttModelResolver::resolveModel(const QString& selectedModelIdOrName, const 
                 return true;
             }
         }
-    } else {
-        // Fall back to preferred model supporting the requested language only when no model was explicitly requested
-        for (const SttModelDescriptor& desc : models) {
-            if (desc.supportedLanguages.contains(languageCode)) {
-                outDescriptor = desc;
-                return true;
-            }
+    }
+
+    // Fall back to preferred model supporting the requested language
+    for (const SttModelDescriptor& desc : models) {
+        if (desc.supportedLanguages.contains(languageCode)) {
+            outDescriptor = desc;
+            return true;
         }
     }
 
