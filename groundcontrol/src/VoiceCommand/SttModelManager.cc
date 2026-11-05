@@ -30,8 +30,7 @@ void SttModelManager::init(Fact* selectedModelFact)
 
     if (_selectedModelFact) {
         _selectedModelName = _selectedModelFact->rawValue().toString().trimmed();
-        (void) connect(_selectedModelFact, &Fact::rawValueChanged, this,
-                       &SttModelManager::_onSelectedModelFactChanged);
+        (void) connect(_selectedModelFact, &Fact::rawValueChanged, this, &SttModelManager::_onSelectedModelFactChanged);
     }
 
     refreshModels();
@@ -85,8 +84,7 @@ void SttModelManager::refreshModels()
 {
     const bool prevAvailable = isModelAvailable();
 
-    _discoveredModels = SttModelResolver::discoverModels(QString(), _searchOverrideDir,
-                                                         _isolateSearchToOverride);
+    _discoveredModels = SttModelResolver::discoverModels(QString(), _searchOverrideDir, _isolateSearchToOverride);
 
     emit availableModelsChanged();
     _updateSelectedModel();
@@ -98,8 +96,8 @@ void SttModelManager::refreshModels()
 
 SttConfig SttModelManager::currentResolvedConfig(int languageSettingIndex, bool useGpu) const
 {
-    return SttModelResolver::resolveConfig(languageSettingIndex, _selectedModelName, useGpu,
-                                           QString(), _searchOverrideDir, _isolateSearchToOverride);
+    return SttModelResolver::resolveConfig(languageSettingIndex, _selectedModelName, useGpu, QString(),
+                                           _searchOverrideDir, _isolateSearchToOverride);
 }
 
 void SttModelManager::setSearchOverride(const QString& envDirOverride, bool isolateToOverrides)

@@ -31,6 +31,7 @@ public:
     }
 
     bool isLoaded() const override { return _loaded; }
+
     SttConfig config() const override { return _config; }
 
     SttResult transcribe(const QByteArray& pcm16kMono) override
@@ -41,6 +42,7 @@ public:
     }
 
     QString backendName() const override { return QStringLiteral("mock"); }
+
     SttEngineType engineType() const override { return SttEngineType::Custom; }
 
     bool _loaded = false;
@@ -51,7 +53,7 @@ public:
     SttResult _mockResult{true, QStringLiteral("arm the drone"), 0.95f, 10, QString()};
 };
 
-} // namespace
+}  // namespace
 
 void VoiceCommandManagerTest::init()
 {
@@ -281,7 +283,7 @@ void VoiceCommandManagerTest::_testMinimumDurationValidation()
     format.setSampleFormat(QAudioFormat::Int16);
 
     // 1. Audio shorter than 500ms (<16000 bytes at 16kHz Int16 Mono) must be rejected
-    const QByteArray shortPcm(8000, '\0'); // 250ms
+    const QByteArray shortPcm(8000, '\0');  // 250ms
     manager->_onRecordingFinished(shortPcm, format);
 
     QCOMPARE(spyRecorded.count(), 0);
@@ -290,11 +292,11 @@ void VoiceCommandManagerTest::_testMinimumDurationValidation()
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
 
     // 2. Audio >= 500ms (>=16000 bytes) must pass through
-    const QByteArray validPcm(16000, '\0'); // exactly 500ms
+    const QByteArray validPcm(16000, '\0');  // exactly 500ms
     manager->_onRecordingFinished(validPcm, format);
 
     QCOMPARE(spyRecorded.count(), 1);
-    QCOMPARE(spyWarning.count(), 1); // no new warning emitted
+    QCOMPARE(spyWarning.count(), 1);  // no new warning emitted
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Processing);
 }
 
@@ -341,7 +343,7 @@ void VoiceCommandManagerTest::_testIdleUnloadTimer()
     manager->setSttEngine(mockEngine, true);
     QVERIFY(manager->isSttModelLoaded());
 
-    manager->setIdleUnloadTimeout(50); // 50ms
+    manager->setIdleUnloadTimeout(50);  // 50ms
     manager->setKeepModelInMemory(false);
 
     QSignalSpy spyLoaded(manager, &VoiceCommandManager::modelLoadedChanged);
@@ -372,7 +374,7 @@ void VoiceCommandManagerTest::_testAsynchronousWorkerTranscription()
     format.setChannelCount(1);
     format.setSampleFormat(QAudioFormat::Int16);
 
-    const QByteArray validPcm(16000, '\0'); // 500ms
+    const QByteArray validPcm(16000, '\0');  // 500ms
     manager->_onRecordingFinished(validPcm, format);
 
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Processing);

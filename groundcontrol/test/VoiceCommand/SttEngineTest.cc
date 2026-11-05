@@ -6,7 +6,6 @@
 #include <QtCore/QTemporaryDir>
 #include <QtTest/QSignalSpy>
 #include <QtTest/QTest>
-
 #include <cmath>
 #include <cstdint>
 #include <vector>
@@ -197,8 +196,8 @@ void SttEngineTest::_testResolveConfigTurkishUpgrade()
 
     // 1. When no model is explicitly requested (empty), Turkish language selection
     // falls back to the first discovered model supporting Turkish ("ggml-base.bin").
-    const SttConfig cfgFallback = SttModelResolver::resolveConfig(
-        1 /* Turkish */, QString(), true /* useGpu */, QString(), envDir.absolutePath(), true);
+    const SttConfig cfgFallback = SttModelResolver::resolveConfig(1 /* Turkish */, QString(), true /* useGpu */,
+                                                                  QString(), envDir.absolutePath(), true);
     QCOMPARE(cfgFallback.language, QStringLiteral("tr"));
     QCOMPARE(cfgFallback.useGpu, true);
     QCOMPARE(cfgFallback.modelPath, QFileInfo(multiFile).absoluteFilePath());
@@ -206,21 +205,18 @@ void SttEngineTest::_testResolveConfigTurkishUpgrade()
     // 2. When the user explicitly selects a model by name/ID, that selection MUST be honored
     // even if language is Turkish and the model does not have explicit 'tr' in its name.
     const SttConfig cfgExplicitUniversal = SttModelResolver::resolveConfig(
-        1 /* Turkish */, QStringLiteral("whisper-large-v3-turbo.bin"), false, QString(),
-        envDir.absolutePath(), true);
+        1 /* Turkish */, QStringLiteral("whisper-large-v3-turbo.bin"), false, QString(), envDir.absolutePath(), true);
     QCOMPARE(cfgExplicitUniversal.modelPath, QFileInfo(customUniversal).absoluteFilePath());
 
     // 3. Explicitly selecting an English-only model with Turkish language is still honored.
-    const SttConfig cfgExplicitEn = SttModelResolver::resolveConfig(
-        1 /* Turkish */, QStringLiteral("ggml-base.en.bin"), false, QString(),
-        envDir.absolutePath(), true);
+    const SttConfig cfgExplicitEn = SttModelResolver::resolveConfig(1 /* Turkish */, QStringLiteral("ggml-base.en.bin"),
+                                                                    false, QString(), envDir.absolutePath(), true);
     QCOMPARE(cfgExplicitEn.modelPath, QFileInfo(enOnlyFile).absoluteFilePath());
 
     // 4. When a non-existent model name is requested with Turkish language,
     // it falls back to a model supporting Turkish rather than blindly taking the first model.
     const SttConfig cfgMissingFallback = SttModelResolver::resolveConfig(
-        1 /* Turkish */, QStringLiteral("nonexistent-model.bin"), false, QString(),
-        envDir.absolutePath(), true);
+        1 /* Turkish */, QStringLiteral("nonexistent-model.bin"), false, QString(), envDir.absolutePath(), true);
     QCOMPARE(cfgMissingFallback.modelPath, QFileInfo(multiFile).absoluteFilePath());
 }
 
@@ -332,8 +328,8 @@ void SttEngineTest::_testDiscoverModelsPrecedenceAndShadowing()
     QVERIFY(writeDummy(appUnique, "APP_UNIQUE"));
 
     // Discover with env override and app dir override
-    const QList<SttModelDescriptor> discovered = SttModelResolver::discoverModels(
-        stage2AppDir, stage1EnvDir, true /* isolate */);
+    const QList<SttModelDescriptor> discovered =
+        SttModelResolver::discoverModels(stage2AppDir, stage1EnvDir, true /* isolate */);
 
     // Should discover 2 models total: "shadow-model.bin" (from env) and "app-unique.bin" (from app)
     QCOMPARE(discovered.size(), 2);
@@ -450,8 +446,9 @@ void SttEngineTest::_testPcm16ToFloatConversion()
 
 void SttEngineTest::_testWhisperEngineLifecycleAndErrorHandling()
 {
-    ignoreLogMessage("VoiceCommand.WhisperEngine", QtWarningMsg,
-                     QRegularExpression(QStringLiteral("WhisperEngine is not initialized|Cannot initialize WhisperEngine")));
+    ignoreLogMessage(
+        "VoiceCommand.WhisperEngine", QtWarningMsg,
+        QRegularExpression(QStringLiteral("WhisperEngine is not initialized|Cannot initialize WhisperEngine")));
 
     WhisperEngine engine;
     QCOMPARE(engine.isLoaded(), false);

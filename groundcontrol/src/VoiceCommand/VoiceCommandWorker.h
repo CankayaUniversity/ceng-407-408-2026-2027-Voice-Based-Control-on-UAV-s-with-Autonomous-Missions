@@ -17,6 +17,7 @@ public:
     ~VoiceCommandWorker() override;
 
     void setEngine(SpeechToTextInterface* engine, bool takeOwnership);
+
     SpeechToTextInterface* engine() const { return _engine; }
 
 public slots:

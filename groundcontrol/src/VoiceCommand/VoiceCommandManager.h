@@ -67,6 +67,7 @@ public:
     SttModelManager* sttModelManager() const { return _modelManager; }
 
     SessionState sessionState() const { return _sessionState; }
+
     QString sessionStateString() const;
 
     bool isRecording() const;
@@ -94,9 +95,11 @@ public:
 
     /// Configurable idle timeout for unloading STT models from memory (ms).
     void setIdleUnloadTimeout(int timeoutMs);
+
     int idleUnloadTimeout() const { return _idleUnloadTimeoutMs; }
 
     void setKeepModelInMemory(bool keepInMemory);
+
     bool keepModelInMemory() const { return _keepModelInMemory; }
 
     /// Starts audio recording for a voice command.

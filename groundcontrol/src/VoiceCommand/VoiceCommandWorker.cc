@@ -1,10 +1,8 @@
 #include "VoiceCommandWorker.h"
+
 #include "SttEngineFactory.h"
 
-VoiceCommandWorker::VoiceCommandWorker(QObject* parent)
-    : QObject(parent)
-{
-}
+VoiceCommandWorker::VoiceCommandWorker(QObject* parent) : QObject(parent) {}
 
 VoiceCommandWorker::~VoiceCommandWorker()
 {

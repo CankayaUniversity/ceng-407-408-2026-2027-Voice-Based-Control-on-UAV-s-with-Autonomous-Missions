@@ -1,5 +1,4 @@
 #include "VoiceCommandManager.h"
-#include "VoiceCommandWorker.h"
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QMetaObject>
@@ -14,11 +13,11 @@
 #include "QGCApplication.h"
 #include "QGCLoggingCategory.h"
 #include "SttEngineFactory.h"
+#include "VoiceCommandWorker.h"
 
 QGC_LOGGING_CATEGORY(VoiceCommandManagerLog, "VoiceCommand.VoiceCommandManager")
 
 Q_APPLICATION_STATIC(VoiceCommandManager, _voiceCommandManager);
-
 
 VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManager* deviceManager,
                                          SttModelManager* modelManager, QObject* parent)
@@ -127,18 +126,18 @@ void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFa
 QString VoiceCommandManager::sessionStateString() const
 {
     switch (_sessionState) {
-    case SessionState::Idle:
-        return QStringLiteral("Idle");
-    case SessionState::Listening:
-        return QStringLiteral("Listening");
-    case SessionState::Processing:
-        return QStringLiteral("Processing");
-    case SessionState::Confirming:
-        return QStringLiteral("Confirming");
-    case SessionState::Executing:
-        return QStringLiteral("Executing");
-    case SessionState::Error:
-        return QStringLiteral("Error");
+        case SessionState::Idle:
+            return QStringLiteral("Idle");
+        case SessionState::Listening:
+            return QStringLiteral("Listening");
+        case SessionState::Processing:
+            return QStringLiteral("Processing");
+        case SessionState::Confirming:
+            return QStringLiteral("Confirming");
+        case SessionState::Executing:
+            return QStringLiteral("Executing");
+        case SessionState::Error:
+            return QStringLiteral("Error");
     }
     return QStringLiteral("Idle");
 }
@@ -242,10 +241,7 @@ void VoiceCommandManager::setSttEngine(SpeechToTextInterface* engine, bool takeO
     if (_worker) {
         if (_workerThread.isRunning()) {
             QMetaObject::invokeMethod(
-                _worker,
-                [worker = _worker, engine, takeOwnership]() {
-                    worker->setEngine(engine, takeOwnership);
-                },
+                _worker, [worker = _worker, engine, takeOwnership]() { worker->setEngine(engine, takeOwnership); },
                 Qt::BlockingQueuedConnection);
         } else {
             _worker->setEngine(engine, takeOwnership);
@@ -308,10 +304,11 @@ bool VoiceCommandManager::startRecording()
     const bool started = _audioCapture->startRecording();
     if (started) {
         _setSessionState(SessionState::Listening);
-        
+
         if (!_isModelLoaded && _modelManager && _modelManager->isModelAvailable()) {
             const SttConfig config = _modelManager->currentResolvedConfig(0, false);
-            qCDebug(VoiceCommandManagerLog) << "Pre-warming STT model in worker thread on PTT press:" << config.modelPath;
+            qCDebug(VoiceCommandManagerLog)
+                << "Pre-warming STT model in worker thread on PTT press:" << config.modelPath;
             emit _requestInitializeModel(config);
         }
     }
@@ -394,8 +391,8 @@ void VoiceCommandManager::_onRecordingFinished(const QByteArray& recordedPcmData
                                                : (recordedPcmData.size() * 1000000LL / 32000LL);
 
     if (durationUs < 500000 || recordedPcmData.size() < kMinPcmBytes) {
-        qCDebug(VoiceCommandManagerLog) << "Utterance rejected: duration" << durationUs
-                                       << "us (< 500ms) or size" << recordedPcmData.size() << "bytes (< 16000 bytes)";
+        qCDebug(VoiceCommandManagerLog) << "Utterance rejected: duration" << durationUs << "us (< 500ms) or size"
+                                        << recordedPcmData.size() << "bytes (< 16000 bytes)";
         _setSessionState(SessionState::Idle);
         const QString msg = tr("Voice Command is too short to recognize");
         emit voiceCommandWarning(msg);
@@ -462,7 +459,7 @@ void VoiceCommandManager::_onModelUnloaded()
 void VoiceCommandManager::_onTranscriptionFinished(const SttResult& result)
 {
     qCDebug(VoiceCommandManagerLog) << "STT inference finished. Success:" << result.success
-                                   << "Time:" << result.inferenceTimeMs << "ms";
+                                    << "Time:" << result.inferenceTimeMs << "ms";
 
     if (_idleUnloadTimer && _idleUnloadTimeoutMs > 0) {
         _idleUnloadTimer->start(_idleUnloadTimeoutMs);

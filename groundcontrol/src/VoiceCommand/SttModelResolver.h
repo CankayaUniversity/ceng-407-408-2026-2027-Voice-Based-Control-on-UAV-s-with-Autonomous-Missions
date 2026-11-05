@@ -52,7 +52,7 @@ public:
 
     /// Resolves a complete SttConfig ready for SpeechToTextInterface::initialize().
     /// If no model is found on disk, the returned SttConfig has an empty modelPath.
-    static SttConfig resolveConfig(int languageSettingIndex, const QString& selectedModelIdOrName,
-                                   bool useGpu, const QString& appDirPathOverride = QString(),
+    static SttConfig resolveConfig(int languageSettingIndex, const QString& selectedModelIdOrName, bool useGpu,
+                                   const QString& appDirPathOverride = QString(),
                                    const QString& envDirOverride = QString(), bool isolateToOverrides = false);
 };

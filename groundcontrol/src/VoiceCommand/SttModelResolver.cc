@@ -69,8 +69,8 @@ QString SttModelResolver::languageCodeFromSettingIndex(int languageIndex)
     }
 }
 
-QStringList SttModelResolver::searchDirectories(const QString& appDirPathOverride,
-                                                const QString& envDirOverride, bool isolateToOverrides)
+QStringList SttModelResolver::searchDirectories(const QString& appDirPathOverride, const QString& envDirOverride,
+                                                bool isolateToOverrides)
 {
     QStringList dirs;
 
@@ -199,12 +199,10 @@ QList<SttModelDescriptor> SttModelResolver::discoverModels(const QString& appDir
 }
 
 bool SttModelResolver::resolveModel(const QString& selectedModelIdOrName, const QString& languageCode,
-                                    SttModelDescriptor& outDescriptor,
-                                    const QString& appDirPathOverride, const QString& envDirOverride,
-                                    bool isolateToOverrides)
+                                    SttModelDescriptor& outDescriptor, const QString& appDirPathOverride,
+                                    const QString& envDirOverride, bool isolateToOverrides)
 {
-    const QList<SttModelDescriptor> models =
-        discoverModels(appDirPathOverride, envDirOverride, isolateToOverrides);
+    const QList<SttModelDescriptor> models = discoverModels(appDirPathOverride, envDirOverride, isolateToOverrides);
     if (models.isEmpty()) {
         return false;
     }
@@ -234,8 +232,7 @@ bool SttModelResolver::resolveModel(const QString& selectedModelIdOrName, const 
     return true;
 }
 
-SttConfig SttModelResolver::resolveConfig(int languageSettingIndex, const QString& selectedModelIdOrName,
-                                          bool useGpu,
+SttConfig SttModelResolver::resolveConfig(int languageSettingIndex, const QString& selectedModelIdOrName, bool useGpu,
                                           const QString& appDirPathOverride, const QString& envDirOverride,
                                           bool isolateToOverrides)
 {
@@ -244,8 +241,8 @@ SttConfig SttModelResolver::resolveConfig(int languageSettingIndex, const QStrin
     cfg.useGpu = useGpu;
 
     SttModelDescriptor resolvedDesc;
-    if (resolveModel(selectedModelIdOrName, cfg.language, resolvedDesc, appDirPathOverride,
-                     envDirOverride, isolateToOverrides)) {
+    if (resolveModel(selectedModelIdOrName, cfg.language, resolvedDesc, appDirPathOverride, envDirOverride,
+                     isolateToOverrides)) {
         cfg.modelPath = resolvedDesc.absoluteFilePath;
     }
 
