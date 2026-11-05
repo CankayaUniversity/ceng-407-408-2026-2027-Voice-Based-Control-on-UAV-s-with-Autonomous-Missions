@@ -14,6 +14,8 @@ Item {
 
     readonly property bool isMicrophoneActive: QGroundControl.audioDeviceManager ? QGroundControl.audioDeviceManager.isMicrophoneActive : false
     readonly property bool isVehicleConnected: QGroundControl.multiVehicleManager ? (QGroundControl.multiVehicleManager.activeVehicle !== null) : false
+    readonly property bool isSttModelAvailable: QGroundControl.voiceCommandManager ? QGroundControl.voiceCommandManager.isSttModelAvailable : false
+    readonly property bool isReady: QGroundControl.voiceCommandManager ? QGroundControl.voiceCommandManager.isReady : false
 
     visible: isMicrophoneActive
     enabled: isMicrophoneActive && isVehicleConnected
@@ -32,7 +34,7 @@ Item {
             if (root.isRecording) {
                 return qgcPal.colorRed
             }
-            if (root.enabled && mouseArea.containsMouse) {
+            if (root.isReady && mouseArea.containsMouse) {
                 return qgcPal.toolStripHoverColor
             }
             return qgcPal.windowTransparent
@@ -53,7 +55,7 @@ Item {
             sourceSize.height: height
             source: "qrc:/InstrumentValueIcons/mic.svg"
             color: root.isRecording ? "white" : qgcPal.text
-            opacity: root.enabled ? 1.0 : 0.4
+            opacity: root.isReady ? 1.0 : 0.4
             fillMode: Image.PreserveAspectFit
             mipmap: true
             smooth: true
@@ -72,12 +74,12 @@ Item {
             }
         }
         onReleased: {
-            if (root.enabled && QGroundControl.voiceCommandManager) {
+            if (root.isReady && QGroundControl.voiceCommandManager) {
                 QGroundControl.voiceCommandManager.stopRecording()
             }
         }
         onCanceled: {
-            if (root.enabled && QGroundControl.voiceCommandManager) {
+            if (root.isReady && QGroundControl.voiceCommandManager) {
                 QGroundControl.voiceCommandManager.stopRecording()
             }
         }
@@ -91,6 +93,9 @@ Item {
         }
         if (!root.isVehicleConnected) {
             return qsTr("Push to Talk: No vehicle connected")
+        }
+        if (!root.isSttModelAvailable) {
+            return qsTr("Model for voice recognition is not found")
         }
         return qsTr("Push to Talk (%1)\nHold to record voice command").arg(root.pttKey)
     }
