@@ -80,3 +80,6 @@ public:
     /// Engine family identifier.
     virtual SttEngineType engineType() const = 0;
 };
+
+Q_DECLARE_METATYPE(SttConfig)
+Q_DECLARE_METATYPE(SttResult)
