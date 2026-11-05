@@ -51,11 +51,12 @@ struct SttResult
 class SpeechToTextInterface
 {
 public:
+    SpeechToTextInterface() = default;
     virtual ~SpeechToTextInterface() = default;
     SpeechToTextInterface(const SpeechToTextInterface&) = delete;
     SpeechToTextInterface(SpeechToTextInterface&&) = delete;
-    SpeechToTextInterface operator=(const SpeechToTextInterface&) = delete;
-    SpeechToTextInterface operator=(SpeechToTextInterface&&) = delete;
+    SpeechToTextInterface& operator=(const SpeechToTextInterface&) = delete;
+    SpeechToTextInterface& operator=(SpeechToTextInterface&&) = delete;
 
     /// Loads or updates the STT model in memory according to config.
     /// Returns true if the model is ready for transcription.
