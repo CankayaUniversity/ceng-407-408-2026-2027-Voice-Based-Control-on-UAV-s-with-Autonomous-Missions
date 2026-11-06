@@ -12,3 +12,7 @@ Single-context (`GLOSSARY.md` + `docs/adr/` at repo root). See `docs/agents/doma
 
 Keep GitHub issues (`[REQ]` / `[TASK]`), wiki requirements (`REQ-CORE-XXX`), and ADRs (`docs/adr/`) synchronized on every architectural change. See `docs/agents/sync.md`.
 
+### Codebase navigation
+
+Unified cross-worktree knowledge graph (`graphify-out/graph.json` + MCP). See `docs/agents/navigation.md`.
+
