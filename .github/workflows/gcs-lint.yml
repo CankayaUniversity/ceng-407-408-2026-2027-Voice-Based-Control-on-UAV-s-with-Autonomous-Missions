@@ -1,6 +1,12 @@
 name: GCS Lint & Format
 
 on:
+  push:
+    branches:
+      - 'gcs/master'
+    paths:
+      - 'groundcontrol/**'
+      - '.github/workflows/gcs-build.yml'
   pull_request:
     branches:
       - 'gcs/master'
