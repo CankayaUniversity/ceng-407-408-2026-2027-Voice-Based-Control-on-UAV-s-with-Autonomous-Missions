@@ -66,6 +66,9 @@ VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManag
     if (_modelManager) {
         (void) connect(_modelManager, &SttModelManager::isModelAvailableChanged, this,
                        &VoiceCommandManager::_onSttModelAvailableChanged);
+
+        (void) connect(_modelManager, &SttModelManager::selectedModelChanged, this,
+                       &VoiceCommandManager::_onSttFactValueChanged);
     }
 
     if (MultiVehicleManager::instance()) {
