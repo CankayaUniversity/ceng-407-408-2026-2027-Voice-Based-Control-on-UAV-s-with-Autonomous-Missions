@@ -32,7 +32,7 @@ struct SttConfig
             return threadCount;
         }
         const int ideal = QThread::idealThreadCount();
-        return std::clamp(ideal > 0 ? (ideal / 2) : 2, 2, 4);
+        return std::clamp(ideal > 0 ? (ideal / 2) : 4, 2, 8);
     }
 };
 

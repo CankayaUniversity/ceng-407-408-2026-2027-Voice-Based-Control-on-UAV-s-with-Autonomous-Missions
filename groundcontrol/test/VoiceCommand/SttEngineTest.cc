@@ -21,7 +21,7 @@ void SttEngineTest::_testSttConfigResolvedThreadCount()
     SttConfig defaultConfig;
     const int autoThreads = defaultConfig.resolvedThreadCount();
     QVERIFY(autoThreads >= 2);
-    QVERIFY(autoThreads <= 4);
+    QVERIFY(autoThreads <= 8);
     QVERIFY(defaultConfig.vocabularyHints.isEmpty());
     QCOMPARE(defaultConfig.useGpu, false);
     QCOMPARE(defaultConfig.language, QStringLiteral("en"));
