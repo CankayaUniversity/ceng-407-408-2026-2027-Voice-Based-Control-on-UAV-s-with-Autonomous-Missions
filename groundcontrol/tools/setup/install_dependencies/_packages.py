@@ -113,6 +113,8 @@ DEBIAN_PACKAGES: dict[str, list[str]] = {
     ],
     "misc": [
         "libvulkan-dev",
+        "spirv-headers",
+        "glslc",
         "libpipewire-0.3-dev",
     ],
     # Target-side libraries for the aarch64 cross sysroot. Single source for
@@ -268,6 +270,9 @@ FEDORA_PACKAGES: dict[str, list[str]] = {
     ],
     "misc": [
         "vulkan-loader-devel",
+        "vulkan-headers",
+        "spirv-headers-devel",
+        "glslc",
         "pipewire-devel",
     ],
 }
@@ -348,6 +353,8 @@ ARCH_PACKAGES: dict[str, list[str]] = {
     "misc": [
         "vulkan-icd-loader",
         "vulkan-headers",
+        "spirv-headers",
+        "shaderc",
         "pipewire",
     ],
 }

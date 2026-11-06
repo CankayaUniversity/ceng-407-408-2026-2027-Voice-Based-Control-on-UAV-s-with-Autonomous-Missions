@@ -2,3 +2,6 @@
 	path = groundcontrol/src/MAVLink/mavlink
 	url = git@github.com:CankayaUniversity/ceng-407-408-2026-2027-Voice-Based-Control-on-UAV-s-with-Autonomous-Missions.git
 	branch = mavlink
+[submodule "groundcontrol/src/VoiceCommand/whisper.cpp"]
+	path = groundcontrol/src/VoiceCommand/whisper.cpp
+	url = https://github.com/ggml-org/whisper.cpp.git

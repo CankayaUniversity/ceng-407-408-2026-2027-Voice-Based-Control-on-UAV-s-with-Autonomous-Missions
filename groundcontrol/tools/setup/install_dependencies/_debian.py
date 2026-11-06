@@ -32,6 +32,7 @@ JUST_TARGETS: dict[str, str] = {
 
 DEBIAN_PACKAGE_ALTERNATIVES: dict[str, list[str]] = {
     "libgstreamer-plugins-good1.0-dev": ["libgstreamer-plugins-extra1.0-dev"],
+    "glslc": ["shaderc"],
 }
 
 

@@ -13,6 +13,7 @@ SettingsPage {
     QGCPalette { id: qgcPal; colorGroupEnabled: true }
 
     readonly property var _voiceSettings: QGroundControl.settingsManager.voiceCommandSettings
+    readonly property var _modelManager: QGroundControl.voiceCommandManager ? QGroundControl.voiceCommandManager.sttModelManager : null
 
     SettingsGroupLayout {
         heading: qsTr("Microphone Device")
@@ -278,8 +279,86 @@ SettingsPage {
         }
     }
 
+    SettingsGroupLayout {
+        heading: qsTr("Speech Recognition (STT)")
+        Layout.fillWidth: true
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: ScreenTools.defaultFontPixelHeight / 2
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: ScreenTools.defaultFontPixelWidth * 2
+
+                QGCLabel {
+                    text: qsTr("Speech Model")
+                    Layout.fillWidth: true
+                }
+
+                QGCComboBox {
+                    id: sttModelComboBox
+                    Layout.preferredWidth: ScreenTools.defaultFontPixelWidth * 28
+                    model: root._modelManager ? root._modelManager.availableModels : []
+                    currentIndex: root._modelManager ? root._modelManager.selectedModelIndex : -1
+                    enabled: root._modelManager ? root._modelManager.availableModels.length > 0 : false
+
+                    onActivated: (index) => {
+                        if (root._modelManager) {
+                            root._modelManager.selectedModelIndex = index
+                        }
+                    }
+                }
+
+                QGCButton {
+                    text: qsTr("Refresh")
+                    onClicked: {
+                        if (root._modelManager) {
+                            root._modelManager.refreshModels()
+                        }
+                    }
+                }
+            }
+
+            QGCLabel {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: qsTr("Model for voice recognition is not found. Place a model file (.bin, .gguf, .onnx, or vosk-model-*) in the models/stt directory.")
+                visible: root._modelManager ? !root._modelManager.isModelAvailable : true
+                font.pointSize: ScreenTools.smallFontPointSize
+                color: qgcPal.colorOrange
+            }
+        }
+
+        LabelledFactComboBox {
+            Layout.fillWidth: true
+            label: qsTr("Speech Language")
+            fact: root._voiceSettings.sttLanguage
+        }
+
+        // shortcut: idle model unload timer wired in worker pipeline PR, when background worker thread is added
+        LabelledFactComboBox {
+            Layout.fillWidth: true
+            label: qsTr("Model Memory Timeout")
+            fact: root._voiceSettings.sttIdleUnloadTimeout
+        }
+
+        FactCheckBoxSlider {
+            Layout.fillWidth: true
+            text: qsTr("GPU Acceleration (Fallback to CPU)")
+            fact: root._voiceSettings.sttUseGpu
+        }
+
+        QGCLabel {
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: qsTr("Dynamically scans models/stt/ for offline speech recognition models. The compatible inference engine is selected automatically based on the model file.")
+            font.pointSize: ScreenTools.smallFontPointSize
+        }
+    }
+
     Component.onDestruction: {
-        if (QGroundControl.audioLevelMeter.isTesting) {
+        if (QGroundControl.audioLevelMeter && QGroundControl.audioLevelMeter.isTesting) {
             QGroundControl.audioLevelMeter.stopTest()
         }
     }
