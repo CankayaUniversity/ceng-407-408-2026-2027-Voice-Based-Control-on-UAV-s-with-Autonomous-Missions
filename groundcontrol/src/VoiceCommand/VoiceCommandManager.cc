@@ -96,9 +96,8 @@ VoiceCommandManager* VoiceCommandManager::instance()
     return _voiceCommandManager();
 }
 
-void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFact,
-                               Fact* sttLanguageFact, Fact* sttUseGpuFact,
-                               Fact* sttIdleUnloadTimeoutFact)
+void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFact, Fact* sttLanguageFact,
+                               Fact* sttUseGpuFact, Fact* sttIdleUnloadTimeoutFact)
 {
     if (_pushToTalkKeyFact) {
         disconnect(_pushToTalkKeyFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onFactValueChanged);
@@ -110,7 +109,8 @@ void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFa
         disconnect(_sttUseGpuFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onSttFactValueChanged);
     }
     if (_sttIdleUnloadTimeoutFact) {
-        disconnect(_sttIdleUnloadTimeoutFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onSttFactValueChanged);
+        disconnect(_sttIdleUnloadTimeoutFact, &Fact::rawValueChanged, this,
+                   &VoiceCommandManager::_onSttFactValueChanged);
     }
 
     _pushToTalkKeyFact = pushToTalkKeyFact;
@@ -137,7 +137,8 @@ void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFa
     if (_sttIdleUnloadTimeoutFact) {
         _idleUnloadTimeoutMs = _sttIdleUnloadTimeoutFact->rawValue().toInt() * 1000;
         _keepModelInMemory = (_idleUnloadTimeoutMs == 0);
-        (void) connect(_sttIdleUnloadTimeoutFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onSttFactValueChanged);
+        (void) connect(_sttIdleUnloadTimeoutFact, &Fact::rawValueChanged, this,
+                       &VoiceCommandManager::_onSttFactValueChanged);
     }
 
     if (_modelManager) {

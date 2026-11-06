@@ -62,9 +62,8 @@ public:
 
     static VoiceCommandManager* instance();
 
-    void init(Fact* pushToTalkKeyFact = nullptr, Fact* sttSelectedModelFact = nullptr,
-              Fact* sttLanguageFact = nullptr, Fact* sttUseGpuFact = nullptr,
-              Fact* sttIdleUnloadTimeoutFact = nullptr);
+    void init(Fact* pushToTalkKeyFact = nullptr, Fact* sttSelectedModelFact = nullptr, Fact* sttLanguageFact = nullptr,
+              Fact* sttUseGpuFact = nullptr, Fact* sttIdleUnloadTimeoutFact = nullptr);
 
     SttModelManager* sttModelManager() const { return _modelManager; }
 
