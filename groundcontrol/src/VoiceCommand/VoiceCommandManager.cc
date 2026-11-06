@@ -96,13 +96,27 @@ VoiceCommandManager* VoiceCommandManager::instance()
     return _voiceCommandManager();
 }
 
-void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFact)
+void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFact,
+                               Fact* sttLanguageFact, Fact* sttUseGpuFact,
+                               Fact* sttIdleUnloadTimeoutFact)
 {
     if (_pushToTalkKeyFact) {
         disconnect(_pushToTalkKeyFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onFactValueChanged);
     }
+    if (_sttLanguageFact) {
+        disconnect(_sttLanguageFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onSttFactValueChanged);
+    }
+    if (_sttUseGpuFact) {
+        disconnect(_sttUseGpuFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onSttFactValueChanged);
+    }
+    if (_sttIdleUnloadTimeoutFact) {
+        disconnect(_sttIdleUnloadTimeoutFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onSttFactValueChanged);
+    }
 
     _pushToTalkKeyFact = pushToTalkKeyFact;
+    _sttLanguageFact = sttLanguageFact;
+    _sttUseGpuFact = sttUseGpuFact;
+    _sttIdleUnloadTimeoutFact = sttIdleUnloadTimeoutFact;
 
     if (_pushToTalkKeyFact) {
         const QString savedKey = _pushToTalkKeyFact->rawValue().toString().trimmed();
@@ -110,6 +124,20 @@ void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFa
             _pushToTalkKey = savedKey;
         }
         (void) connect(_pushToTalkKeyFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onFactValueChanged);
+    }
+
+    if (_sttLanguageFact) {
+        (void) connect(_sttLanguageFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onSttFactValueChanged);
+    }
+
+    if (_sttUseGpuFact) {
+        (void) connect(_sttUseGpuFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onSttFactValueChanged);
+    }
+
+    if (_sttIdleUnloadTimeoutFact) {
+        _idleUnloadTimeoutMs = _sttIdleUnloadTimeoutFact->rawValue().toInt() * 1000;
+        _keepModelInMemory = (_idleUnloadTimeoutMs == 0);
+        (void) connect(_sttIdleUnloadTimeoutFact, &Fact::rawValueChanged, this, &VoiceCommandManager::_onSttFactValueChanged);
     }
 
     if (_modelManager) {
@@ -120,6 +148,32 @@ void VoiceCommandManager::init(Fact* pushToTalkKeyFact, Fact* sttSelectedModelFa
         qApp->installEventFilter(this);
         _isEventFilterInstalled = true;
         qCDebug(VoiceCommandManagerLog) << "Global PTT shortcut event filter installed. Key:" << _pushToTalkKey;
+    }
+}
+
+SttConfig VoiceCommandManager::_currentResolvedConfig() const
+{
+    if (!_modelManager) {
+        return SttConfig();
+    }
+    const int langIdx = _sttLanguageFact ? _sttLanguageFact->rawValue().toInt() : 0;
+    const bool useGpu = _sttUseGpuFact ? _sttUseGpuFact->rawValue().toBool() : false;
+    return _modelManager->currentResolvedConfig(langIdx, useGpu);
+}
+
+void VoiceCommandManager::_onSttFactValueChanged()
+{
+    if (_sttIdleUnloadTimeoutFact) {
+        _idleUnloadTimeoutMs = _sttIdleUnloadTimeoutFact->rawValue().toInt() * 1000;
+        _keepModelInMemory = (_idleUnloadTimeoutMs == 0);
+    }
+
+    if (_isModelLoaded && _modelManager && _modelManager->isModelAvailable()) {
+        const SttConfig cfg = _currentResolvedConfig();
+        qCDebug(VoiceCommandManagerLog) << "STT settings updated, re-initializing loaded model:"
+                                        << "Model:" << cfg.modelPath << "Language:" << cfg.language
+                                        << "Use GPU:" << cfg.useGpu;
+        emit _requestInitializeModel(cfg);
     }
 }
 
@@ -306,7 +360,7 @@ bool VoiceCommandManager::startRecording()
         _setSessionState(SessionState::Listening);
 
         if (!_isModelLoaded && _modelManager && _modelManager->isModelAvailable()) {
-            const SttConfig config = _modelManager->currentResolvedConfig(0, false);
+            const SttConfig config = _currentResolvedConfig();
             qCDebug(VoiceCommandManagerLog)
                 << "Pre-warming STT model in worker thread on PTT press:" << config.modelPath;
             emit _requestInitializeModel(config);
@@ -406,10 +460,7 @@ void VoiceCommandManager::_onRecordingFinished(const QByteArray& recordedPcmData
 
     _setSessionState(SessionState::Processing);
 
-    SttConfig config;
-    if (_modelManager) {
-        config = _modelManager->currentResolvedConfig(0, false);
-    }
+    const SttConfig config = _currentResolvedConfig();
     emit _requestTranscribeAudio(recordedPcmData, config);
 }
 

@@ -40,6 +40,7 @@ void VoiceCommandWorker::unloadModel()
     if (_engine) {
         _engine->unload();
     }
+    _currentConfig = SttConfig();
     emit modelUnloaded();
 }
 
@@ -55,7 +56,8 @@ void VoiceCommandWorker::transcribeAudio(const QByteArray& pcmData, const SttCon
         emit transcriptionFinished(err);
         return;
     }
-    if (!_engine->isLoaded()) {
+    if (!_engine->isLoaded() || _currentConfig.modelPath != config.modelPath ||
+        _currentConfig.useGpu != config.useGpu || _currentConfig.language != config.language) {
         if (!_engine->initialize(config)) {
             SttResult err;
             err.success = false;
@@ -63,6 +65,7 @@ void VoiceCommandWorker::transcribeAudio(const QByteArray& pcmData, const SttCon
             emit transcriptionFinished(err);
             return;
         }
+        _currentConfig = config;
     }
     const SttResult res = _engine->transcribe(pcmData);
     emit transcriptionFinished(res);

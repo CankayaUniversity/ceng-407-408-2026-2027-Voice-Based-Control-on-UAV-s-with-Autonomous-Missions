@@ -62,7 +62,9 @@ public:
 
     static VoiceCommandManager* instance();
 
-    void init(Fact* pushToTalkKeyFact = nullptr, Fact* sttSelectedModelFact = nullptr);
+    void init(Fact* pushToTalkKeyFact = nullptr, Fact* sttSelectedModelFact = nullptr,
+              Fact* sttLanguageFact = nullptr, Fact* sttUseGpuFact = nullptr,
+              Fact* sttIdleUnloadTimeoutFact = nullptr);
 
     SttModelManager* sttModelManager() const { return _modelManager; }
 
@@ -143,6 +145,7 @@ protected:
 
 private slots:
     void _onFactValueChanged();
+    void _onSttFactValueChanged();
     void _onRecordingFinished(const QByteArray& recordedPcmData, const QAudioFormat& format);
     void _onRecordingSafetyLimitReached(const QByteArray& recordedPcmData, const QAudioFormat& format);
     void _onMicrophoneActiveChanged(bool active);
@@ -158,11 +161,15 @@ private:
     void _setSessionState(SessionState newState);
     bool _matchesPttKey(int key, const QString& text) const;
     static bool _isTextInputFocused();
+    SttConfig _currentResolvedConfig() const;
 
     AudioCapture* _audioCapture = nullptr;
     AudioDeviceManager* _deviceManager = nullptr;
     SttModelManager* _modelManager = nullptr;
     QPointer<Fact> _pushToTalkKeyFact;
+    QPointer<Fact> _sttLanguageFact;
+    QPointer<Fact> _sttUseGpuFact;
+    QPointer<Fact> _sttIdleUnloadTimeoutFact;
 
     SessionState _sessionState = SessionState::Idle;
     QThread _workerThread;

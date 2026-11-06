@@ -188,6 +188,8 @@ SttResult WhisperEngine::transcribe(const QByteArray& pcm16kMono)
     wparams.print_realtime = false;
     wparams.print_timestamps = false;
     wparams.suppress_blank = true;
+    wparams.suppress_nst = true;
+    wparams.temperature_inc = 0.0f;
 
     const QString langTrimmed = _config.language.trimmed().toLower();
     const QByteArray langUtf8 = (langTrimmed.isEmpty() ? QStringLiteral("en") : langTrimmed).toUtf8();
