@@ -45,8 +45,19 @@ set(WHISPER_CURL OFF CACHE BOOL "Disable whisper.cpp libcurl" FORCE)
 set(WHISPER_SDL2 OFF CACHE BOOL "Disable whisper.cpp SDL2" FORCE)
 set(GGML_ALL_WARNINGS OFF CACHE BOOL "Disable ggml warnings" FORCE)
 set(GGML_FATAL_WARNINGS OFF CACHE BOOL "Disable ggml -Werror" FORCE)
-set(GGML_OPENMP OFF CACHE BOOL "Disable ggml OpenMP dependency" FORCE)
+set(GGML_OPENMP ON CACHE BOOL "Enable ggml OpenMP dependency" FORCE)
+set(GGML_AVX_VNNI ON CACHE BOOL "Enable ggml AVX-VNNI" FORCE)
 set(GGML_CCACHE ${QGC_USE_CACHE} CACHE BOOL "Use QGC ccache setting for ggml" FORCE)
+
+find_package(Vulkan COMPONENTS glslc QUIET)
+find_package(SPIRV-Headers CONFIG QUIET)
+if (Vulkan_FOUND AND SPIRV-Headers_FOUND)
+    message(STATUS "QGC VoiceCommand: Vulkan and SPIRV-Headers found, enabling Vulkan GPU acceleration")
+    set(GGML_VULKAN ON CACHE BOOL "Enable ggml Vulkan backend" FORCE)
+else()
+    message(STATUS "QGC VoiceCommand: Vulkan GPU backend disabled (install spirv-headers to enable Vulkan GPU)")
+    set(GGML_VULKAN OFF CACHE BOOL "Enable ggml Vulkan backend" FORCE)
+endif()
 
 add_subdirectory(
     "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp"
@@ -56,7 +67,7 @@ add_subdirectory(
 
 set(BUILD_SHARED_LIBS "${_qgc_saved_build_shared_libs}")
 
-foreach(_whisper_target IN ITEMS whisper ggml ggml-base ggml-cpu)
+foreach(_whisper_target IN ITEMS whisper ggml ggml-base ggml-cpu ggml-vulkan)
     if(TARGET ${_whisper_target})
         qgc_disable_dependency_warnings(${_whisper_target})
     endif()
