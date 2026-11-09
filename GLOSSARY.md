@@ -85,8 +85,8 @@ A stateless utility class responsible solely for scanning the 5-stage cross-plat
 _Avoid_: Hardcoded model lists, stateful path resolver
 
 **Swarm Controller**:
-A distributed controller employing Model Predictive Control (MPC) to generate collision-free velocity and acceleration setpoints across UAVs in formation or non-formation flight.
-_Avoid_: Centralized autopilot, swarm master
+A distributed, leaderless controller employing Model Predictive Control (MPC) and peer-to-peer gossip communication to generate collision-free velocity and acceleration setpoints across UAVs in formation or non-formation flight.
+_Avoid_: Centralized autopilot, swarm master, swarm leader, leader election
 
 **VoiceCommandManager**:
 The central coordinator class in `groundcontrol/src/VoiceCommand/` delegating audio capture (`AudioCapture`), microphone management (`AudioDeviceManager`), and STT model state (`SttModelManager`) to sub-components while orchestrating Push-to-Talk lifecycle, readiness gating (`isReady`), asynchronous worker thread (`QThread`) execution, intent parsing handoff, confirmation modal state, and sequential command execution.
