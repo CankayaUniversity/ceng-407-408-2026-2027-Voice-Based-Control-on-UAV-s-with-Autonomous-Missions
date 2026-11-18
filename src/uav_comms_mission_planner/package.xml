@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>uav_comms_mission_planner</name>
+  <version>1.0.0</version>
+  <description>Mission goal and swarm membership functions for the DroneComs swarm(s).</description>
+  <maintainer email="efecekic0@gmail.com">efe</maintainer>
+  <license>AGPL-3.0</license>
+
+  <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>uav_comms_interfaces</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
