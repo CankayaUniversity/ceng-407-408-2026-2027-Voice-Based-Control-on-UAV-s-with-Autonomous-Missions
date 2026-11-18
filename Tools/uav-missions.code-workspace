@@ -5,6 +5,10 @@
       "path": ".."
     },
     {
+      "name": "Agent (PX4 ROS)",
+      "path": "../../worktrees/agent"
+    },
+    {
       "name": "Autopilot (PX4)",
       "path": "../../worktrees/autopilot"
     },

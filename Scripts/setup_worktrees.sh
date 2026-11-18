@@ -11,6 +11,7 @@ BOLD=$'\033[1m'
 NC=$'\033[0m'
 
 COMPONENTS=(
+    "agent:agent/master"
     "autopilot:autopilot/master"
     "gcs:gcs/master"
     "mavlink:mavlink/master"

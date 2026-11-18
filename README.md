@@ -12,6 +12,7 @@ To work across all components simultaneously, worktrees are created in the sibli
 
 | Subsystem | Branch | Worktree Path | Description |
 |-----------|--------|---------------|-------------|
+| **Agent** | `agent/master` | `../worktrees/agent` | ROS 2 PX4 companion packages and offboard bridge configuration for uXRCE-dds |
 | **Autopilot** | `autopilot/master` | `../worktrees/autopilot` | PX4 Autopilot firmware & flight control |
 | **GCS** | `gcs/master` | `../worktrees/gcs` | QGroundControl ground station & telemetry |
 | **MAVLink** | `mavlink/master` | `../worktrees/mavlink` | MAVLink protocol definitions & generator |
@@ -39,6 +40,7 @@ Parent-Folder/
 │   └── README.md
 │
 └── worktrees/                           <-- Sibling directory for all worktrees
+    ├── agent/                          (agent/master)
     ├── autopilot/                      (autopilot/master)
     ├── gcs/                            (gcs/master)
     ├── mavlink/                        (mavlink/master)
@@ -65,3 +67,9 @@ Open the workspace file in VS Code:
 ```bash
 code Tools/uav-missions.code-workspace
 ```
+
+Initialize all worktrees with `./Scripts/setup_worktrees.sh`, then see
+`../worktrees/simulation/Docs/SwarmSITL.md`
+for the shared Docker workspace setup, launch and test commands. The setup
+uses the `autopilot/master` firmware and the `agent/master` PX4 messages,
+not the incompatible submodules bundled with the original project.
