@@ -12,6 +12,7 @@ To work across all components simultaneously, worktrees are created in the sibli
 
 | Subsystem | Branch | Worktree Path | Description |
 |-----------|--------|---------------|-------------|
+| **Agent** | `agent/master` | `../worktrees/agent` | Companion-side PX4 ROS 2 messages, examples & frame transforms |
 | **Autopilot** | `autopilot/master` | `../worktrees/autopilot` | PX4 Autopilot firmware & flight control |
 | **GCS** | `gcs/master` | `../worktrees/gcs` | QGroundControl ground station & telemetry |
 | **MAVLink** | `mavlink/master` | `../worktrees/mavlink` | MAVLink protocol definitions & generator |
@@ -39,6 +40,7 @@ Parent-Folder/
 │   └── README.md
 │
 └── worktrees/                           <-- Sibling directory for all worktrees
+    ├── agent/                          (agent/master)
     ├── autopilot/                      (autopilot/master)
     ├── gcs/                            (gcs/master)
     ├── mavlink/                        (mavlink/master)
@@ -65,3 +67,23 @@ Open the workspace file in VS Code:
 ```bash
 code Tools/uav-missions.code-workspace
 ```
+
+## Agent ROS 2 packages
+
+This branch (`agent/master`) owns `px4_msgs/` and `px4_ros_com/` as pinned Git
+submodules compatible with the PX4 v1.17.0-based firmware on
+`autopilot/master`. They are not embedded source copies. Firmware and MAVLink
+integration remain in the separate `../autopilot` worktree.
+
+From `worktrees/agent`, initialize the packages with:
+
+```bash
+git submodule update --init -- px4_msgs px4_ros_com
+```
+
+See [PX4 ROS 2 setup and validation](docs/ros2-px4.md) for the exact revisions,
+Jazzy build/test commands, known upstream lint failures, and SITL telemetry
+checks.
+
+`src/uav_comms_px4_bridge` is the swarm SITL offboard bridge. It uses this
+branch's pinned, firmware-compatible `px4_msgs`
