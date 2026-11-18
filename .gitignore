@@ -1,3 +1,8 @@
 # Graphify outputs and caches
 graphify-out/
 .graphify*
+
+# ROS 2 / colcon workspace outputs
+/build/
+/install/
+/log/
