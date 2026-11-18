@@ -1,0 +1,4 @@
+# Keep PX4's Python tools compatible with ROS Jazzy's apt-provided NumPy.
+# Newer pandas (3.x) pulls NumPy 2.x, which pip cannot uninstall from Debian.
+numpy==1.26.4
+pandas<3

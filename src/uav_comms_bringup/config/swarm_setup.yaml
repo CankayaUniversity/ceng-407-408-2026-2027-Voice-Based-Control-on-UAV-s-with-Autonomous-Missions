@@ -1,0 +1,6 @@
+# Pose is either tuple of (x,y) or full (x,y,z,r,p,y)
+
+swarm:
+  - vehicle_id: 0
+    pose: "0,0"
+    px4_sys_autostart: "4001"        

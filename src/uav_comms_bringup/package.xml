@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>uav_comms_bringup</name>
+  <version>1.0.0</version>
+  <description>Package for launching and configuring the DroneComs PX4 swarm SITL.</description>
+  <maintainer email="efecekic0@gmail.com">efe</maintainer>
+  <license>AGPL-3.0</license>
+
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>uav_comms_sim</exec_depend>
+  <exec_depend>uav_comms_px4_bridge</exec_depend>
+  <exec_depend>uav_comms_mission_planner</exec_depend>
+  <exec_depend>uav_comms_swarm_agent</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
