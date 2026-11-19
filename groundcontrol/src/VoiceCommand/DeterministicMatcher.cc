@@ -49,33 +49,35 @@ bool matchClause(const QString& clause, const VehicleStateSnapshot& state, QList
             intents.append(makeIntent(Action::Arm, QStringLiteral("Arm"), state.vehicleId));
         }
         intents.append(makeIntent(Action::Takeoff, QStringLiteral("Take off"), state.vehicleId));
-    } else if (const auto m = takeoff.match(clause); m.hasMatch()) {
+    } else if (const auto takeoffMatch = takeoff.match(clause); takeoffMatch.hasMatch()) {
         QVariantMap parameters;
         QString summary = QStringLiteral("Take off");
-        if (!m.captured(1).isEmpty()) {
-            const double altitudeM = m.captured(1).toDouble();
+        if (!takeoffMatch.captured(1).isEmpty()) {
+            const double altitudeM = takeoffMatch.captured(1).toDouble();
             if (altitudeM <= 0.0) {
                 return false;
             }
             parameters.insert(QStringLiteral("altitude"), altitudeM);
-            summary += QStringLiteral(" to %1 m").arg(m.captured(1));
+            summary += QStringLiteral(" to %1 m").arg(takeoffMatch.captured(1));
         }
         intents.append(makeIntent(Action::Takeoff, summary, state.vehicleId, parameters));
-    } else if (const auto m = altitude.match(clause); m.hasMatch()) {
-        const double altitudeM = m.captured(1).toDouble();
+    } else if (const auto altitudeMatch = altitude.match(clause); altitudeMatch.hasMatch()) {
+        const double altitudeM = altitudeMatch.captured(1).toDouble();
         if (altitudeM <= 0.0) {
             return false;
         }
-        intents.append(makeIntent(Action::ChangeAltitude, QStringLiteral("Change altitude to %1 m").arg(m.captured(1)),
+        intents.append(makeIntent(Action::ChangeAltitude,
+                                  QStringLiteral("Change altitude to %1 m").arg(altitudeMatch.captured(1)),
                                   state.vehicleId, {{QStringLiteral("altitude"), altitudeM}}));
-    } else if (const auto m = heading.match(clause); m.hasMatch()) {
-        const double degrees = (m.captured(1).isEmpty() ? m.captured(2) : m.captured(1)).toDouble();
+    } else if (const auto headingMatch = heading.match(clause); headingMatch.hasMatch()) {
+        const double degrees =
+            (headingMatch.captured(1).isEmpty() ? headingMatch.captured(2) : headingMatch.captured(1)).toDouble();
         if (degrees > 360.0) {
             return false;
         }
         intents.append(makeIntent(Action::ChangeHeading, QStringLiteral("Change heading to %1°").arg(degrees),
                                   state.vehicleId, {{QStringLiteral("heading"), degrees}}));
-    } else if (const auto m = move.match(clause); m.hasMatch()) {
+    } else if (const auto moveMatch = move.match(clause); moveMatch.hasMatch()) {
         static const QHash<QString, QString> translatedDirections{
             {QStringLiteral("back"), QStringLiteral("backward")}, {QStringLiteral("ileri"), QStringLiteral("forward")},
             {QStringLiteral("geri"), QStringLiteral("backward")}, {QStringLiteral("sola"), QStringLiteral("left")},
@@ -83,17 +85,18 @@ bool matchClause(const QString& clause, const VehicleStateSnapshot& state, QList
             {QStringLiteral("güneye"), QStringLiteral("south")},  {QStringLiteral("doğuya"), QStringLiteral("east")},
             {QStringLiteral("batıya"), QStringLiteral("west")},
         };
-        const QString rawDirection = m.captured(1).isEmpty() ? m.captured(4) : m.captured(1);
+        const QString rawDirection = moveMatch.captured(1).isEmpty() ? moveMatch.captured(4) : moveMatch.captured(1);
         const QString direction = translatedDirections.value(rawDirection, rawDirection);
-        const double distance = (m.captured(2).isEmpty() ? m.captured(5) : m.captured(2)).toDouble();
-        if (distance <= 0.0 || (!m.captured(3).isEmpty() && m.captured(3).toDouble() <= 0.0)) {
+        const double distance =
+            (moveMatch.captured(2).isEmpty() ? moveMatch.captured(5) : moveMatch.captured(2)).toDouble();
+        if (distance <= 0.0 || (!moveMatch.captured(3).isEmpty() && moveMatch.captured(3).toDouble() <= 0.0)) {
             return false;
         }
         QVariantMap parameters{{QStringLiteral("direction"), direction}, {QStringLiteral("distance"), distance}};
         QString summary = QStringLiteral("Move %1 %2 m").arg(direction).arg(distance);
-        if (!m.captured(3).isEmpty()) {
-            parameters.insert(QStringLiteral("speed"), m.captured(3).toDouble());
-            summary += QStringLiteral(" at %1 m/s").arg(m.captured(3));
+        if (!moveMatch.captured(3).isEmpty()) {
+            parameters.insert(QStringLiteral("speed"), moveMatch.captured(3).toDouble());
+            summary += QStringLiteral(" at %1 m/s").arg(moveMatch.captured(3));
         }
         intents.append(makeIntent(Action::Move, summary, state.vehicleId, parameters));
     } else {
