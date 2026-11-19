@@ -301,7 +301,9 @@ void SttEngineTest::_testDiscoverModelsPrecedenceAndShadowing()
     const QDir root(tempRoot.path());
 
     const QString stage1EnvDir = root.filePath(QStringLiteral("stage1_env"));
-    const QString stage2AppDir = root.filePath(QStringLiteral("stage2_app"));
+    // Keep the fake app directory deep enough that the resolver's parent walk
+    // cannot reach the real source-tree models/stt directory.
+    const QString stage2AppDir = root.filePath(QStringLiteral("nested/build/debug/stage2_app"));
     const QString stage2ModelsDir = QDir(stage2AppDir).filePath(QStringLiteral("models/stt"));
 
     QVERIFY(QDir().mkpath(stage1EnvDir));
@@ -480,7 +482,8 @@ void SttEngineTest::_testWhisperTranscriptionIfModelAvailable()
     const QString envModelDir = qEnvironmentVariable("QGC_STT_MODEL_DIR");
     QStringList candidatePaths;
     if (!envModelDir.isEmpty()) {
-        candidatePaths << QDir(envModelDir).filePath(QStringLiteral("ggml-tiny.en.bin"))
+        candidatePaths << QDir(envModelDir).filePath(QStringLiteral("ggml-small.bin"))
+                       << QDir(envModelDir).filePath(QStringLiteral("ggml-tiny.en.bin"))
                        << QDir(envModelDir).filePath(QStringLiteral("ggml-base.en.bin"));
     }
 

@@ -5,6 +5,10 @@
 
 target_sources(${CMAKE_PROJECT_NAME}
     PRIVATE
+        DeterministicMatcher.cc
+        DeterministicMatcher.h
+        IntentParserInterface.h
+        MissionIntent.h
         SpeechToTextInterface.h
         SttEngineFactory.cc
         SttEngineFactory.h

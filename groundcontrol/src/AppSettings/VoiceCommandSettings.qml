@@ -14,6 +14,7 @@ SettingsPage {
 
     readonly property var _voiceSettings: QGroundControl.settingsManager.voiceCommandSettings
     readonly property var _modelManager: QGroundControl.voiceCommandManager ? QGroundControl.voiceCommandManager.sttModelManager : null
+    readonly property var _voiceManager: QGroundControl.voiceCommandManager
 
     SettingsGroupLayout {
         heading: qsTr("Microphone Device")
@@ -145,6 +146,7 @@ SettingsPage {
                     id: testMicButton
                     text: QGroundControl.audioLevelMeter.isTesting ? qsTr("Stop Test") : qsTr("Test Microphone")
                     primary: QGroundControl.audioLevelMeter.isTesting
+                    enabled: !root._voiceManager || !root._voiceManager.isRecognitionTestActive
                     onClicked: QGroundControl.audioLevelMeter.toggleTest()
                 }
 
@@ -328,6 +330,48 @@ SettingsPage {
                 font.pointSize: ScreenTools.smallFontPointSize
                 color: qgcPal.colorOrange
             }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                QGCButton {
+                    text: root._voiceManager && root._voiceManager.isRecognitionTestActive
+                          ? (root._voiceManager.isRecording ? qsTr("Stop Listening") : qsTr("Recognizing..."))
+                          : qsTr("Test Speech Recognition")
+                    primary: root._voiceManager && root._voiceManager.isRecognitionTestActive && root._voiceManager.isRecording
+                    enabled: root._voiceManager && root._voiceManager.isMicrophoneActive
+                             && root._voiceManager.isSttModelAvailable
+                             && (root._voiceManager.isRecognitionTestActive || !root._voiceManager.isRecording)
+                             && (!root._voiceManager.isRecognitionTestActive || root._voiceManager.isRecording)
+                    onClicked: {
+                        if (root._voiceManager.isRecognitionTestActive) {
+                            root._voiceManager.stopRecognitionTest()
+                        } else {
+                            QGroundControl.audioLevelMeter.stopTest()
+                            root._voiceManager.startRecognitionTest()
+                        }
+                    }
+                }
+
+                QGCLabel {
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    text: {
+                        if (!root._voiceManager) return qsTr("Speech recognition is unavailable.")
+                        if (root._voiceManager.isRecognitionTestActive) {
+                            return root._voiceManager.isRecording ? qsTr("Listening... Speak into the microphone.")
+                                                                  : qsTr("Recognizing speech...")
+                        }
+                        if (root._voiceManager.recognitionTestError !== "") return root._voiceManager.recognitionTestError
+                        if (root._voiceManager.recognitionTestTranscript !== "") {
+                            return qsTr("Recognized: %1").arg(root._voiceManager.recognitionTestTranscript)
+                        }
+                        return qsTr("Start the test, speak, then stop listening to see what the speech model heard. No command will be sent.")
+                    }
+                    color: root._voiceManager && root._voiceManager.recognitionTestError !== ""
+                           ? qgcPal.colorOrange : qgcPal.text
+                }
+            }
         }
 
         LabelledFactComboBox {
@@ -360,6 +404,9 @@ SettingsPage {
     Component.onDestruction: {
         if (QGroundControl.audioLevelMeter && QGroundControl.audioLevelMeter.isTesting) {
             QGroundControl.audioLevelMeter.stopTest()
+        }
+        if (root._voiceManager && root._voiceManager.isRecognitionTestActive) {
+            root._voiceManager.stopRecognitionTest()
         }
     }
 }

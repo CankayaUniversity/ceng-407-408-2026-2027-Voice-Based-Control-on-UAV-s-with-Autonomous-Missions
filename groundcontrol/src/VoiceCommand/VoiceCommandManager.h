@@ -10,7 +10,9 @@
 #include <QtCore/QTimer>
 #include <QtMultimedia/QAudioFormat>
 #include <QtQmlIntegration/QtQmlIntegration>
+#include <memory>
 
+#include "IntentParserInterface.h"
 #include "SpeechToTextInterface.h"
 #include "SttModelManager.h"
 
@@ -55,6 +57,9 @@ public:
     Q_PROPERTY(bool isSttModelAvailable READ isSttModelAvailable NOTIFY sttModelAvailableChanged)
     Q_PROPERTY(bool isReady READ isReady NOTIFY readyChanged)
     Q_PROPERTY(bool isSttModelLoaded READ isSttModelLoaded NOTIFY modelLoadedChanged)
+    Q_PROPERTY(bool isRecognitionTestActive READ isRecognitionTestActive NOTIFY recognitionTestActiveChanged)
+    Q_PROPERTY(QString recognitionTestTranscript READ recognitionTestTranscript NOTIFY recognitionTestResultChanged)
+    Q_PROPERTY(QString recognitionTestError READ recognitionTestError NOTIFY recognitionTestResultChanged)
 
     explicit VoiceCommandManager(AudioCapture* capture = nullptr, AudioDeviceManager* deviceManager = nullptr,
                                  SttModelManager* modelManager = nullptr, QObject* parent = nullptr);
@@ -94,6 +99,9 @@ public:
     void setSttEngine(SpeechToTextInterface* engine, bool takeOwnership = false);
     SpeechToTextInterface* sttEngine() const;
 
+    /// Inject a parser for tests; nullptr restores the built-in deterministic matcher.
+    void setIntentParser(IntentParserInterface* parser);
+
     /// Configurable idle timeout for unloading STT models from memory (ms).
     void setIdleUnloadTimeout(int timeoutMs);
 
@@ -109,6 +117,16 @@ public:
     /// Stops audio recording and finishes the current voice command session.
     Q_INVOKABLE void stopRecording();
 
+    /// Records and transcribes for settings diagnostics without requiring a vehicle or parsing a command.
+    Q_INVOKABLE bool startRecognitionTest();
+    Q_INVOKABLE void stopRecognitionTest();
+
+    bool isRecognitionTestActive() const { return _isRecognitionTestActive; }
+
+    QString recognitionTestTranscript() const { return _recognitionTestTranscript; }
+
+    QString recognitionTestError() const { return _recognitionTestError; }
+
     /// Resets session to Idle.
     Q_INVOKABLE void resetSession();
 
@@ -121,6 +139,8 @@ signals:
     void sttModelAvailableChanged(bool available);
     void readyChanged(bool ready);
     void modelLoadedChanged(bool loaded);
+    void recognitionTestActiveChanged(bool active);
+    void recognitionTestResultChanged();
 
     /// Emitted when a voice command action cannot proceed (e.g. "Voice Command is too short to recognize").
     void voiceCommandWarning(const QString& message);
@@ -130,6 +150,9 @@ signals:
 
     /// Emitted when speech recognition completes with non-empty text.
     void voiceCommandTranscribed(const QString& transcript, float confidence);
+
+    /// A fully parsed command sequence ready for operator confirmation (never dispatched to the vehicle here).
+    void commandConfirmationRequested(const IntentParseResult& result);
 
     /// Emitted if recording hits the memory safety ceiling (60s).
     void recordingSafetyLimitReached(const QByteArray& pcmData, const QAudioFormat& format);
@@ -161,6 +184,9 @@ private:
     bool _matchesPttKey(int key, const QString& text) const;
     static bool _isTextInputFocused();
     SttConfig _currentResolvedConfig() const;
+    VehicleStateSnapshot _vehicleStateSnapshot() const;
+    void _prewarmModel();
+    void _finishRecognitionTest(const QString& transcript, const QString& error);
 
     AudioCapture* _audioCapture = nullptr;
     AudioDeviceManager* _deviceManager = nullptr;
@@ -173,6 +199,8 @@ private:
     SessionState _sessionState = SessionState::Idle;
     QThread _workerThread;
     VoiceCommandWorker* _worker = nullptr;
+    std::unique_ptr<IntentParserInterface> _defaultIntentParser;
+    IntentParserInterface* _intentParser = nullptr;
     QTimer* _idleUnloadTimer = nullptr;
     int _idleUnloadTimeoutMs = 300000;
     bool _keepModelInMemory = false;
@@ -183,4 +211,7 @@ private:
     bool _isEventFilterInstalled = false;
     bool _vehicleCheckEnabled = true;
     bool _sttModelCheckEnabled = true;
+    bool _isRecognitionTestActive = false;
+    QString _recognitionTestTranscript;
+    QString _recognitionTestError;
 };
