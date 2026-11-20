@@ -436,12 +436,18 @@ void VoiceCommandManagerTest::_testAsynchronousWorkerTranscription()
     manager->setSttEngine(failEngine, true);
 
     QSignalSpy spyWarning(manager, &VoiceCommandManager::voiceCommandWarning);
+    QSignalSpy spyState(manager, &VoiceCommandManager::sessionStateChanged);
     manager->_onRecordingFinished(validPcm, format);
 
     QVERIFY(spyWarning.wait(1000));
     QCOMPARE(spyWarning.count(), 1);
     QCOMPARE(spyWarning.first().first().toString(), QStringLiteral("Voice Command is Failed"));
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
+    QCOMPARE(spyState.count(), 2);
+    QCOMPARE(spyState.at(0).first().value<VoiceCommandManager::SessionState>(),
+             VoiceCommandManager::SessionState::Processing);
+    QCOMPARE(spyState.at(1).first().value<VoiceCommandManager::SessionState>(),
+             VoiceCommandManager::SessionState::Idle);
     QCOMPARE(spyConfirmation.count(), 1);
 }
 
@@ -455,21 +461,42 @@ void VoiceCommandManagerTest::_testIntentMappingFailure()
     manager->setIntentParser(&parser);
     QSignalSpy warning(manager, &VoiceCommandManager::voiceCommandWarning);
     QSignalSpy confirmation(manager, &VoiceCommandManager::commandConfirmationRequested);
+    QSignalSpy states(manager, &VoiceCommandManager::sessionStateChanged);
 
+    manager->_setSessionState(VoiceCommandManager::SessionState::Processing);
+    states.clear();
     manager->_onTranscriptionFinished({true, QStringLiteral("unknown command"), 0.9f, 10, {}});
     QCOMPARE(warning.size(), 1);
     QCOMPARE(warning.first().first().toString(), QStringLiteral("Voice Command is Failed"));
     QCOMPARE(confirmation.size(), 0);
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
+    QCOMPARE(states.size(), 1);
+    QCOMPARE(states.first().first().value<VoiceCommandManager::SessionState>(),
+             VoiceCommandManager::SessionState::Idle);
 
     manager->setIntentParser(nullptr);
+    manager->_setSessionState(VoiceCommandManager::SessionState::Processing);
+    states.clear();
     manager->_onTranscriptionFinished({true, QStringLiteral("not a command"), 0.9f, 10, {}});
     QCOMPARE(warning.size(), 2);
     QCOMPARE(confirmation.size(), 0);
+    QCOMPARE(states.size(), 1);
+    QCOMPARE(states.first().first().value<VoiceCommandManager::SessionState>(),
+             VoiceCommandManager::SessionState::Idle);
 
+    manager->_setSessionState(VoiceCommandManager::SessionState::Processing);
+    states.clear();
     manager->_onTranscriptionFinished({true, QStringLiteral("  "), 0.9f, 10, {}});
     QCOMPARE(warning.size(), 3);
     QCOMPARE(confirmation.size(), 0);
+    QCOMPARE(states.size(), 1);
+    QCOMPARE(states.first().first().value<VoiceCommandManager::SessionState>(),
+             VoiceCommandManager::SessionState::Idle);
+
+    // Resetting the injected, non-owning parser restores the built-in matcher.
+    manager->_onTranscriptionFinished({true, QStringLiteral("arm"), 0.9f, 10, {}});
+    QCOMPARE(confirmation.size(), 1);
+    QCOMPARE(confirmation.first().first().value<IntentParseResult>().intents.first().action, VoiceCommandAction::Arm);
 }
 
 void VoiceCommandManagerTest::_testRecognitionTestTranscription()

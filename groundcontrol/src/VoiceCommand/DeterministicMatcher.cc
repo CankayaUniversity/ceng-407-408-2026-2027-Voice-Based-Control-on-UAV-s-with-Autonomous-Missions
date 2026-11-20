@@ -3,6 +3,20 @@
 #include <QtCore/QHash>
 #include <QtCore/QRegularExpression>
 
+QString DeterministicMatcher::normalizeCommand(const QString& transcript, bool turkishCasing)
+{
+    static const QRegularExpression trailingPunctuation(QStringLiteral(R"([.!?]+$)"));
+    QString command = transcript.trimmed();
+    if (turkishCasing) {
+        // QString::toLower() is locale-independent: Turkish I -> ı, İ -> i.
+        command.replace(QLatin1Char('I'), QChar(0x0131));
+        command.replace(QChar(0x0130), QLatin1Char('i'));
+    }
+    command = command.toLower();
+    command.remove(trailingPunctuation);
+    return command;
+}
+
 MissionIntent DeterministicMatcher::makeIntent(VoiceCommandAction action, const QString& summary, int vehicleId,
                                                const QVariantMap& parameters)
 {
@@ -109,28 +123,33 @@ IntentParseResult DeterministicMatcher::parse(const QString& transcript, const V
 {
     IntentParseResult result;
     result.rawTranscript = transcript;
-
-    static const QRegularExpression separator(
-        QStringLiteral(R"(\s*,?\s+(?:and\s+then|and|then|ve\s+sonra|ve|sonra)\s+)"));
-    static const QRegularExpression trailingPunctuation(QStringLiteral(R"([.!?]+$)"));
-    QString command = transcript.trimmed().toLower();
-    command.remove(trailingPunctuation);
-    const QStringList clauses = command.split(separator, Qt::KeepEmptyParts);
-    if (clauses.isEmpty()) {
+    if (transcript.trimmed().isEmpty()) {
+        result.success = false;
         result.errorMessage = QStringLiteral("No recognized voice command");
         return result;
     }
 
-    for (const QString& clause : clauses) {
-        if (clause.isEmpty() || !matchClause(clause.trimmed(), vehicleState, result.intents)) {
-            result.intents.clear();
-            result.errorMessage = QStringLiteral("No recognized voice command");
+    static const QRegularExpression separator(
+        QStringLiteral(R"(\s*,?\s+(?:and\s+then|and|then|ve\s+sonra|ve|sonra)\s+)"));
+    // English ASCII I and Turkish dotted/dotless I need different case mappings.
+    // Try both locally rather than changing the application's default locale.
+    for (const bool turkishCasing : {false, true}) {
+        result.intents.clear();
+        const QStringList clauses = normalizeCommand(transcript, turkishCasing).split(separator, Qt::KeepEmptyParts);
+        bool matched = true;
+        for (const QString& clause : clauses) {
+            if (clause.isEmpty() || !matchClause(clause.trimmed(), vehicleState, result.intents)) {
+                matched = false;
+                break;
+            }
+        }
+        if (matched && !result.intents.isEmpty()) {
+            result.success = true;
             return result;
         }
     }
-    result.success = !result.intents.isEmpty();
-    if (!result.success) {
-        result.errorMessage = QStringLiteral("No action required");
-    }
+    result.intents.clear();
+    result.success = false;
+    result.errorMessage = QStringLiteral("No recognized voice command");
     return result;
 }

@@ -11,5 +11,6 @@ private slots:
     void _testSlotsAndSequence();
     void _testContextAndPrimitiveSafety();
     void _testTurkishCommands();
+    void _testTurkishCasing();
     void _testUnknownAndPartialCommands();
 };
