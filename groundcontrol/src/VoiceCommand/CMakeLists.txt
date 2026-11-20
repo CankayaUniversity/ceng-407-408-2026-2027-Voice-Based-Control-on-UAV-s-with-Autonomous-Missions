@@ -16,6 +16,7 @@ target_sources(${CMAKE_PROJECT_NAME}
         SttModelManager.h
         SttModelResolver.cc
         SttModelResolver.h
+        VehicleStateSnapshot.h
         VoiceCommandManager.cc
         VoiceCommandManager.h
         VoiceCommandWorker.cc

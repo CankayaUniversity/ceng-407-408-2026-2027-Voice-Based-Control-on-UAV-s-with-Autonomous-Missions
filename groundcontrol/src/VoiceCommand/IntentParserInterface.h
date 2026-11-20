@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MissionIntent.h"
+#include "VehicleStateSnapshot.h"
 
 class IntentParserInterface
 {

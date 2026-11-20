@@ -10,7 +10,6 @@
 #include "AudioDeviceManager.h"
 #include "DeterministicMatcher.h"
 #include "Fact.h"
-#include "FactGroup.h"
 #include "MultiVehicleManager.h"
 #include "QGCApplication.h"
 #include "QGCLoggingCategory.h"
@@ -184,11 +183,7 @@ VehicleStateSnapshot VoiceCommandManager::_vehicleStateSnapshot() const
     snapshot.isFlying = vehicle->flying();
     snapshot.flightMode = vehicle->flightMode();
     snapshot.vehicleId = vehicle->id();
-    if (FactGroup* facts = vehicle->vehicleFactGroup()) {
-        if (Fact* altitude = facts->getFact(QStringLiteral("altitudeRelative"))) {
-            snapshot.currentAltitudeM = altitude->rawValue().toDouble();
-        }
-    }
+    snapshot.currentAltitudeM = vehicle->altitudeRelative()->rawValue().toDouble();
     return snapshot;
 }
 
@@ -196,12 +191,7 @@ void VoiceCommandManager::_onSttFactValueChanged()
 {
     if (_sttIdleUnloadTimeoutFact) {
         _idleUnloadTimeoutMs = _sttIdleUnloadTimeoutFact->rawValue().toInt() * 1000;
-        _keepModelInMemory = (_idleUnloadTimeoutMs == 0);
-        if (_keepModelInMemory) {
-            _idleUnloadTimer->stop();
-        } else if (_isModelLoaded && _sessionState == SessionState::Idle) {
-            _idleUnloadTimer->start(_idleUnloadTimeoutMs);
-        }
+        setKeepModelInMemory(_idleUnloadTimeoutMs == 0);
     }
 
     if (_isModelLoaded && _modelManager && _modelManager->isModelAvailable()) {
@@ -359,7 +349,7 @@ void VoiceCommandManager::setIdleUnloadTimeout(int timeoutMs)
 void VoiceCommandManager::setKeepModelInMemory(bool keepInMemory)
 {
     _keepModelInMemory = keepInMemory;
-    if (_keepModelInMemory) {
+    if (_keepModelInMemory && _idleUnloadTimer) {
         _idleUnloadTimer->stop();
     } else if (_isModelLoaded && _sessionState != SessionState::Listening &&
                _sessionState != SessionState::Processing && _idleUnloadTimeoutMs > 0) {
@@ -554,21 +544,18 @@ void VoiceCommandManager::_onRecordingFinished(const QByteArray& recordedPcmData
     if (durationUs < 500000 || recordedPcmData.size() < kMinPcmBytes) {
         qCDebug(VoiceCommandManagerLog) << "Utterance rejected: duration" << durationUs << "us (< 500ms) or size"
                                         << recordedPcmData.size() << "bytes (< 16000 bytes)";
-        const bool wasRecognitionTest = _isRecognitionTestActive;
-        if (wasRecognitionTest) {
+        if (_isRecognitionTestActive) {
             _finishRecognitionTest(QString(), tr("Recording too short. Speak for at least half a second."));
         } else {
             _setSessionState(SessionState::Idle);
-        }
-        if (_isModelLoaded && !_keepModelInMemory && _idleUnloadTimeoutMs > 0) {
-            _idleUnloadTimer->start(_idleUnloadTimeoutMs);
-        }
-        if (!wasRecognitionTest) {
             const QString msg = tr("Voice Command is too short to recognize");
             emit voiceCommandWarning(msg);
             if (qgcApp() && !qgcApp()->runningUnitTests()) {
                 qgcApp()->showAppMessage(msg);
             }
+        }
+        if (_isModelLoaded && !_keepModelInMemory && _idleUnloadTimeoutMs > 0) {
+            _idleUnloadTimer->start(_idleUnloadTimeoutMs);
         }
         return;
     }

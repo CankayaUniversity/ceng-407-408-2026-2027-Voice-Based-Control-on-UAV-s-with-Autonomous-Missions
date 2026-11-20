@@ -3,16 +3,14 @@
 #include <QtCore/QHash>
 #include <QtCore/QRegularExpression>
 
-namespace {
-
-using Action = VoiceCommandAction;
-
-MissionIntent makeIntent(Action action, const QString& summary, int vehicleId, const QVariantMap& parameters = {})
+MissionIntent DeterministicMatcher::makeIntent(VoiceCommandAction action, const QString& summary, int vehicleId,
+                                               const QVariantMap& parameters)
 {
     return {.action = action, .parameters = parameters, .targetVehicleId = vehicleId, .displaySummary = summary};
 }
 
-bool matchClause(const QString& clause, const VehicleStateSnapshot& state, QList<MissionIntent>& intents)
+bool DeterministicMatcher::matchClause(const QString& clause, const VehicleStateSnapshot& state,
+                                       QList<MissionIntent>& intents)
 {
     static const QRegularExpression arm(QStringLiteral(R"(^(?:arm|arm the (?:drone|vehicle)|motorları çalıştır)$)"));
     static const QRegularExpression disarm(
@@ -31,24 +29,25 @@ bool matchClause(const QString& clause, const VehicleStateSnapshot& state, QList
         R"(^(?:move|fly)\s+(forward|backward|back|left|right|north|south|east|west)\s+(\d+(?:\.\d+)?)\s*(?:meters?|metres?|m)(?:\s+at\s+(\d+(?:\.\d+)?)\s*(?:meters?|metres?|m)(?:\s+per\s+second)?)?$|^(ileri|geri|sola|sağa|kuzeye|güneye|doğuya|batıya)\s+(\d+(?:\.\d+)?)\s*metre\s+git$)"));
 
     if (arm.match(clause).hasMatch()) {
-        intents.append(makeIntent(Action::Arm, QStringLiteral("Arm"), state.vehicleId));
+        intents.append(makeIntent(VoiceCommandAction::Arm, QStringLiteral("Arm"), state.vehicleId));
     } else if (disarm.match(clause).hasMatch()) {
-        intents.append(makeIntent(Action::Disarm, QStringLiteral("Disarm"), state.vehicleId));
+        intents.append(makeIntent(VoiceCommandAction::Disarm, QStringLiteral("Disarm"), state.vehicleId));
     } else if (land.match(clause).hasMatch()) {
-        intents.append(makeIntent(Action::Land, QStringLiteral("Land"), state.vehicleId));
+        intents.append(makeIntent(VoiceCommandAction::Land, QStringLiteral("Land"), state.vehicleId));
     } else if (hold.match(clause).hasMatch()) {
-        intents.append(makeIntent(Action::Hold, QStringLiteral("Hold position"), state.vehicleId));
+        intents.append(makeIntent(VoiceCommandAction::Hold, QStringLiteral("Hold position"), state.vehicleId));
     } else if (rtl.match(clause).hasMatch()) {
-        intents.append(makeIntent(Action::ReturnToLaunch, QStringLiteral("Return to launch"), state.vehicleId));
+        intents.append(
+            makeIntent(VoiceCommandAction::ReturnToLaunch, QStringLiteral("Return to launch"), state.vehicleId));
     } else if (launch.match(clause).hasMatch()) {
         // "Launch" is a high-level goal; primitive "take off" never adds an implicit arm step.
         if (state.isFlying) {
             return false;
         }
         if (!state.isArmed) {
-            intents.append(makeIntent(Action::Arm, QStringLiteral("Arm"), state.vehicleId));
+            intents.append(makeIntent(VoiceCommandAction::Arm, QStringLiteral("Arm"), state.vehicleId));
         }
-        intents.append(makeIntent(Action::Takeoff, QStringLiteral("Take off"), state.vehicleId));
+        intents.append(makeIntent(VoiceCommandAction::Takeoff, QStringLiteral("Take off"), state.vehicleId));
     } else if (const auto takeoffMatch = takeoff.match(clause); takeoffMatch.hasMatch()) {
         QVariantMap parameters;
         QString summary = QStringLiteral("Take off");
@@ -60,13 +59,13 @@ bool matchClause(const QString& clause, const VehicleStateSnapshot& state, QList
             parameters.insert(QStringLiteral("altitude"), altitudeM);
             summary += QStringLiteral(" to %1 m").arg(takeoffMatch.captured(1));
         }
-        intents.append(makeIntent(Action::Takeoff, summary, state.vehicleId, parameters));
+        intents.append(makeIntent(VoiceCommandAction::Takeoff, summary, state.vehicleId, parameters));
     } else if (const auto altitudeMatch = altitude.match(clause); altitudeMatch.hasMatch()) {
         const double altitudeM = altitudeMatch.captured(1).toDouble();
         if (altitudeM <= 0.0) {
             return false;
         }
-        intents.append(makeIntent(Action::ChangeAltitude,
+        intents.append(makeIntent(VoiceCommandAction::ChangeAltitude,
                                   QStringLiteral("Change altitude to %1 m").arg(altitudeMatch.captured(1)),
                                   state.vehicleId, {{QStringLiteral("altitude"), altitudeM}}));
     } else if (const auto headingMatch = heading.match(clause); headingMatch.hasMatch()) {
@@ -75,8 +74,9 @@ bool matchClause(const QString& clause, const VehicleStateSnapshot& state, QList
         if (degrees > 360.0) {
             return false;
         }
-        intents.append(makeIntent(Action::ChangeHeading, QStringLiteral("Change heading to %1°").arg(degrees),
-                                  state.vehicleId, {{QStringLiteral("heading"), degrees}}));
+        intents.append(makeIntent(VoiceCommandAction::ChangeHeading,
+                                  QStringLiteral("Change heading to %1°").arg(degrees), state.vehicleId,
+                                  {{QStringLiteral("heading"), degrees}}));
     } else if (const auto moveMatch = move.match(clause); moveMatch.hasMatch()) {
         static const QHash<QString, QString> translatedDirections{
             {QStringLiteral("back"), QStringLiteral("backward")}, {QStringLiteral("ileri"), QStringLiteral("forward")},
@@ -98,14 +98,12 @@ bool matchClause(const QString& clause, const VehicleStateSnapshot& state, QList
             parameters.insert(QStringLiteral("speed"), moveMatch.captured(3).toDouble());
             summary += QStringLiteral(" at %1 m/s").arg(moveMatch.captured(3));
         }
-        intents.append(makeIntent(Action::Move, summary, state.vehicleId, parameters));
+        intents.append(makeIntent(VoiceCommandAction::Move, summary, state.vehicleId, parameters));
     } else {
         return false;
     }
     return true;
 }
-
-}  // namespace
 
 IntentParseResult DeterministicMatcher::parse(const QString& transcript, const VehicleStateSnapshot& vehicleState)
 {
