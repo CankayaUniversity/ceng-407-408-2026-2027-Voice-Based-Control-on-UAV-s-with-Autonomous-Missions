@@ -112,11 +112,37 @@ void DeterministicMatcherTest::_testTurkishCommands()
     }
 }
 
+void DeterministicMatcherTest::_testTurkishCasing()
+{
+    DeterministicMatcher matcher;
+    const QList<QPair<QString, VoiceCommandAction>> commands{
+        {QStringLiteral("İRTİFAYI 10 METREYE ÇIKAR!"), VoiceCommandAction::ChangeAltitude},
+        {QStringLiteral("irtifayı 10 metreye çıkar"), VoiceCommandAction::ChangeAltitude},
+        {QStringLiteral("MOTORLARI ÇALIŞTIR."), VoiceCommandAction::Arm},
+        {QStringLiteral("motorları çalıştır"), VoiceCommandAction::Arm},
+        {QStringLiteral("İLERİ 5 METRE GİT"), VoiceCommandAction::Move},
+        {QStringLiteral("ileri 5 metre git"), VoiceCommandAction::Move},
+        {QStringLiteral("DISARM"), VoiceCommandAction::Disarm},
+        {QStringLiteral("disarm"), VoiceCommandAction::Disarm},
+    };
+    for (const auto& [text, action] : commands) {
+        const IntentParseResult result = matcher.parse(text);
+        QVERIFY2(result.success, qPrintable(text));
+        QCOMPARE(result.intents.size(), 1);
+        QCOMPARE(result.intents.first().action, action);
+    }
+    const IntentParseResult sequence = matcher.parse(QStringLiteral("  MOTORLARI ÇALIŞTIR VE İLERİ 5 METRE GİT!? "));
+    QVERIFY(sequence.success);
+    QCOMPARE(sequence.intents.size(), 2);
+    QCOMPARE(sequence.intents.first().action, VoiceCommandAction::Arm);
+    QCOMPARE(sequence.intents.last().action, VoiceCommandAction::Move);
+}
+
 void DeterministicMatcherTest::_testUnknownAndPartialCommands()
 {
     DeterministicMatcher matcher;
     for (const QString& text :
-         {QStringLiteral(""), QStringLiteral("arm and dance"), QStringLiteral("move left"),
+         {QStringLiteral(""), QStringLiteral("  "), QStringLiteral("arm and dance"), QStringLiteral("move left"),
           QStringLiteral("change heading to 400 degrees"), QStringLiteral("disarm and"), QStringLiteral("please arm"),
           QStringLiteral("take off to 0 meters"), QStringLiteral("move forward 0 meters")}) {
         const IntentParseResult result = matcher.parse(text);

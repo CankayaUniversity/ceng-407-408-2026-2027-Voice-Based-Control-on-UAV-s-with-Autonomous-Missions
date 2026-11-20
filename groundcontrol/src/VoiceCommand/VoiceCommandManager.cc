@@ -8,7 +8,6 @@
 
 #include "AudioCapture.h"
 #include "AudioDeviceManager.h"
-#include "DeterministicMatcher.h"
 #include "Fact.h"
 #include "MultiVehicleManager.h"
 #include "QGCApplication.h"
@@ -27,8 +26,6 @@ VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManag
       _audioCapture(capture ? capture : AudioCapture::instance()),
       _deviceManager(deviceManager ? deviceManager : AudioDeviceManager::instance()),
       _modelManager(modelManager ? modelManager : SttModelManager::instance()),
-      _defaultIntentParser(std::make_unique<DeterministicMatcher>()),
-      _intentParser(_defaultIntentParser.get()),
       _idleUnloadTimer(new QTimer(this))
 {
     qRegisterMetaType<SttConfig>("SttConfig");
@@ -229,9 +226,6 @@ QString VoiceCommandManager::sessionStateString() const
 
         case SessionState::Executing:
             return QStringLiteral("Executing");
-
-        case SessionState::Error:
-            return QStringLiteral("Error");
     }
     return QStringLiteral("Idle");
 }
@@ -412,7 +406,7 @@ SpeechToTextInterface* VoiceCommandManager::sttEngine() const
 
 void VoiceCommandManager::setIntentParser(IntentParserInterface* parser)
 {
-    _intentParser = parser ? parser : _defaultIntentParser.get();
+    _injectedIntentParser = parser;
 }
 
 void VoiceCommandManager::setIdleUnloadTimeout(int timeoutMs)
@@ -544,7 +538,7 @@ void VoiceCommandManager::_finishRecognitionTest(const QString& transcript, cons
     _recognitionTestIntent.clear();
 
     if (error.isEmpty() && !transcript.isEmpty()) {
-        const IntentParseResult parsed = _defaultIntentParser->parse(transcript, _vehicleStateSnapshot());
+        const IntentParseResult parsed = _defaultIntentParser.parse(transcript, _vehicleStateSnapshot());
 
         if (parsed.success) {
             QStringList summaries;
@@ -746,9 +740,6 @@ void VoiceCommandManager::_onTranscriptionFinished(const SttResult& result)
 
     if (!result.success || result.text.trimmed().isEmpty()) {
         qCWarning(VoiceCommandManagerLog) << "STT transcription failed:" << result.errorMessage;
-
-        _setSessionState(SessionState::Error);
-
         const QString msg = tr("Voice Command is Failed");
         emit voiceCommandWarning(msg);
 
@@ -768,13 +759,11 @@ void VoiceCommandManager::_onTranscriptionFinished(const SttResult& result)
 
     emit voiceCommandTranscribed(transcript, result.confidence);
 
-    const IntentParseResult parsed = _intentParser->parse(transcript, _vehicleStateSnapshot());
+    const IntentParseResult parsed = (_injectedIntentParser ? _injectedIntentParser : &_defaultIntentParser)
+                                         ->parse(transcript, _vehicleStateSnapshot());
 
     if (!parsed.success || parsed.intents.isEmpty()) {
         qCWarning(VoiceCommandManagerLog) << "Voice intent mapping failed:" << parsed.errorMessage;
-
-        _setSessionState(SessionState::Error);
-
         const QString msg = tr("Voice Command is Failed");
         emit voiceCommandWarning(msg);
 
