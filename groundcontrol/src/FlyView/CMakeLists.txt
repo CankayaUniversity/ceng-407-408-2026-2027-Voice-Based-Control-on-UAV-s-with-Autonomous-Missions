@@ -70,6 +70,7 @@ qt_add_qml_module(FlyViewModule
         TerrainProgress.qml
         VehicleWarnings.qml
         VirtualJoystick.qml
+        VoiceCommandConfirmDialog.qml
         VTOLChecklist.qml
     NO_PLUGIN
 )
