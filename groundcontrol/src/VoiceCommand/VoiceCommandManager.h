@@ -60,6 +60,7 @@ public:
     Q_PROPERTY(bool isRecognitionTestActive READ isRecognitionTestActive NOTIFY recognitionTestActiveChanged)
     Q_PROPERTY(QString recognitionTestTranscript READ recognitionTestTranscript NOTIFY recognitionTestResultChanged)
     Q_PROPERTY(QString recognitionTestError READ recognitionTestError NOTIFY recognitionTestResultChanged)
+    Q_PROPERTY(QString recognitionTestIntent READ recognitionTestIntent NOTIFY recognitionTestResultChanged)
 
     explicit VoiceCommandManager(AudioCapture* capture = nullptr, AudioDeviceManager* deviceManager = nullptr,
                                  SttModelManager* modelManager = nullptr, QObject* parent = nullptr);
@@ -117,7 +118,7 @@ public:
     /// Stops audio recording and finishes the current voice command session.
     Q_INVOKABLE void stopRecording();
 
-    /// Records and transcribes for settings diagnostics without requiring a vehicle or parsing a command.
+    /// Records and previews deterministic intent matching without requiring a vehicle or dispatching a command.
     Q_INVOKABLE bool startRecognitionTest();
     Q_INVOKABLE void stopRecognitionTest();
 
@@ -126,6 +127,8 @@ public:
     QString recognitionTestTranscript() const { return _recognitionTestTranscript; }
 
     QString recognitionTestError() const { return _recognitionTestError; }
+
+    QString recognitionTestIntent() const { return _recognitionTestIntent; }
 
     /// Resets session to Idle.
     Q_INVOKABLE void resetSession();
@@ -214,4 +217,5 @@ private:
     bool _isRecognitionTestActive = false;
     QString _recognitionTestTranscript;
     QString _recognitionTestError;
+    QString _recognitionTestIntent;
 };

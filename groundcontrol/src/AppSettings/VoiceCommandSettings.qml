@@ -372,6 +372,19 @@ SettingsPage {
                            ? qgcPal.colorOrange : qgcPal.text
                 }
             }
+
+            QGCLabel {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                visible: root._voiceManager && !root._voiceManager.isRecognitionTestActive
+                         && root._voiceManager.recognitionTestTranscript !== ""
+                text: root._voiceManager && root._voiceManager.recognitionTestIntent !== ""
+                      ? qsTr("Parsed intent: %1").arg(root._voiceManager.recognitionTestIntent)
+                      : qsTr("Parsed intent: No matching command")
+                font.pointSize: ScreenTools.smallFontPointSize
+                color: root._voiceManager && root._voiceManager.recognitionTestIntent !== ""
+                       ? qgcPal.text : qgcPal.colorOrange
+            }
         }
 
         LabelledFactComboBox {

@@ -496,12 +496,32 @@ void VoiceCommandManagerTest::_testRecognitionTestTranscription()
     QCOMPARE(activeChanged.count(), 1);
     QCOMPARE(manager->recognitionTestTranscript(), QStringLiteral("this is only a test"));
     QVERIFY(manager->recognitionTestError().isEmpty());
+    QVERIFY(manager->recognitionTestIntent().isEmpty());
     QCOMPARE(manager->isRecognitionTestActive(), false);
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
     QCOMPARE(resultChanged.count(), 1);
     QCOMPARE(transcribed.count(), 0);
     QCOMPARE(confirmation.count(), 0);
     QCOMPARE(warnings.count(), 0);
+
+    // A complete sequence is previewed by the built-in matcher, not the injected command parser.
+    RejectingParser parser;
+    manager->setIntentParser(&parser);
+    manager->_isRecognitionTestActive = true;
+    manager->_onTranscriptionFinished({true, QStringLiteral("arm and then take off to 5 meters"), 0.9f, 10, {}});
+    QCOMPARE(manager->recognitionTestTranscript(), QStringLiteral("arm and then take off to 5 meters"));
+    QCOMPARE(manager->recognitionTestIntent(), QStringLiteral("Arm → Take off to 5 m"));
+    QCOMPARE(resultChanged.count(), 2);
+    QCOMPARE(confirmation.count(), 0);
+    QCOMPARE(warnings.count(), 0);
+
+    // A partial match must not show a misleading action.
+    manager->_isRecognitionTestActive = true;
+    manager->_onTranscriptionFinished({true, QStringLiteral("arm and then nonsense"), 0.9f, 10, {}});
+    QCOMPARE(manager->recognitionTestTranscript(), QStringLiteral("arm and then nonsense"));
+    QVERIFY(manager->recognitionTestIntent().isEmpty());
+    QCOMPARE(confirmation.count(), 0);
+    manager->setIntentParser(nullptr);
 }
 
 void VoiceCommandManagerTest::_testRecognitionTestErrors()
@@ -512,9 +532,14 @@ void VoiceCommandManagerTest::_testRecognitionTestErrors()
     QAudioFormat format = AudioCapture::canonicalAudioFormat();
 
     manager->_isRecognitionTestActive = true;
+    manager->_onTranscriptionFinished({true, QStringLiteral("arm"), 0.9f, 10, {}});
+    QCOMPARE(manager->recognitionTestIntent(), QStringLiteral("Arm"));
+
+    manager->_isRecognitionTestActive = true;
     manager->_onRecordingFinished(QByteArray(8000, '\0'), format);
     QVERIFY(!manager->isRecognitionTestActive());
     QVERIFY(manager->recognitionTestError().contains(QStringLiteral("too short")));
+    QVERIFY(manager->recognitionTestIntent().isEmpty());
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
     QCOMPARE(warnings.count(), 0);
 
@@ -522,12 +547,14 @@ void VoiceCommandManagerTest::_testRecognitionTestErrors()
     manager->_onTranscriptionFinished({false, {}, 0.0f, 10, QStringLiteral("Model error")});
     QCOMPARE(manager->recognitionTestError(), QStringLiteral("Speech recognition failed: Model error"));
     QVERIFY(manager->recognitionTestTranscript().isEmpty());
+    QVERIFY(manager->recognitionTestIntent().isEmpty());
     QCOMPARE(confirmation.count(), 0);
     QCOMPARE(warnings.count(), 0);
 
     manager->_isRecognitionTestActive = true;
     manager->_onTranscriptionFinished({true, QStringLiteral("  "), 0.0f, 10, {}});
     QCOMPARE(manager->recognitionTestError(), QStringLiteral("No speech recognized. Try speaking again."));
+    QVERIFY(manager->recognitionTestIntent().isEmpty());
     QCOMPARE(confirmation.count(), 0);
     QCOMPARE(warnings.count(), 0);
 }
@@ -550,12 +577,18 @@ void VoiceCommandManagerTest::_testRecognitionTestRecordingWithoutVehicle()
     QBuffer input(&pcm);
     AudioCapture::instance()->setAudioInputDeviceForTesting(&input, format);
 
+    manager->_isRecognitionTestActive = true;
+    manager->_onTranscriptionFinished({true, QStringLiteral("land"), 0.9f, 10, {}});
+    QCOMPARE(manager->recognitionTestIntent(), QStringLiteral("Land"));
+
     QVERIFY(manager->startRecognitionTest());
     QVERIFY(manager->isRecognitionTestActive());
     QVERIFY(manager->isRecording());
+    QVERIFY(manager->recognitionTestIntent().isEmpty());
     manager->stopRecognitionTest();
     QTRY_COMPARE_WITH_TIMEOUT(manager->isRecognitionTestActive(), false, 1000);
     QCOMPARE(manager->recognitionTestTranscript(), QStringLiteral("arm the drone"));
+    QCOMPARE(manager->recognitionTestIntent(), QStringLiteral("Arm"));
     QCOMPARE(confirmation.count(), 0);
     AudioCapture::instance()->setAudioInputDeviceForTesting(nullptr);
 }

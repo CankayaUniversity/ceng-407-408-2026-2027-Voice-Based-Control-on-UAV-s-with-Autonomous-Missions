@@ -446,6 +446,7 @@ bool VoiceCommandManager::startRecognitionTest()
 
     _recognitionTestTranscript.clear();
     _recognitionTestError.clear();
+    _recognitionTestIntent.clear();
     emit recognitionTestResultChanged();
     _isRecognitionTestActive = true;
     emit recognitionTestActiveChanged(true);
@@ -466,6 +467,17 @@ void VoiceCommandManager::_finishRecognitionTest(const QString& transcript, cons
 {
     _recognitionTestTranscript = transcript;
     _recognitionTestError = error;
+    _recognitionTestIntent.clear();
+    if (error.isEmpty() && !transcript.isEmpty()) {
+        const IntentParseResult parsed = _defaultIntentParser->parse(transcript, _vehicleStateSnapshot());
+        if (parsed.success) {
+            QStringList summaries;
+            for (const MissionIntent& intent : parsed.intents) {
+                summaries.append(intent.displaySummary);
+            }
+            _recognitionTestIntent = summaries.join(QStringLiteral(" → "));
+        }
+    }
     emit recognitionTestResultChanged();
     _isRecognitionTestActive = false;
     emit recognitionTestActiveChanged(false);
