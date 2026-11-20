@@ -8,9 +8,9 @@
 
 #include "AudioCapture.h"
 #include "AudioDeviceManager.h"
+#include "DeterministicMatcher.h"
 #include "Fact.h"
 #include "FactGroup.h"
-#include "LlmIntentParser.h"
 #include "MultiVehicleManager.h"
 #include "QGCApplication.h"
 #include "QGCLoggingCategory.h"
@@ -28,7 +28,7 @@ VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManag
       _audioCapture(capture ? capture : AudioCapture::instance()),
       _deviceManager(deviceManager ? deviceManager : AudioDeviceManager::instance()),
       _modelManager(modelManager ? modelManager : SttModelManager::instance()),
-      _defaultIntentParser(std::make_unique<LlmIntentParser>()),
+      _defaultIntentParser(std::make_unique<DeterministicMatcher>()),
       _intentParser(_defaultIntentParser.get()),
       _idleUnloadTimer(new QTimer(this))
 {
@@ -243,7 +243,6 @@ void VoiceCommandManager::_setSessionState(SessionState newState)
 
 void VoiceCommandManager::resetSession()
 {
-    ++_parseGeneration;
     if (isRecording()) {
         stopRecording();
     }
@@ -447,8 +446,6 @@ bool VoiceCommandManager::startRecognitionTest()
 
     _recognitionTestTranscript.clear();
     _recognitionTestError.clear();
-    _recognitionTestLlmOutput.clear();
-    _recognitionTestLlmError.clear();
     emit recognitionTestResultChanged();
     _isRecognitionTestActive = true;
     emit recognitionTestActiveChanged(true);
@@ -469,10 +466,6 @@ void VoiceCommandManager::_finishRecognitionTest(const QString& transcript, cons
 {
     _recognitionTestTranscript = transcript;
     _recognitionTestError = error;
-    if (transcript.isEmpty()) {
-        _recognitionTestLlmOutput.clear();
-        _recognitionTestLlmError.clear();
-    }
     emit recognitionTestResultChanged();
     _isRecognitionTestActive = false;
     emit recognitionTestActiveChanged(false);
@@ -540,7 +533,6 @@ void VoiceCommandManager::_onFactValueChanged()
 
 void VoiceCommandManager::_onRecordingFinished(const QByteArray& recordedPcmData, const QAudioFormat& format)
 {
-    ++_parseGeneration;
     qCDebug(VoiceCommandManagerLog) << "Recording finished, buffer bytes:" << recordedPcmData.size();
 
     constexpr int kMinPcmBytes = 16000;
@@ -643,19 +635,7 @@ void VoiceCommandManager::_onTranscriptionFinished(const SttResult& result)
             _finishRecognitionTest(QString(), tr("No speech recognized. Try speaking again."));
         } else {
             _isModelLoaded = true;
-            const QString transcript = result.text.trimmed();
-            _recognitionTestTranscript = transcript;
-            emit recognitionTestResultChanged();
-            const quint64 generation = ++_parseGeneration;
-            _intentParser->parse(transcript, _vehicleStateSnapshot(),
-                                 [this, generation, transcript](IntentParseResult parsed) {
-                                     if (generation != _parseGeneration || !_isRecognitionTestActive) {
-                                         return;
-                                     }
-                                     _recognitionTestLlmOutput = parsed.llmResponse;
-                                     _recognitionTestLlmError = parsed.success ? QString() : parsed.errorMessage;
-                                     _finishRecognitionTest(transcript, QString());
-                                 });
+            _finishRecognitionTest(result.text.trimmed(), QString());
         }
         return;
     }
@@ -677,18 +657,7 @@ void VoiceCommandManager::_onTranscriptionFinished(const SttResult& result)
     qCDebug(VoiceCommandManagerLog) << "Transcription output:" << transcript;
     emit voiceCommandTranscribed(transcript, result.confidence);
 
-    _setSessionState(SessionState::Processing);
-    const quint64 generation = ++_parseGeneration;
-    _intentParser->parse(transcript, _vehicleStateSnapshot(), [this, generation](IntentParseResult parsed) {
-        if (generation != _parseGeneration || _sessionState != SessionState::Processing) {
-            return;
-        }
-        _onIntentParsed(parsed);
-    });
-}
-
-void VoiceCommandManager::_onIntentParsed(const IntentParseResult& parsed)
-{
+    const IntentParseResult parsed = _intentParser->parse(transcript, _vehicleStateSnapshot());
     if (!parsed.success || parsed.intents.isEmpty()) {
         qCWarning(VoiceCommandManagerLog) << "Voice intent mapping failed:" << parsed.errorMessage;
         _setSessionState(SessionState::Error);

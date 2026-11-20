@@ -28,9 +28,7 @@ private slots:
     void _testIdleUnloadTimer();
     void _testAsynchronousWorkerTranscription();
     void _testIntentMappingFailure();
-    void _testResetIgnoresPendingIntent();
     void _testRecognitionTestTranscription();
-    void _testRecognitionTestLlmFailure();
     void _testRecognitionTestErrors();
     void _testRecognitionTestRecordingWithoutVehicle();
 };

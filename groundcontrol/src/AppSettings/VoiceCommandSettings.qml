@@ -336,9 +336,7 @@ SettingsPage {
 
                 QGCButton {
                     text: root._voiceManager && root._voiceManager.isRecognitionTestActive
-                          ? (root._voiceManager.isRecording ? qsTr("Stop Listening")
-                             : root._voiceManager.recognitionTestTranscript !== "" ? qsTr("Interpreting...")
-                             : qsTr("Recognizing..."))
+                          ? (root._voiceManager.isRecording ? qsTr("Stop Listening") : qsTr("Recognizing..."))
                           : qsTr("Test Speech Recognition")
                     primary: root._voiceManager && root._voiceManager.isRecognitionTestActive && root._voiceManager.isRecording
                     enabled: root._voiceManager && root._voiceManager.isMicrophoneActive
@@ -362,47 +360,17 @@ SettingsPage {
                         if (!root._voiceManager) return qsTr("Speech recognition is unavailable.")
                         if (root._voiceManager.isRecognitionTestActive) {
                             return root._voiceManager.isRecording ? qsTr("Listening... Speak into the microphone.")
-                                 : root._voiceManager.recognitionTestTranscript !== ""
-                                   ? qsTr("Recognized: %1 (waiting for LLM...)").arg(root._voiceManager.recognitionTestTranscript)
-                                   : qsTr("Recognizing speech...")
+                                                                  : qsTr("Recognizing speech...")
                         }
                         if (root._voiceManager.recognitionTestError !== "") return root._voiceManager.recognitionTestError
                         if (root._voiceManager.recognitionTestTranscript !== "") {
                             return qsTr("Recognized: %1").arg(root._voiceManager.recognitionTestTranscript)
                         }
-                        return qsTr("Start the test, speak, then stop listening to see what the speech model heard and how the LLM interprets it. No command will be sent, but the transcript is shared with the configured LLM endpoint.")
+                        return qsTr("Start the test, speak, then stop listening to see what the speech model heard. No command will be sent.")
                     }
                     color: root._voiceManager && root._voiceManager.recognitionTestError !== ""
                            ? qgcPal.colorOrange : qgcPal.text
                 }
-            }
-
-            QGCLabel {
-                text: qsTr("LLM Output")
-                font.bold: true
-            }
-
-            TextArea {
-                Layout.fillWidth: true
-                Layout.preferredHeight: ScreenTools.defaultFontPixelHeight * 4
-                readOnly: true
-                selectByMouse: true
-                wrapMode: TextEdit.Wrap
-                text: root._voiceManager ? root._voiceManager.recognitionTestLlmOutput : ""
-                placeholderText: root._voiceManager && root._voiceManager.isRecognitionTestActive
-                                 && root._voiceManager.recognitionTestTranscript !== ""
-                                 ? qsTr("Waiting for LLM response...") : qsTr("Run the speech recognition test to see the LLM response.")
-                color: qgcPal.textFieldText
-                background: Rectangle { color: qgcPal.textField }
-            }
-
-            QGCLabel {
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                visible: root._voiceManager && root._voiceManager.recognitionTestLlmError !== ""
-                text: root._voiceManager ? qsTr("LLM: %1").arg(root._voiceManager.recognitionTestLlmError) : ""
-                color: qgcPal.colorOrange
-                font.pointSize: ScreenTools.smallFontPointSize
             }
         }
 
