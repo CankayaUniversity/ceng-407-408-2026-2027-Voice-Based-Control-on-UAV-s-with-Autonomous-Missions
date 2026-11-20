@@ -10,8 +10,8 @@
 #include <QtCore/QTimer>
 #include <QtMultimedia/QAudioFormat>
 #include <QtQmlIntegration/QtQmlIntegration>
-#include <memory>
 
+#include "DeterministicMatcher.h"
 #include "IntentParserInterface.h"
 #include "SpeechToTextInterface.h"
 #include "SttModelManager.h"
@@ -42,8 +42,7 @@ public:
         Listening,
         Processing,
         Confirming,
-        Executing,
-        Error
+        Executing
     };
     Q_ENUM(SessionState)
 
@@ -100,7 +99,7 @@ public:
     void setSttEngine(SpeechToTextInterface* engine, bool takeOwnership = false);
     SpeechToTextInterface* sttEngine() const;
 
-    /// Inject a parser for tests; nullptr restores the built-in deterministic matcher.
+    /// Inject a non-owning parser for tests; caller keeps it alive until reset to nullptr.
     void setIntentParser(IntentParserInterface* parser);
 
     /// Configurable idle timeout for unloading STT models from memory (ms).
@@ -202,8 +201,8 @@ private:
     SessionState _sessionState = SessionState::Idle;
     QThread _workerThread;
     VoiceCommandWorker* _worker = nullptr;
-    std::unique_ptr<IntentParserInterface> _defaultIntentParser;
-    IntentParserInterface* _intentParser = nullptr;
+    DeterministicMatcher _defaultIntentParser;
+    IntentParserInterface* _injectedIntentParser = nullptr;
     QTimer* _idleUnloadTimer = nullptr;
     int _idleUnloadTimeoutMs = 300000;
     bool _keepModelInMemory = false;
