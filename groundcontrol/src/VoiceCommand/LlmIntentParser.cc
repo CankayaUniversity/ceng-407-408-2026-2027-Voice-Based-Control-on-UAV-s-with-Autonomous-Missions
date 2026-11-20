@@ -212,10 +212,8 @@ void LlmIntentParser::parse(const QString& transcript, const VehicleStateSnapsho
                               QJsonObject{{QStringLiteral("role"), QStringLiteral("user")},
                                           {QStringLiteral("content"),
                                            QString::fromUtf8(QJsonDocument(user).toJson(QJsonDocument::Compact))}}};
-    const QJsonObject payload{{QStringLiteral("model"), _model},
-                              {QStringLiteral("temperature"), 0},
-                              {QStringLiteral("reasoning_effort"), QStringLiteral("none")},
-                              {QStringLiteral("messages"), messages}};
+    const QJsonObject payload{
+        {QStringLiteral("model"), _model}, {QStringLiteral("temperature"), 0}, {QStringLiteral("reasoning_effort"), QStringLiteral("none")}, {QStringLiteral("messages"), messages}};
     QNetworkRequest request(_endpoint);
     request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
     request.setTransferTimeout(15000);
