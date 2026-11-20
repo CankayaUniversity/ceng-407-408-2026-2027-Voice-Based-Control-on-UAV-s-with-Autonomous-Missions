@@ -58,11 +58,45 @@ public:
 class RejectingParser : public IntentParserInterface
 {
 public:
-    IntentParseResult parse(const QString& transcript, const VehicleStateSnapshot&) override
+    void parse(const QString& transcript, const VehicleStateSnapshot&, Completion completion) override
     {
-        return {false, transcript, {}, QStringLiteral("Unrecognized command")};
+        completion({false, transcript, {}, QStringLiteral("Unrecognized command")});
     }
 };
+
+class MockParser : public IntentParserInterface
+{
+public:
+    void parse(const QString& transcript, const VehicleStateSnapshot& state, Completion completion) override
+    {
+        if (transcript != QStringLiteral("take off") && transcript != QStringLiteral("land") &&
+            transcript != QStringLiteral("arm the drone")) {
+            completion({false, transcript, {}, QStringLiteral("Unrecognized command")});
+            return;
+        }
+        const auto action = transcript == QStringLiteral("take off")        ? VoiceCommandAction::Takeoff
+                            : transcript == QStringLiteral("arm the drone") ? VoiceCommandAction::Arm
+                                                                            : VoiceCommandAction::Land;
+        completion({true,
+                    transcript,
+                    {{action, {}, state.vehicleId, QStringLiteral("Mock command")}},
+                    {},
+                    QStringLiteral(R"({"intents":[{"action":"Land","parameters":{}}]})")});
+    }
+};
+
+class PendingParser : public IntentParserInterface
+{
+public:
+    void parse(const QString&, const VehicleStateSnapshot&, Completion completion) override
+    {
+        pending = std::move(completion);
+    }
+
+    Completion pending;
+};
+
+MockParser mockParser;
 
 }  // namespace
 
@@ -79,7 +113,7 @@ void VoiceCommandManagerTest::init()
     VoiceCommandManager::instance()->setVehicleCheckEnabled(false);
     VoiceCommandManager::instance()->setSttModelCheckEnabled(false);
     VoiceCommandManager::instance()->setSttEngine(nullptr, false);
-    VoiceCommandManager::instance()->setIntentParser(nullptr);
+    VoiceCommandManager::instance()->setIntentParser(&mockParser);
     VoiceCommandManager::instance()->resetSession();
 }
 
@@ -462,7 +496,7 @@ void VoiceCommandManagerTest::_testIntentMappingFailure()
     QCOMPARE(confirmation.size(), 0);
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
 
-    manager->setIntentParser(nullptr);
+    manager->setIntentParser(&mockParser);
     manager->_onTranscriptionFinished({true, QStringLiteral("not a command"), 0.9f, 10, {}});
     QCOMPARE(warning.size(), 2);
     QCOMPARE(confirmation.size(), 0);
@@ -472,11 +506,28 @@ void VoiceCommandManagerTest::_testIntentMappingFailure()
     QCOMPARE(confirmation.size(), 0);
 }
 
+void VoiceCommandManagerTest::_testResetIgnoresPendingIntent()
+{
+    VoiceCommandManager* manager = VoiceCommandManager::instance();
+    PendingParser parser;
+    manager->setIntentParser(&parser);
+    QSignalSpy confirmation(manager, &VoiceCommandManager::commandConfirmationRequested);
+    manager->_onTranscriptionFinished({true, QStringLiteral("land"), 0.9f, 10, {}});
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Processing);
+    QVERIFY(static_cast<bool>(parser.pending));
+    manager->resetSession();
+    parser.pending({true, QStringLiteral("land"), {{VoiceCommandAction::Land, {}, -1, QStringLiteral("Land")}}, {}});
+    QCOMPARE(confirmation.size(), 0);
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
+}
+
 void VoiceCommandManagerTest::_testRecognitionTestTranscription()
 {
     VoiceCommandManager* manager = VoiceCommandManager::instance();
+    PendingParser parser;
+    manager->setIntentParser(&parser);
     auto* engine = new MockSttEngine();
-    engine->_mockResult = {true, QStringLiteral("  this is only a test  "), 0.9f, 10, {}};
+    engine->_mockResult = {true, QStringLiteral("  land  "), 0.9f, 10, {}};
     manager->setSttEngine(engine, true);
 
     QSignalSpy transcribed(manager, &VoiceCommandManager::voiceCommandTranscribed);
@@ -485,23 +536,54 @@ void VoiceCommandManagerTest::_testRecognitionTestTranscription()
     QSignalSpy activeChanged(manager, &VoiceCommandManager::recognitionTestActiveChanged);
     QSignalSpy warnings(manager, &VoiceCommandManager::voiceCommandWarning);
 
-    // Simulate a completed settings test; no microphone or vehicle is needed for inference.
+    // The settings test uses the LLM but must not request confirmation or dispatch a command.
     manager->_isRecognitionTestActive = true;
     QCOMPARE(manager->startRecording(), false);
     QAudioFormat format = AudioCapture::canonicalAudioFormat();
     manager->_onRecordingFinished(QByteArray(16000, '\0'), format);
 
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Processing);
-    QTRY_COMPARE_WITH_TIMEOUT(manager->isRecognitionTestActive(), false, 1000);
+    QTRY_VERIFY_WITH_TIMEOUT(static_cast<bool>(parser.pending), 1000);
+    QCOMPARE(manager->isRecognitionTestActive(), true);
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Processing);
+    QCOMPARE(manager->recognitionTestTranscript(), QStringLiteral("land"));
+    QVERIFY(manager->recognitionTestLlmOutput().isEmpty());
+    const QString rawResponse = QStringLiteral(R"({"intents":[{"action":"Land","parameters":{}}]})");
+    parser.pending(
+        {true, QStringLiteral("land"), {{VoiceCommandAction::Land, {}, -1, QStringLiteral("Land")}}, {}, rawResponse});
     QCOMPARE(activeChanged.count(), 1);
-    QCOMPARE(manager->recognitionTestTranscript(), QStringLiteral("this is only a test"));
+    QCOMPARE(manager->recognitionTestTranscript(), QStringLiteral("land"));
     QVERIFY(manager->recognitionTestError().isEmpty());
+    QCOMPARE(manager->recognitionTestLlmOutput(), rawResponse);
+    QVERIFY(manager->recognitionTestLlmError().isEmpty());
     QCOMPARE(manager->isRecognitionTestActive(), false);
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
-    QCOMPARE(resultChanged.count(), 1);
+    QCOMPARE(resultChanged.count(), 2);
     QCOMPARE(transcribed.count(), 0);
     QCOMPARE(confirmation.count(), 0);
     QCOMPARE(warnings.count(), 0);
+}
+
+void VoiceCommandManagerTest::_testRecognitionTestLlmFailure()
+{
+    VoiceCommandManager* manager = VoiceCommandManager::instance();
+    PendingParser parser;
+    manager->setIntentParser(&parser);
+    QSignalSpy confirmation(manager, &VoiceCommandManager::commandConfirmationRequested);
+    QSignalSpy warnings(manager, &VoiceCommandManager::voiceCommandWarning);
+
+    manager->_isRecognitionTestActive = true;
+    manager->_onTranscriptionFinished({true, QStringLiteral("not a command"), 0.9f, 10, {}});
+    QVERIFY(static_cast<bool>(parser.pending));
+    const QString rawResponse = QStringLiteral(R"({"intents":[]})");
+    parser.pending(
+        {false, QStringLiteral("not a command"), {}, QStringLiteral("No recognized voice command"), rawResponse});
+    QCOMPARE(manager->recognitionTestTranscript(), QStringLiteral("not a command"));
+    QCOMPARE(manager->recognitionTestLlmOutput(), rawResponse);
+    QCOMPARE(manager->recognitionTestLlmError(), QStringLiteral("No recognized voice command"));
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
+    QCOMPARE(confirmation.size(), 0);
+    QCOMPARE(warnings.size(), 0);
 }
 
 void VoiceCommandManagerTest::_testRecognitionTestErrors()
@@ -511,10 +593,14 @@ void VoiceCommandManagerTest::_testRecognitionTestErrors()
     QSignalSpy confirmation(manager, &VoiceCommandManager::commandConfirmationRequested);
     QAudioFormat format = AudioCapture::canonicalAudioFormat();
 
+    manager->_recognitionTestLlmOutput = QStringLiteral("Previous output");
+    manager->_recognitionTestLlmError = QStringLiteral("Previous error");
     manager->_isRecognitionTestActive = true;
     manager->_onRecordingFinished(QByteArray(8000, '\0'), format);
     QVERIFY(!manager->isRecognitionTestActive());
     QVERIFY(manager->recognitionTestError().contains(QStringLiteral("too short")));
+    QVERIFY(manager->recognitionTestLlmOutput().isEmpty());
+    QVERIFY(manager->recognitionTestLlmError().isEmpty());
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
     QCOMPARE(warnings.count(), 0);
 

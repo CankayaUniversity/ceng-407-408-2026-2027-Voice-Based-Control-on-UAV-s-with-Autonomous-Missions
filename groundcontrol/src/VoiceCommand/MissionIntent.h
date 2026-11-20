@@ -54,11 +54,13 @@ struct IntentParseResult
     Q_PROPERTY(QString rawTranscript MEMBER rawTranscript)
     Q_PROPERTY(QList<MissionIntent> intents MEMBER intents)
     Q_PROPERTY(QString errorMessage MEMBER errorMessage)
+    Q_PROPERTY(QString llmResponse MEMBER llmResponse)
 
 public:
     bool success = false;
     QString rawTranscript;
     QList<MissionIntent> intents;
     QString errorMessage;
+    QString llmResponse;
 };
 Q_DECLARE_METATYPE(IntentParseResult)

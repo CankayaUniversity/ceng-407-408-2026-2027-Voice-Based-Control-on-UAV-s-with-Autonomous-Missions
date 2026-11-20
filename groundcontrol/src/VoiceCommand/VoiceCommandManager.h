@@ -60,6 +60,8 @@ public:
     Q_PROPERTY(bool isRecognitionTestActive READ isRecognitionTestActive NOTIFY recognitionTestActiveChanged)
     Q_PROPERTY(QString recognitionTestTranscript READ recognitionTestTranscript NOTIFY recognitionTestResultChanged)
     Q_PROPERTY(QString recognitionTestError READ recognitionTestError NOTIFY recognitionTestResultChanged)
+    Q_PROPERTY(QString recognitionTestLlmOutput READ recognitionTestLlmOutput NOTIFY recognitionTestResultChanged)
+    Q_PROPERTY(QString recognitionTestLlmError READ recognitionTestLlmError NOTIFY recognitionTestResultChanged)
 
     explicit VoiceCommandManager(AudioCapture* capture = nullptr, AudioDeviceManager* deviceManager = nullptr,
                                  SttModelManager* modelManager = nullptr, QObject* parent = nullptr);
@@ -99,7 +101,7 @@ public:
     void setSttEngine(SpeechToTextInterface* engine, bool takeOwnership = false);
     SpeechToTextInterface* sttEngine() const;
 
-    /// Inject a parser for tests; nullptr restores the built-in deterministic matcher.
+    /// Inject a parser for tests; nullptr restores the built-in LLM parser.
     void setIntentParser(IntentParserInterface* parser);
 
     /// Configurable idle timeout for unloading STT models from memory (ms).
@@ -117,7 +119,7 @@ public:
     /// Stops audio recording and finishes the current voice command session.
     Q_INVOKABLE void stopRecording();
 
-    /// Records and transcribes for settings diagnostics without requiring a vehicle or parsing a command.
+    /// Records, transcribes, and queries the LLM for settings diagnostics without sending a command.
     Q_INVOKABLE bool startRecognitionTest();
     Q_INVOKABLE void stopRecognitionTest();
 
@@ -126,6 +128,10 @@ public:
     QString recognitionTestTranscript() const { return _recognitionTestTranscript; }
 
     QString recognitionTestError() const { return _recognitionTestError; }
+
+    QString recognitionTestLlmOutput() const { return _recognitionTestLlmOutput; }
+
+    QString recognitionTestLlmError() const { return _recognitionTestLlmError; }
 
     /// Resets session to Idle.
     Q_INVOKABLE void resetSession();
@@ -187,6 +193,7 @@ private:
     VehicleStateSnapshot _vehicleStateSnapshot() const;
     void _prewarmModel();
     void _finishRecognitionTest(const QString& transcript, const QString& error);
+    void _onIntentParsed(const IntentParseResult& parsed);
 
     AudioCapture* _audioCapture = nullptr;
     AudioDeviceManager* _deviceManager = nullptr;
@@ -212,6 +219,9 @@ private:
     bool _vehicleCheckEnabled = true;
     bool _sttModelCheckEnabled = true;
     bool _isRecognitionTestActive = false;
+    quint64 _parseGeneration = 0;
     QString _recognitionTestTranscript;
     QString _recognitionTestError;
+    QString _recognitionTestLlmOutput;
+    QString _recognitionTestLlmError;
 };
