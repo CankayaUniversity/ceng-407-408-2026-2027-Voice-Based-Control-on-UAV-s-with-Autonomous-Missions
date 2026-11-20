@@ -518,7 +518,7 @@ bool VoiceCommandManager::startRecognitionTest()
     _recognitionTestIntent.clear();
 
     emit recognitionTestResultChanged();
-    
+
     _isRecognitionTestActive = true;
     emit recognitionTestActiveChanged(true);
 
@@ -561,7 +561,7 @@ void VoiceCommandManager::_finishRecognitionTest(const QString& transcript, cons
 
     _isRecognitionTestActive = false;
     emit recognitionTestActiveChanged(false);
-    
+
     _setSessionState(SessionState::Idle);
 }
 
@@ -596,13 +596,13 @@ bool VoiceCommandManager::eventFilter(QObject* watched, QEvent* event)
 
             _isKeyPressed = true;
             (void) startRecording();
-            
+
             return true;
         }
     } else if (type == QEvent::KeyRelease) {
         if (_isKeyPressed && _matchesPttKey(keyEvent->key(), keyEvent->text())) {
             _isKeyPressed = false;
-            
+
             if (!_isRecognitionTestActive) {
                 stopRecording();
             }
@@ -640,7 +640,7 @@ void VoiceCommandManager::_onRecordingFinished(const QByteArray& recordedPcmData
     if (durationUs < 500000 || recordedPcmData.size() < kMinPcmBytes) {
         qCDebug(VoiceCommandManagerLog) << "Utterance rejected: duration" << durationUs << "us (< 500ms) or size"
                                         << recordedPcmData.size() << "bytes (< 16000 bytes)";
-        
+
         if (_isRecognitionTestActive) {
             _finishRecognitionTest(QString(), tr("Recording too short. Speak for at least half a second."));
         } else {
@@ -716,7 +716,7 @@ void VoiceCommandManager::_onModelUnloaded()
         _isModelLoaded = false;
         emit modelLoadedChanged(false);
     }
-    
+
     qCDebug(VoiceCommandManagerLog) << "STT model unloaded in worker thread";
 }
 
@@ -734,7 +734,7 @@ void VoiceCommandManager::_onTranscriptionFinished(const SttResult& result)
             _finishRecognitionTest(QString(), result.errorMessage.isEmpty()
                                                   ? tr("Speech recognition failed.")
                                                   : tr("Speech recognition failed: %1").arg(result.errorMessage));
-                                                  
+
         } else if (result.text.trimmed().isEmpty()) {
             _finishRecognitionTest(QString(), tr("No speech recognized. Try speaking again."));
         } else {
@@ -819,7 +819,7 @@ bool VoiceCommandManager::_matchesPttKey(int key, const QString& text) const
         }
 
         const QChar targetChar = _pushToTalkKey.at(0).toUpper();
-        
+
         if (key == targetChar.unicode()) {
             return true;
         }
@@ -842,7 +842,7 @@ bool VoiceCommandManager::_isTextInputFocused()
     }
 
     const QString className = QString::fromLatin1(focusObj->metaObject()->className());
-    
+
     return (className.contains(QStringLiteral("TextInput"), Qt::CaseInsensitive) ||
             className.contains(QStringLiteral("TextEdit"), Qt::CaseInsensitive) ||
             className.contains(QStringLiteral("TextField"), Qt::CaseInsensitive) ||
