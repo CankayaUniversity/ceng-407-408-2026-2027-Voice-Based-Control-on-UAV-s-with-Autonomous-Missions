@@ -27,4 +27,8 @@ private slots:
     void _testPreWarmingOnPttPress();
     void _testIdleUnloadTimer();
     void _testAsynchronousWorkerTranscription();
+    void _testIntentMappingFailure();
+    void _testRecognitionTestTranscription();
+    void _testRecognitionTestErrors();
+    void _testRecognitionTestRecordingWithoutVehicle();
 };

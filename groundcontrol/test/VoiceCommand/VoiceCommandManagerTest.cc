@@ -1,5 +1,6 @@
 #include "VoiceCommandManagerTest.h"
 
+#include <QtCore/QBuffer>
 #include <QtCore/QDir>
 #include <QtCore/QFile>
 #include <QtCore/QTemporaryDir>
@@ -8,6 +9,7 @@
 
 #include "AudioCapture.h"
 #include "AudioDeviceManager.h"
+#include "IntentParserInterface.h"
 #include "SpeechToTextInterface.h"
 #include "VoiceCommandManager.h"
 
@@ -53,6 +55,15 @@ public:
     SttResult _mockResult{true, QStringLiteral("arm the drone"), 0.95f, 10, QString()};
 };
 
+class RejectingParser : public IntentParserInterface
+{
+public:
+    IntentParseResult parse(const QString& transcript, const VehicleStateSnapshot&) override
+    {
+        return {false, transcript, {}, QStringLiteral("Unrecognized command")};
+    }
+};
+
 }  // namespace
 
 void VoiceCommandManagerTest::init()
@@ -68,16 +79,19 @@ void VoiceCommandManagerTest::init()
     VoiceCommandManager::instance()->setVehicleCheckEnabled(false);
     VoiceCommandManager::instance()->setSttModelCheckEnabled(false);
     VoiceCommandManager::instance()->setSttEngine(nullptr, false);
+    VoiceCommandManager::instance()->setIntentParser(nullptr);
     VoiceCommandManager::instance()->resetSession();
 }
 
 void VoiceCommandManagerTest::cleanup()
 {
+    VoiceCommandManager::instance()->stopRecognitionTest();
     if (VoiceCommandManager::instance()->isRecording()) {
         VoiceCommandManager::instance()->stopRecording();
     }
     VoiceCommandManager::instance()->resetSession();
     VoiceCommandManager::instance()->setSttEngine(nullptr, false);
+    VoiceCommandManager::instance()->setIntentParser(nullptr);
     if (VoiceCommandManager::instance()->sttModelManager()) {
         VoiceCommandManager::instance()->sttModelManager()->setSearchOverride(QString(), false);
     }
@@ -140,6 +154,7 @@ void VoiceCommandManagerTest::_testRecordingLifecycleDelegation()
 void VoiceCommandManagerTest::_testSignalPropagation()
 {
     VoiceCommandManager* manager = VoiceCommandManager::instance();
+    manager->setSttEngine(new MockSttEngine(), true);
     QSignalSpy spyRecorded(manager, &VoiceCommandManager::voiceCommandRecorded);
 
     // Canonical 16kHz Int16 Mono requires >=16000 bytes for >=500ms
@@ -274,6 +289,7 @@ void VoiceCommandManagerTest::_testMinimumDurationValidation()
                      QRegularExpression(QStringLiteral("Voice Command is too short to recognize")));
 
     VoiceCommandManager* manager = VoiceCommandManager::instance();
+    manager->setSttEngine(new MockSttEngine(), true);
     QSignalSpy spyWarning(manager, &VoiceCommandManager::voiceCommandWarning);
     QSignalSpy spyRecorded(manager, &VoiceCommandManager::voiceCommandRecorded);
 
@@ -322,6 +338,14 @@ void VoiceCommandManagerTest::_testSessionStateMachine()
 void VoiceCommandManagerTest::_testPreWarmingOnPttPress()
 {
     VoiceCommandManager* manager = VoiceCommandManager::instance();
+    QTemporaryDir modelDir;
+    QVERIFY(modelDir.isValid());
+    QFile model(QDir(modelDir.path()).filePath(QStringLiteral("ggml-base.en.bin")));
+    QVERIFY(model.open(QIODevice::WriteOnly));
+    QVERIFY(model.write("GGML_MODEL") > 0);
+    model.close();
+    manager->sttModelManager()->setSearchOverride(modelDir.path(), true);
+
     auto* mockEngine = new MockSttEngine();
     mockEngine->_loaded = false;
     manager->setSttEngine(mockEngine, true);
@@ -355,6 +379,23 @@ void VoiceCommandManagerTest::_testIdleUnloadTimer()
 
     QVERIFY(spyLoaded.wait(1000));
     QCOMPARE(manager->isSttModelLoaded(), false);
+
+    manager->resetSession();
+    mockEngine->_loaded = true;
+    manager->_onModelInitialized(true);
+    QVERIFY(manager->isSttModelLoaded());
+    QVERIFY(spyLoaded.wait(1000));
+    QCOMPARE(manager->isSttModelLoaded(), false);
+
+    mockEngine->_loaded = true;
+    manager->_onModelInitialized(true);
+    QAudioFormat format;
+    format.setSampleRate(16000);
+    format.setChannelCount(1);
+    format.setSampleFormat(QAudioFormat::Int16);
+    manager->_onRecordingFinished(QByteArray(8000, '\0'), format);
+    QVERIFY(spyLoaded.wait(1000));
+    QCOMPARE(manager->isSttModelLoaded(), false);
 }
 
 void VoiceCommandManagerTest::_testAsynchronousWorkerTranscription()
@@ -368,6 +409,7 @@ void VoiceCommandManagerTest::_testAsynchronousWorkerTranscription()
     manager->setSttEngine(mockEngine, true);
 
     QSignalSpy spyTranscribed(manager, &VoiceCommandManager::voiceCommandTranscribed);
+    QSignalSpy spyConfirmation(manager, &VoiceCommandManager::commandConfirmationRequested);
 
     QAudioFormat format;
     format.setSampleRate(16000);
@@ -383,6 +425,10 @@ void VoiceCommandManagerTest::_testAsynchronousWorkerTranscription()
     QCOMPARE(spyTranscribed.count(), 1);
     QCOMPARE(spyTranscribed.first().at(0).toString(), QStringLiteral("take off"));
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Confirming);
+    QCOMPARE(spyConfirmation.count(), 1);
+    const auto parsed = spyConfirmation.first().first().value<IntentParseResult>();
+    QCOMPARE(parsed.intents.size(), 1);
+    QCOMPARE(parsed.intents.first().action, VoiceCommandAction::Takeoff);
 
     // Test failure scenario
     auto* failEngine = new MockSttEngine();
@@ -396,6 +442,155 @@ void VoiceCommandManagerTest::_testAsynchronousWorkerTranscription()
     QCOMPARE(spyWarning.count(), 1);
     QCOMPARE(spyWarning.first().first().toString(), QStringLiteral("Voice Command is Failed"));
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
+    QCOMPARE(spyConfirmation.count(), 1);
+}
+
+void VoiceCommandManagerTest::_testIntentMappingFailure()
+{
+    ignoreLogMessage("VoiceCommand.VoiceCommandManager", QtWarningMsg,
+                     QRegularExpression(QStringLiteral("Voice intent mapping failed:.*|STT transcription failed:.*")));
+
+    VoiceCommandManager* manager = VoiceCommandManager::instance();
+    RejectingParser parser;
+    manager->setIntentParser(&parser);
+    QSignalSpy warning(manager, &VoiceCommandManager::voiceCommandWarning);
+    QSignalSpy confirmation(manager, &VoiceCommandManager::commandConfirmationRequested);
+
+    manager->_onTranscriptionFinished({true, QStringLiteral("unknown command"), 0.9f, 10, {}});
+    QCOMPARE(warning.size(), 1);
+    QCOMPARE(warning.first().first().toString(), QStringLiteral("Voice Command is Failed"));
+    QCOMPARE(confirmation.size(), 0);
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
+
+    manager->setIntentParser(nullptr);
+    manager->_onTranscriptionFinished({true, QStringLiteral("not a command"), 0.9f, 10, {}});
+    QCOMPARE(warning.size(), 2);
+    QCOMPARE(confirmation.size(), 0);
+
+    manager->_onTranscriptionFinished({true, QStringLiteral("  "), 0.9f, 10, {}});
+    QCOMPARE(warning.size(), 3);
+    QCOMPARE(confirmation.size(), 0);
+}
+
+void VoiceCommandManagerTest::_testRecognitionTestTranscription()
+{
+    VoiceCommandManager* manager = VoiceCommandManager::instance();
+    auto* engine = new MockSttEngine();
+    engine->_mockResult = {true, QStringLiteral("  this is only a test  "), 0.9f, 10, {}};
+    manager->setSttEngine(engine, true);
+
+    QSignalSpy transcribed(manager, &VoiceCommandManager::voiceCommandTranscribed);
+    QSignalSpy confirmation(manager, &VoiceCommandManager::commandConfirmationRequested);
+    QSignalSpy resultChanged(manager, &VoiceCommandManager::recognitionTestResultChanged);
+    QSignalSpy activeChanged(manager, &VoiceCommandManager::recognitionTestActiveChanged);
+    QSignalSpy warnings(manager, &VoiceCommandManager::voiceCommandWarning);
+
+    // Simulate a completed settings test; no microphone or vehicle is needed for inference.
+    manager->_isRecognitionTestActive = true;
+    QCOMPARE(manager->startRecording(), false);
+    QAudioFormat format = AudioCapture::canonicalAudioFormat();
+    manager->_onRecordingFinished(QByteArray(16000, '\0'), format);
+
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Processing);
+    QTRY_COMPARE_WITH_TIMEOUT(manager->isRecognitionTestActive(), false, 1000);
+    QCOMPARE(activeChanged.count(), 1);
+    QCOMPARE(manager->recognitionTestTranscript(), QStringLiteral("this is only a test"));
+    QVERIFY(manager->recognitionTestError().isEmpty());
+    QVERIFY(manager->recognitionTestIntent().isEmpty());
+    QCOMPARE(manager->isRecognitionTestActive(), false);
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
+    QCOMPARE(resultChanged.count(), 1);
+    QCOMPARE(transcribed.count(), 0);
+    QCOMPARE(confirmation.count(), 0);
+    QCOMPARE(warnings.count(), 0);
+
+    // A complete sequence is previewed by the built-in matcher, not the injected command parser.
+    RejectingParser parser;
+    manager->setIntentParser(&parser);
+    manager->_isRecognitionTestActive = true;
+    manager->_onTranscriptionFinished({true, QStringLiteral("arm and then take off to 5 meters"), 0.9f, 10, {}});
+    QCOMPARE(manager->recognitionTestTranscript(), QStringLiteral("arm and then take off to 5 meters"));
+    QCOMPARE(manager->recognitionTestIntent(), QStringLiteral("Arm → Take off to 5 m"));
+    QCOMPARE(resultChanged.count(), 2);
+    QCOMPARE(confirmation.count(), 0);
+    QCOMPARE(warnings.count(), 0);
+
+    // A partial match must not show a misleading action.
+    manager->_isRecognitionTestActive = true;
+    manager->_onTranscriptionFinished({true, QStringLiteral("arm and then nonsense"), 0.9f, 10, {}});
+    QCOMPARE(manager->recognitionTestTranscript(), QStringLiteral("arm and then nonsense"));
+    QVERIFY(manager->recognitionTestIntent().isEmpty());
+    QCOMPARE(confirmation.count(), 0);
+    manager->setIntentParser(nullptr);
+}
+
+void VoiceCommandManagerTest::_testRecognitionTestErrors()
+{
+    VoiceCommandManager* manager = VoiceCommandManager::instance();
+    QSignalSpy warnings(manager, &VoiceCommandManager::voiceCommandWarning);
+    QSignalSpy confirmation(manager, &VoiceCommandManager::commandConfirmationRequested);
+    QAudioFormat format = AudioCapture::canonicalAudioFormat();
+
+    manager->_isRecognitionTestActive = true;
+    manager->_onTranscriptionFinished({true, QStringLiteral("arm"), 0.9f, 10, {}});
+    QCOMPARE(manager->recognitionTestIntent(), QStringLiteral("Arm"));
+
+    manager->_isRecognitionTestActive = true;
+    manager->_onRecordingFinished(QByteArray(8000, '\0'), format);
+    QVERIFY(!manager->isRecognitionTestActive());
+    QVERIFY(manager->recognitionTestError().contains(QStringLiteral("too short")));
+    QVERIFY(manager->recognitionTestIntent().isEmpty());
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
+    QCOMPARE(warnings.count(), 0);
+
+    manager->_isRecognitionTestActive = true;
+    manager->_onTranscriptionFinished({false, {}, 0.0f, 10, QStringLiteral("Model error")});
+    QCOMPARE(manager->recognitionTestError(), QStringLiteral("Speech recognition failed: Model error"));
+    QVERIFY(manager->recognitionTestTranscript().isEmpty());
+    QVERIFY(manager->recognitionTestIntent().isEmpty());
+    QCOMPARE(confirmation.count(), 0);
+    QCOMPARE(warnings.count(), 0);
+
+    manager->_isRecognitionTestActive = true;
+    manager->_onTranscriptionFinished({true, QStringLiteral("  "), 0.0f, 10, {}});
+    QCOMPARE(manager->recognitionTestError(), QStringLiteral("No speech recognized. Try speaking again."));
+    QVERIFY(manager->recognitionTestIntent().isEmpty());
+    QCOMPARE(confirmation.count(), 0);
+    QCOMPARE(warnings.count(), 0);
+}
+
+void VoiceCommandManagerTest::_testRecognitionTestRecordingWithoutVehicle()
+{
+    VoiceCommandManager* manager = VoiceCommandManager::instance();
+    manager->setVehicleCheckEnabled(true);
+    QCOMPARE(manager->isVehicleConnected(), false);
+
+    if (!manager->isMicrophoneActive()) {
+        QCOMPARE(manager->startRecognitionTest(), false);
+        return;
+    }
+
+    manager->setSttEngine(new MockSttEngine(), true);
+    QSignalSpy confirmation(manager, &VoiceCommandManager::commandConfirmationRequested);
+    QAudioFormat format = AudioCapture::canonicalAudioFormat();
+    QByteArray pcm(16000, '\0');
+    QBuffer input(&pcm);
+    AudioCapture::instance()->setAudioInputDeviceForTesting(&input, format);
+
+    manager->_isRecognitionTestActive = true;
+    manager->_onTranscriptionFinished({true, QStringLiteral("land"), 0.9f, 10, {}});
+    QCOMPARE(manager->recognitionTestIntent(), QStringLiteral("Land"));
+
+    QVERIFY(manager->startRecognitionTest());
+    QVERIFY(manager->isRecognitionTestActive());
+    QVERIFY(manager->isRecording());
+    QVERIFY(manager->recognitionTestIntent().isEmpty());
+    manager->stopRecognitionTest();
+    QTRY_COMPARE_WITH_TIMEOUT(manager->isRecognitionTestActive(), false, 1000);
+    QCOMPARE(manager->recognitionTestTranscript(), QStringLiteral("arm the drone"));
+    QCOMPARE(manager->recognitionTestIntent(), QStringLiteral("Arm"));
+    QCOMPARE(confirmation.count(), 0);
+    AudioCapture::instance()->setAudioInputDeviceForTesting(nullptr);
 }
 
 UT_REGISTER_TEST(VoiceCommandManagerTest, TestLabel::Unit, TestLabel::Utilities)
