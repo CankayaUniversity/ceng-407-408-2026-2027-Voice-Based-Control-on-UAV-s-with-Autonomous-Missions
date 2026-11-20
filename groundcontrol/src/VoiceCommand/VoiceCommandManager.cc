@@ -236,7 +236,53 @@ void VoiceCommandManager::resetSession()
     if (isRecording()) {
         stopRecording();
     }
+    _clearPendingConfirmation();
     _setSessionState(SessionState::Idle);
+}
+
+QVariantList VoiceCommandManager::pendingIntentsVariant() const
+{
+    QVariantList list;
+    list.reserve(_pendingIntents.size());
+    for (const MissionIntent& intent : _pendingIntents) {
+        list.append(QVariant::fromValue(intent));
+    }
+    return list;
+}
+
+void VoiceCommandManager::approvePendingCommand()
+{
+    if (_sessionState != SessionState::Confirming || _pendingIntents.isEmpty()) {
+        return;
+    }
+
+    const QList<MissionIntent> approved = _pendingIntents;
+    qCDebug(VoiceCommandManagerLog) << "Operator approved" << approved.size() << "voice command step(s)";
+    _clearPendingConfirmation();
+    _setSessionState(SessionState::Executing);
+    emit commandApproved(approved);
+}
+
+void VoiceCommandManager::rejectPendingCommand()
+{
+    if (_sessionState != SessionState::Confirming && _pendingIntents.isEmpty()) {
+        return;
+    }
+
+    qCDebug(VoiceCommandManagerLog) << "Operator rejected pending voice command sequence";
+    _clearPendingConfirmation();
+    _setSessionState(SessionState::Idle);
+    emit commandRejected();
+}
+
+void VoiceCommandManager::_clearPendingConfirmation()
+{
+    if (_pendingIntents.isEmpty() && _pendingTranscript.isEmpty()) {
+        return;
+    }
+    _pendingIntents.clear();
+    _pendingTranscript.clear();
+    emit pendingIntentsChanged();
 }
 
 bool VoiceCommandManager::isRecording() const
@@ -359,7 +405,7 @@ void VoiceCommandManager::setKeepModelInMemory(bool keepInMemory)
 
 bool VoiceCommandManager::startRecording()
 {
-    if (_isRecognitionTestActive) {
+    if (_isRecognitionTestActive || _sessionState == SessionState::Confirming) {
         return false;
     }
 
@@ -669,7 +715,10 @@ void VoiceCommandManager::_onTranscriptionFinished(const SttResult& result)
         return;
     }
 
+    _pendingIntents = parsed.intents;
+    _pendingTranscript = parsed.rawTranscript;
     _setSessionState(SessionState::Confirming);
+    emit pendingIntentsChanged();
     emit commandConfirmationRequested(parsed);
 }
 
