@@ -593,4 +593,59 @@ void VoiceCommandManagerTest::_testRecognitionTestRecordingWithoutVehicle()
     AudioCapture::instance()->setAudioInputDeviceForTesting(nullptr);
 }
 
+void VoiceCommandManagerTest::_testConfirmationApproveFlow()
+{
+    VoiceCommandManager* manager = VoiceCommandManager::instance();
+    QSignalSpy confirmation(manager, &VoiceCommandManager::commandConfirmationRequested);
+    QSignalSpy approved(manager, &VoiceCommandManager::commandApproved);
+    QSignalSpy rejected(manager, &VoiceCommandManager::commandRejected);
+    QSignalSpy pendingChanged(manager, &VoiceCommandManager::pendingIntentsChanged);
+
+    manager->_onTranscriptionFinished({true, QStringLiteral("takeoff"), 0.95f, 10, {}});
+
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Confirming);
+    QVERIFY(manager->hasPendingConfirmation());
+    QVERIFY(!manager->pendingIntents().isEmpty());
+    QCOMPARE(manager->pendingIntentsVariant().size(), manager->pendingIntents().size());
+    QCOMPARE(manager->pendingTranscript(), QStringLiteral("takeoff"));
+    QCOMPARE(confirmation.count(), 1);
+    QCOMPARE(pendingChanged.count(), 1);
+
+    // Cannot start a new recording while awaiting operator confirmation
+    QCOMPARE(manager->startRecording(), false);
+
+    const QList<MissionIntent> expectedIntents = manager->pendingIntents();
+    manager->approvePendingCommand();
+
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Executing);
+    QVERIFY(!manager->hasPendingConfirmation());
+    QVERIFY(manager->pendingIntents().isEmpty());
+    QVERIFY(manager->pendingTranscript().isEmpty());
+    QCOMPARE(approved.count(), 1);
+    QCOMPARE(approved.takeFirst().at(0).value<QList<MissionIntent>>(), expectedIntents);
+    QCOMPARE(rejected.count(), 0);
+}
+
+void VoiceCommandManagerTest::_testConfirmationRejectFlow()
+{
+    VoiceCommandManager* manager = VoiceCommandManager::instance();
+    QSignalSpy approved(manager, &VoiceCommandManager::commandApproved);
+    QSignalSpy rejected(manager, &VoiceCommandManager::commandRejected);
+
+    manager->_onTranscriptionFinished({true, QStringLiteral("land"), 0.92f, 10, {}});
+
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Confirming);
+    QVERIFY(manager->hasPendingConfirmation());
+    QVERIFY(!manager->pendingIntents().isEmpty());
+
+    manager->rejectPendingCommand();
+
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Idle);
+    QVERIFY(!manager->hasPendingConfirmation());
+    QVERIFY(manager->pendingIntents().isEmpty());
+    QVERIFY(manager->pendingTranscript().isEmpty());
+    QCOMPARE(rejected.count(), 1);
+    QCOMPARE(approved.count(), 0);
+}
+
 UT_REGISTER_TEST(VoiceCommandManagerTest, TestLabel::Unit, TestLabel::Utilities)
