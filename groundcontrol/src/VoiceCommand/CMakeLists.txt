@@ -5,6 +5,32 @@
 
 target_sources(${CMAKE_PROJECT_NAME}
     PRIVATE
+        Commands/ArmCommand.cc
+        Commands/ArmCommand.h
+        Commands/ChangeAltitudeCommand.cc
+        Commands/ChangeAltitudeCommand.h
+        Commands/ChangeHeadingCommand.cc
+        Commands/ChangeHeadingCommand.h
+        Commands/CommandRegistry.cc
+        Commands/CommandRegistry.h
+        Commands/Commands.cc
+        Commands/Commands.h
+        Commands/DisarmCommand.cc
+        Commands/DisarmCommand.h
+        Commands/HoldCommand.cc
+        Commands/HoldCommand.h
+        Commands/LandCommand.cc
+        Commands/LandCommand.h
+        Commands/MoveCommand.cc
+        Commands/MoveCommand.h
+        Commands/ReturnToLaunchCommand.cc
+        Commands/ReturnToLaunchCommand.h
+        Commands/TakeoffCommand.cc
+        Commands/TakeoffCommand.h
+        Commands/VoiceCommandFactory.cc
+        Commands/VoiceCommandFactory.h
+        Commands/VoiceCommandInterface.cc
+        Commands/VoiceCommandInterface.h
         DeterministicMatcher.cc
         DeterministicMatcher.h
         IntentParserInterface.h
@@ -19,9 +45,6 @@ target_sources(${CMAKE_PROJECT_NAME}
         VehicleStateSnapshot.h
         VoiceCommandManager.cc
         VoiceCommandManager.h
-        VoiceCommandInterface.cc
-        VoiceCommandInterface.h
-        VoiceCommandFactory.h
         VoiceCommandWorker.cc
         VoiceCommandWorker.h
         WhisperEngine.cc

@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Commands/VoiceCommandFactory.h"
+#include "Commands/VoiceCommandInterface.h"
 #include "DeterministicMatcher.h"
 #include "Fact.h"
 #include "FirmwarePlugin.h"
 #include "Vehicle.h"
-#include "VoiceCommandFactory.h"
-#include "VoiceCommandInterface.h"
 
 namespace {
 
