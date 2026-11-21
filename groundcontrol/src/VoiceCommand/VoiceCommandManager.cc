@@ -261,14 +261,55 @@ QVariantList VoiceCommandManager::pendingIntentsVariant() const
     return list;
 }
 
+QVariantList VoiceCommandManager::pendingIntentEnabledVariant() const
+{
+    QVariantList list;
+    list.reserve(_pendingIntentEnabled.size());
+
+    for (bool enabled : _pendingIntentEnabled) {
+        list.append(enabled);
+    }
+
+    return list;
+}
+
+int VoiceCommandManager::activePendingIntentCount() const
+{
+    return static_cast<int>(std::count(_pendingIntentEnabled.cbegin(), _pendingIntentEnabled.cend(), true));
+}
+
+void VoiceCommandManager::togglePendingIntent(int index)
+{
+    if (_sessionState != SessionState::Confirming || index < 0 || index >= _pendingIntentEnabled.size()) {
+        return;
+    }
+
+    _pendingIntentEnabled[index] = !_pendingIntentEnabled[index];
+    emit pendingIntentsChanged();
+}
+
 void VoiceCommandManager::approvePendingCommand()
 {
     if (_sessionState != SessionState::Confirming || _pendingIntents.isEmpty()) {
         return;
     }
 
-    const QList<MissionIntent> approved = _pendingIntents;
-    qCDebug(VoiceCommandManagerLog) << "Operator approved" << approved.size() << "voice command step(s)";
+    QList<MissionIntent> approved;
+    approved.reserve(_pendingIntents.size());
+
+    for (qsizetype i = 0; i < _pendingIntents.size(); ++i) {
+        if (_pendingIntentEnabled.value(i, true)) {
+            approved.append(_pendingIntents.at(i));
+        }
+    }
+
+    if (approved.isEmpty()) {
+        qCDebug(VoiceCommandManagerLog) << "Approval ignored: no active voice command steps selected";
+        return;
+    }
+
+    qCDebug(VoiceCommandManagerLog) << "Operator approved" << approved.size() << "of" << _pendingIntents.size()
+                                    << "voice command step(s)";
 
     _clearPendingConfirmation();
     _setSessionState(SessionState::Executing);
@@ -292,11 +333,12 @@ void VoiceCommandManager::rejectPendingCommand()
 
 void VoiceCommandManager::_clearPendingConfirmation()
 {
-    if (_pendingIntents.isEmpty() && _pendingTranscript.isEmpty()) {
+    if (_pendingIntents.isEmpty() && _pendingIntentEnabled.isEmpty() && _pendingTranscript.isEmpty()) {
         return;
     }
 
     _pendingIntents.clear();
+    _pendingIntentEnabled.clear();
     _pendingTranscript.clear();
 
     emit pendingIntentsChanged();
@@ -777,6 +819,7 @@ void VoiceCommandManager::_onTranscriptionFinished(const SttResult& result)
     }
 
     _pendingIntents = parsed.intents;
+    _pendingIntentEnabled = QList<bool>(_pendingIntents.size(), true);
     _pendingTranscript = parsed.rawTranscript;
 
     _setSessionState(SessionState::Confirming);

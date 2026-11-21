@@ -61,6 +61,8 @@ public:
     Q_PROPERTY(QString recognitionTestError READ recognitionTestError NOTIFY recognitionTestResultChanged)
     Q_PROPERTY(QString recognitionTestIntent READ recognitionTestIntent NOTIFY recognitionTestResultChanged)
     Q_PROPERTY(QVariantList pendingIntents READ pendingIntentsVariant NOTIFY pendingIntentsChanged)
+    Q_PROPERTY(QVariantList pendingIntentEnabled READ pendingIntentEnabledVariant NOTIFY pendingIntentsChanged)
+    Q_PROPERTY(int activePendingIntentCount READ activePendingIntentCount NOTIFY pendingIntentsChanged)
     Q_PROPERTY(QString pendingTranscript READ pendingTranscript NOTIFY pendingIntentsChanged)
     Q_PROPERTY(bool hasPendingConfirmation READ hasPendingConfirmation NOTIFY pendingIntentsChanged)
 
@@ -136,6 +138,10 @@ public:
 
     QVariantList pendingIntentsVariant() const;
 
+    QVariantList pendingIntentEnabledVariant() const;
+
+    int activePendingIntentCount() const;
+
     QString pendingTranscript() const { return _pendingTranscript; }
 
     bool hasPendingConfirmation() const
@@ -143,7 +149,11 @@ public:
         return _sessionState == SessionState::Confirming && !_pendingIntents.isEmpty();
     }
 
-    /// Approves the pending command sequence, transitions to Executing, and forwards it to the execution pipeline.
+    /// Toggles whether the pending command step at index is included when approved.
+    Q_INVOKABLE void togglePendingIntent(int index);
+
+    /// Approves the active pending command steps, transitions to Executing, and forwards them to the execution
+    /// pipeline.
     Q_INVOKABLE void approvePendingCommand();
 
     /// Rejects the pending command sequence, clears the pending buffer, and returns to Idle.
@@ -246,5 +256,6 @@ private:
     QString _recognitionTestError;
     QString _recognitionTestIntent;
     QList<MissionIntent> _pendingIntents;
+    QList<bool> _pendingIntentEnabled;
     QString _pendingTranscript;
 };
