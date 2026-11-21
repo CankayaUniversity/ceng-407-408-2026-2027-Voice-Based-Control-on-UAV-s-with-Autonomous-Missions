@@ -680,7 +680,8 @@ void VoiceCommandManagerTest::_testConfirmationStepToggling()
     VoiceCommandManager* manager = VoiceCommandManager::instance();
     QSignalSpy approved(manager, &VoiceCommandManager::commandApproved);
 
-    manager->_onTranscriptionFinished({true, QStringLiteral("arm and then take off to 5 meters and then land"), 0.95f, 10, {}});
+    manager->_onTranscriptionFinished(
+        {true, QStringLiteral("arm and then take off to 5 meters and then land"), 0.95f, 10, {}});
 
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Confirming);
     QCOMPARE(manager->pendingIntents().size(), 3);
