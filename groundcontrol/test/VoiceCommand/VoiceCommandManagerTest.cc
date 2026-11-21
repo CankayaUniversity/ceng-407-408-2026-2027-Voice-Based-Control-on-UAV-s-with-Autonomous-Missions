@@ -675,4 +675,42 @@ void VoiceCommandManagerTest::_testConfirmationRejectFlow()
     QCOMPARE(approved.count(), 0);
 }
 
+void VoiceCommandManagerTest::_testConfirmationStepToggling()
+{
+    VoiceCommandManager* manager = VoiceCommandManager::instance();
+    QSignalSpy approved(manager, &VoiceCommandManager::commandApproved);
+
+    manager->_onTranscriptionFinished({true, QStringLiteral("arm and then take off to 5 meters and then land"), 0.95f, 10, {}});
+
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Confirming);
+    QCOMPARE(manager->pendingIntents().size(), 3);
+    QCOMPARE(manager->activePendingIntentCount(), 3);
+    QCOMPARE(manager->pendingIntentEnabledVariant(), QVariantList({true, true, true}));
+
+    // Disable all steps -> approve must be ignored and session remains Confirming
+    manager->togglePendingIntent(0);
+    manager->togglePendingIntent(1);
+    manager->togglePendingIntent(2);
+    QCOMPARE(manager->activePendingIntentCount(), 0);
+    manager->approvePendingCommand();
+    QCOMPARE(approved.count(), 0);
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Confirming);
+
+    // Re-enable index 0 (Arm) and index 2 (Land), leaving index 1 (Takeoff) skipped
+    manager->togglePendingIntent(0);
+    manager->togglePendingIntent(2);
+    QCOMPARE(manager->activePendingIntentCount(), 2);
+    QCOMPARE(manager->pendingIntentEnabledVariant(), QVariantList({true, false, true}));
+
+    const QList<MissionIntent> allIntents = manager->pendingIntents();
+    manager->approvePendingCommand();
+
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Executing);
+    QCOMPARE(approved.count(), 1);
+    const QList<MissionIntent> emitted = approved.takeFirst().at(0).value<QList<MissionIntent>>();
+    QCOMPARE(emitted.size(), 2);
+    QCOMPARE(emitted.at(0), allIntents.at(0));
+    QCOMPARE(emitted.at(1), allIntents.at(2));
+}
+
 UT_REGISTER_TEST(VoiceCommandManagerTest, TestLabel::Unit, TestLabel::Utilities)
