@@ -2,6 +2,8 @@
 
 #include "Vehicle.h"
 
+ArmCommand::ArmCommand(const MissionIntent& intent) : Command(intent) {}
+
 bool ArmCommand::checkPreCondition(Vehicle* vehicle) const
 {
     return available(vehicle) && !vehicle->armed() && !vehicle->flying();

@@ -5,7 +5,7 @@
 class ArmCommand final : public Command
 {
 public:
-    using Command::Command;
+    explicit ArmCommand(const MissionIntent& intent);
 
     bool checkPreCondition(Vehicle* vehicle) const override;
     bool execute(Vehicle* vehicle) override;

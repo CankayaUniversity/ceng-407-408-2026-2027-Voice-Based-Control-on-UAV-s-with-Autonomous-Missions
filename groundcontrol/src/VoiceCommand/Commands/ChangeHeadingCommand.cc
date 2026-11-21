@@ -5,6 +5,8 @@
 #include "Fact.h"
 #include "Vehicle.h"
 
+ChangeHeadingCommand::ChangeHeadingCommand(const MissionIntent& intent) : Command(intent) {}
+
 bool ChangeHeadingCommand::checkPreCondition(Vehicle* vehicle) const
 {
     return guided(vehicle) && vehicle->armed() && vehicle->flying() && vehicle->coordinate().isValid() &&

@@ -2,6 +2,8 @@
 
 #include "Vehicle.h"
 
+DisarmCommand::DisarmCommand(const MissionIntent& intent) : Command(intent) {}
+
 bool DisarmCommand::checkPreCondition(Vehicle* vehicle) const
 {
     return available(vehicle) && vehicle->armed() && !vehicle->flying();

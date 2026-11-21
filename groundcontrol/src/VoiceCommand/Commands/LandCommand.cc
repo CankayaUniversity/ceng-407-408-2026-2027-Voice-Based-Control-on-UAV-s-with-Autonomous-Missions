@@ -3,6 +3,8 @@
 #include "FirmwarePlugin.h"
 #include "Vehicle.h"
 
+LandCommand::LandCommand(const MissionIntent& intent) : Command(intent) {}
+
 bool LandCommand::checkPreCondition(Vehicle* vehicle) const
 {
     return guided(vehicle) && vehicle->armed() && vehicle->flying();

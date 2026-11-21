@@ -5,7 +5,7 @@
 class ChangeAltitudeCommand final : public Command
 {
 public:
-    using Command::Command;
+    explicit ChangeAltitudeCommand(const MissionIntent& intent);
 
     bool checkPreCondition(Vehicle* vehicle) const override;
     bool execute(Vehicle* vehicle) override;

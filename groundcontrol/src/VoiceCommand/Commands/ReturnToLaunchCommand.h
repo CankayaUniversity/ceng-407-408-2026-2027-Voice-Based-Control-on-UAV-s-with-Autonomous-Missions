@@ -5,7 +5,7 @@
 class ReturnToLaunchCommand final : public Command
 {
 public:
-    using Command::Command;
+    explicit ReturnToLaunchCommand(const MissionIntent& intent);
 
     bool checkPreCondition(Vehicle* vehicle) const override;
     bool execute(Vehicle* vehicle) override;

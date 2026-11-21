@@ -27,6 +27,8 @@ double moveSpeed(const MissionIntent& intent, Vehicle* vehicle)
 
 }  // namespace
 
+MoveCommand::MoveCommand(const MissionIntent& intent) : Command(intent) {}
+
 MoveCommand::~MoveCommand()
 {
     stop();

@@ -9,7 +9,7 @@
 class MoveCommand final : public Command
 {
 public:
-    using Command::Command;
+    explicit MoveCommand(const MissionIntent& intent);
 
     ~MoveCommand() override;
 

@@ -5,7 +5,7 @@
 class HoldCommand final : public Command
 {
 public:
-    using Command::Command;
+    explicit HoldCommand(const MissionIntent& intent);
 
     bool checkPreCondition(Vehicle* vehicle) const override;
     bool execute(Vehicle* vehicle) override;

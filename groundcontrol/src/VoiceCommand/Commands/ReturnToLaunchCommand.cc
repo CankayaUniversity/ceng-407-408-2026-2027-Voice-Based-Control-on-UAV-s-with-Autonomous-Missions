@@ -3,6 +3,8 @@
 #include "FirmwarePlugin.h"
 #include "Vehicle.h"
 
+ReturnToLaunchCommand::ReturnToLaunchCommand(const MissionIntent& intent) : Command(intent) {}
+
 bool ReturnToLaunchCommand::checkPreCondition(Vehicle* vehicle) const
 {
     return guided(vehicle) && vehicle->armed() && vehicle->flying() &&

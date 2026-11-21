@@ -5,6 +5,8 @@
 #include "Fact.h"
 #include "Vehicle.h"
 
+TakeoffCommand::TakeoffCommand(const MissionIntent& intent) : Command(intent) {}
+
 bool TakeoffCommand::checkPreCondition(Vehicle* vehicle) const
 {
     return guided(vehicle) && vehicle->armed() && !vehicle->flying() && vehicle->altitudeAMSL()->rawValue().isValid() &&

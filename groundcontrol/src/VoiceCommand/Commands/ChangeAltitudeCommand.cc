@@ -5,6 +5,8 @@
 #include "Fact.h"
 #include "Vehicle.h"
 
+ChangeAltitudeCommand::ChangeAltitudeCommand(const MissionIntent& intent) : Command(intent) {}
+
 bool ChangeAltitudeCommand::checkPreCondition(Vehicle* vehicle) const
 {
     return guided(vehicle) && vehicle->armed() && vehicle->flying() &&
