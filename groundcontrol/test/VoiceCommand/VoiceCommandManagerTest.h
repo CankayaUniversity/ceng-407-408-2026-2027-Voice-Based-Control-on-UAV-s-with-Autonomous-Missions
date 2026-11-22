@@ -37,5 +37,4 @@ private slots:
     void _testConfirmationRejectFlow();
     void _testConfirmationStepToggling();
     void _testApprovedSequenceWithoutVehicleFails();
-
 };

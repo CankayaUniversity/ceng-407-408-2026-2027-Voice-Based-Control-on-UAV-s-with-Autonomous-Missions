@@ -495,7 +495,6 @@ void VoiceCommandManager::setKeepModelInMemory(bool keepInMemory)
 
 bool VoiceCommandManager::startRecording()
 {
-
     if (_isRecognitionTestActive || _sessionState == SessionState::Confirming ||
         _sessionState == SessionState::Executing) {
         return false;
