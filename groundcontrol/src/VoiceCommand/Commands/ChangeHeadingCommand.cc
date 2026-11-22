@@ -25,6 +25,12 @@ bool ChangeHeadingCommand::execute(Vehicle* vehicle)
 
 bool ChangeHeadingCommand::checkPostCondition(Vehicle* vehicle) const
 {
+    // The requested heading is a physical completion condition, not a 3-second dispatch condition.
+    return dispatchedTo(vehicle);
+}
+
+bool ChangeHeadingCommand::isCompleted(Vehicle* vehicle) const
+{
     if (!dispatchedTo(vehicle))
         return false;
     const double heading = vehicle->heading()->rawValue().toDouble();

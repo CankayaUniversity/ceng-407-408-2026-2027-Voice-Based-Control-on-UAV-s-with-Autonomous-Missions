@@ -29,5 +29,12 @@ bool ChangeAltitudeCommand::execute(Vehicle* vehicle)
 
 bool ChangeAltitudeCommand::checkPostCondition(Vehicle* vehicle) const
 {
+    // Native guided altitude dispatch has no synchronous transition ACK here.
+    // Keep the physical altitude target in the completion gate.
+    return dispatchedTo(vehicle);
+}
+
+bool ChangeAltitudeCommand::isCompleted(Vehicle* vehicle) const
+{
     return dispatchedTo(vehicle) && std::abs(vehicle->altitudeRelative()->rawValue().toDouble() - _target) <= 0.5;
 }

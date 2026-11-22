@@ -22,6 +22,7 @@ class AudioDeviceManager;
 class VoiceCommandManagerTest;
 
 class VoiceCommandWorker;
+class VoiceCommandQueueRunner;
 
 /// \brief VoiceCommandManager is the central coordinator for voice command capture,
 /// PTT lifecycle, background STT worker orchestration, session state machine,
@@ -60,6 +61,11 @@ public:
     Q_PROPERTY(QString recognitionTestTranscript READ recognitionTestTranscript NOTIFY recognitionTestResultChanged)
     Q_PROPERTY(QString recognitionTestError READ recognitionTestError NOTIFY recognitionTestResultChanged)
     Q_PROPERTY(QString recognitionTestIntent READ recognitionTestIntent NOTIFY recognitionTestResultChanged)
+    Q_PROPERTY(QVariantList pendingIntents READ pendingIntentsVariant NOTIFY pendingIntentsChanged)
+    Q_PROPERTY(QVariantList pendingIntentEnabled READ pendingIntentEnabledVariant NOTIFY pendingIntentsChanged)
+    Q_PROPERTY(int activePendingIntentCount READ activePendingIntentCount NOTIFY pendingIntentsChanged)
+    Q_PROPERTY(QString pendingTranscript READ pendingTranscript NOTIFY pendingIntentsChanged)
+    Q_PROPERTY(bool hasPendingConfirmation READ hasPendingConfirmation NOTIFY pendingIntentsChanged)
 
     explicit VoiceCommandManager(AudioCapture* capture = nullptr, AudioDeviceManager* deviceManager = nullptr,
                                  SttModelManager* modelManager = nullptr, QObject* parent = nullptr);
@@ -129,6 +135,31 @@ public:
 
     QString recognitionTestIntent() const { return _recognitionTestIntent; }
 
+    const QList<MissionIntent>& pendingIntents() const { return _pendingIntents; }
+
+    QVariantList pendingIntentsVariant() const;
+
+    QVariantList pendingIntentEnabledVariant() const;
+
+    int activePendingIntentCount() const;
+
+    QString pendingTranscript() const { return _pendingTranscript; }
+
+    bool hasPendingConfirmation() const
+    {
+        return _sessionState == SessionState::Confirming && !_pendingIntents.isEmpty();
+    }
+
+    /// Toggles whether the pending command step at index is included when approved.
+    Q_INVOKABLE void togglePendingIntent(int index);
+
+    /// Approves the active pending command steps, transitions to Executing, and forwards them to the execution
+    /// pipeline.
+    Q_INVOKABLE void approvePendingCommand();
+
+    /// Rejects the pending command sequence, clears the pending buffer, and returns to Idle.
+    Q_INVOKABLE void rejectPendingCommand();
+
     /// Resets session to Idle.
     Q_INVOKABLE void resetSession();
 
@@ -143,6 +174,7 @@ signals:
     void modelLoadedChanged(bool loaded);
     void recognitionTestActiveChanged(bool active);
     void recognitionTestResultChanged();
+    void pendingIntentsChanged();
 
     /// Emitted when a voice command action cannot proceed (e.g. "Voice Command is too short to recognize").
     void voiceCommandWarning(const QString& message);
@@ -155,6 +187,12 @@ signals:
 
     /// A fully parsed command sequence ready for operator confirmation (never dispatched to the vehicle here).
     void commandConfirmationRequested(const IntentParseResult& result);
+
+    /// Emitted when the operator explicitly approves the pending command sequence for execution.
+    void commandApproved(const QList<MissionIntent>& intents);
+
+    /// Emitted when the operator explicitly rejects the pending command sequence.
+    void commandRejected();
 
     /// Emitted if recording hits the memory safety ceiling (60s).
     void recordingSafetyLimitReached(const QByteArray& pcmData, const QAudioFormat& format);
@@ -189,6 +227,7 @@ private:
     VehicleStateSnapshot _vehicleStateSnapshot() const;
     void _prewarmModel();
     void _finishRecognitionTest(const QString& transcript, const QString& error);
+    void _clearPendingConfirmation();
 
     AudioCapture* _audioCapture = nullptr;
     AudioDeviceManager* _deviceManager = nullptr;
@@ -204,6 +243,8 @@ private:
     DeterministicMatcher _defaultIntentParser;
     IntentParserInterface* _injectedIntentParser = nullptr;
     QTimer* _idleUnloadTimer = nullptr;
+    VoiceCommandQueueRunner* _queueRunner = nullptr;
+    quint64 _approvalGeneration = 0;
     int _idleUnloadTimeoutMs = 300000;
     bool _keepModelInMemory = false;
     bool _isModelLoaded = false;
@@ -217,4 +258,7 @@ private:
     QString _recognitionTestTranscript;
     QString _recognitionTestError;
     QString _recognitionTestIntent;
+    QList<MissionIntent> _pendingIntents;
+    QList<bool> _pendingIntentEnabled;
+    QString _pendingTranscript;
 };

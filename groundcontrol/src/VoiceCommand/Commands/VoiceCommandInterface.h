@@ -18,6 +18,9 @@ public:
     virtual bool checkPreCondition(Vehicle* vehicle) const = 0;
     virtual bool execute(Vehicle* vehicle) = 0;
     virtual bool checkPostCondition(Vehicle* vehicle) const = 0;
+
+    /// Physical completion is separate from the initial state-transition post-condition.
+    virtual bool isCompleted(Vehicle*) const { return true; }
 };
 
 /// Returns nullptr for unsupported actions or missing/invalid parameters.

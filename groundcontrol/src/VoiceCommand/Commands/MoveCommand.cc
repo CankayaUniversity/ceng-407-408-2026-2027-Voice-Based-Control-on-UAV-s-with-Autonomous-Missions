@@ -89,6 +89,11 @@ bool MoveCommand::execute(Vehicle* vehicle)
 
 bool MoveCommand::checkPostCondition(Vehicle* vehicle) const
 {
+    return dispatchedTo(vehicle) && (_complete || (_modeRequested && vehicle->flightMode() == _mode));
+}
+
+bool MoveCommand::isCompleted(Vehicle* vehicle) const
+{
     return dispatchedTo(vehicle) && _complete;
 }
 

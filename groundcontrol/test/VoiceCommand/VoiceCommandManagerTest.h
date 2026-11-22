@@ -31,4 +31,10 @@ private slots:
     void _testRecognitionTestTranscription();
     void _testRecognitionTestErrors();
     void _testRecognitionTestRecordingWithoutVehicle();
+
+    // Issue #33
+    void _testConfirmationApproveFlow();
+    void _testConfirmationRejectFlow();
+    void _testConfirmationStepToggling();
+    void _testApprovedSequenceWithoutVehicleFails();
 };

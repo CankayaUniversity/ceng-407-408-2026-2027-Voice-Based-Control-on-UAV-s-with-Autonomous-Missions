@@ -95,6 +95,8 @@ Item {
         z:                          QGroundControl.zOrderWidgets
     }
 
+    VoiceCommandConfirmDialog {}
+
     FlyViewMissionCompleteDialog {
         missionController:      _missionController
         geoFenceController:     _geoFenceController

@@ -25,3 +25,8 @@ bool LandCommand::checkPostCondition(Vehicle* vehicle) const
            (!vehicle->flying() || (!vehicle->firmwarePlugin()->landFlightMode().isEmpty() &&
                                    vehicle->flightMode() == vehicle->firmwarePlugin()->landFlightMode()));
 }
+
+bool LandCommand::isCompleted(Vehicle* vehicle) const
+{
+    return dispatchedTo(vehicle) && !vehicle->flying();
+}

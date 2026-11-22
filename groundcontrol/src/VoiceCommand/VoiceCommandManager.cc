@@ -14,6 +14,7 @@
 #include "QGCLoggingCategory.h"
 #include "SttEngineFactory.h"
 #include "Vehicle.h"
+#include "VoiceCommandQueueRunner.h"
 #include "VoiceCommandWorker.h"
 
 QGC_LOGGING_CATEGORY(VoiceCommandManagerLog, "VoiceCommand.VoiceCommandManager")
@@ -26,7 +27,8 @@ VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManag
       _audioCapture(capture ? capture : AudioCapture::instance()),
       _deviceManager(deviceManager ? deviceManager : AudioDeviceManager::instance()),
       _modelManager(modelManager ? modelManager : SttModelManager::instance()),
-      _idleUnloadTimer(new QTimer(this))
+      _idleUnloadTimer(new QTimer(this)),
+      _queueRunner(new VoiceCommandQueueRunner(this))
 {
     qRegisterMetaType<SttConfig>("SttConfig");
     qRegisterMetaType<SttResult>("SttResult");
@@ -36,6 +38,7 @@ VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManag
     _worker = new VoiceCommandWorker();
     _worker->moveToThread(&_workerThread);
 
+    // VoiceCommand Worker
     (void) connect(&_workerThread, &QThread::finished, _worker, &QObject::deleteLater);
     (void) connect(this, &VoiceCommandManager::_requestInitializeModel, _worker, &VoiceCommandWorker::initializeModel);
     (void) connect(this, &VoiceCommandManager::_requestUnloadModel, _worker, &VoiceCommandWorker::unloadModel);
@@ -51,6 +54,27 @@ VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManag
     _idleUnloadTimer->setSingleShot(true);
     (void) connect(_idleUnloadTimer, &QTimer::timeout, this, &VoiceCommandManager::_onIdleTimeout);
 
+    (void) connect(this, &VoiceCommandManager::commandApproved, this, [this](const QList<MissionIntent>& intents) {
+        MultiVehicleManager* manager = MultiVehicleManager::instance();
+        const QPointer<Vehicle> vehicle = manager ? manager->activeVehicle() : nullptr;
+        const quint64 generation = ++_approvalGeneration;
+        QTimer::singleShot(0, this, [this, intents, vehicle, generation]() {
+            if (_sessionState == SessionState::Executing && _approvalGeneration == generation) {
+                _queueRunner->start(intents, vehicle);
+            }
+        });
+    });
+    (void) connect(_queueRunner, &VoiceCommandQueueRunner::sequenceFinished, this,
+                   [this]() { _setSessionState(SessionState::Idle); });
+    (void) connect(_queueRunner, &VoiceCommandQueueRunner::sequenceFailed, this, [this](int, const QString& message) {
+        _setSessionState(SessionState::Idle);
+        emit voiceCommandWarning(message);
+        if (qgcApp() && !qgcApp()->runningUnitTests()) {
+            qgcApp()->showAppMessage(message);
+        }
+    });
+
+    // Audio Capture
     if (_audioCapture) {
         (void) connect(_audioCapture, &AudioCapture::recordingFinished, this,
                        &VoiceCommandManager::_onRecordingFinished);
@@ -60,11 +84,13 @@ VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManag
                        &VoiceCommandManager::_onCaptureStateChanged);
     }
 
+    // Device Manager
     if (_deviceManager) {
         (void) connect(_deviceManager, &AudioDeviceManager::isMicrophoneActiveChanged, this,
                        &VoiceCommandManager::_onMicrophoneActiveChanged);
     }
 
+    // Stt Model Manager
     if (_modelManager) {
         (void) connect(_modelManager, &SttModelManager::isModelAvailableChanged, this,
                        &VoiceCommandManager::_onSttModelAvailableChanged);
@@ -73,6 +99,7 @@ VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManag
                        &VoiceCommandManager::_onSttFactValueChanged);
     }
 
+    // Multi Vehicle Manager
     if (MultiVehicleManager::instance()) {
         (void) connect(MultiVehicleManager::instance(), &MultiVehicleManager::activeVehicleChanged, this, [this]() {
             emit vehicleConnectedChanged(isVehicleConnected());
@@ -170,11 +197,13 @@ SttConfig VoiceCommandManager::_currentResolvedConfig() const
 VehicleStateSnapshot VoiceCommandManager::_vehicleStateSnapshot() const
 {
     VehicleStateSnapshot snapshot;
+
     MultiVehicleManager* mvm = MultiVehicleManager::instance();
     Vehicle* vehicle = mvm ? mvm->activeVehicle() : nullptr;
     if (!vehicle) {
         return snapshot;
     }
+
     snapshot.isConnected = true;
     snapshot.isArmed = vehicle->armed();
     snapshot.isFlying = vehicle->flying();
@@ -193,9 +222,11 @@ void VoiceCommandManager::_onSttFactValueChanged()
 
     if (_isModelLoaded && _modelManager && _modelManager->isModelAvailable()) {
         const SttConfig cfg = _currentResolvedConfig();
+
         qCDebug(VoiceCommandManagerLog) << "STT settings updated, re-initializing loaded model:"
                                         << "Model:" << cfg.modelPath << "Language:" << cfg.language
                                         << "Use GPU:" << cfg.useGpu;
+
         emit _requestInitializeModel(cfg);
     }
 }
@@ -205,12 +236,16 @@ QString VoiceCommandManager::sessionStateString() const
     switch (_sessionState) {
         case SessionState::Idle:
             return QStringLiteral("Idle");
+
         case SessionState::Listening:
             return QStringLiteral("Listening");
+
         case SessionState::Processing:
             return QStringLiteral("Processing");
+
         case SessionState::Confirming:
             return QStringLiteral("Confirming");
+
         case SessionState::Executing:
             return QStringLiteral("Executing");
     }
@@ -228,10 +263,109 @@ void VoiceCommandManager::_setSessionState(SessionState newState)
 
 void VoiceCommandManager::resetSession()
 {
+    ++_approvalGeneration;
+    _queueRunner->cancel();
     if (isRecording()) {
         stopRecording();
     }
+
+    _clearPendingConfirmation();
     _setSessionState(SessionState::Idle);
+}
+
+QVariantList VoiceCommandManager::pendingIntentsVariant() const
+{
+    QVariantList list;
+    list.reserve(_pendingIntents.size());
+
+    for (const MissionIntent& intent : _pendingIntents) {
+        list.append(QVariant::fromValue(intent));
+    }
+
+    return list;
+}
+
+QVariantList VoiceCommandManager::pendingIntentEnabledVariant() const
+{
+    QVariantList list;
+    list.reserve(_pendingIntentEnabled.size());
+
+    for (bool enabled : _pendingIntentEnabled) {
+        list.append(enabled);
+    }
+
+    return list;
+}
+
+int VoiceCommandManager::activePendingIntentCount() const
+{
+    return static_cast<int>(std::count(_pendingIntentEnabled.cbegin(), _pendingIntentEnabled.cend(), true));
+}
+
+void VoiceCommandManager::togglePendingIntent(int index)
+{
+    if (_sessionState != SessionState::Confirming || index < 0 || index >= _pendingIntentEnabled.size()) {
+        return;
+    }
+
+    _pendingIntentEnabled[index] = !_pendingIntentEnabled[index];
+    emit pendingIntentsChanged();
+}
+
+void VoiceCommandManager::approvePendingCommand()
+{
+    if (_sessionState != SessionState::Confirming || _pendingIntents.isEmpty()) {
+        return;
+    }
+
+    QList<MissionIntent> approved;
+    approved.reserve(_pendingIntents.size());
+
+    for (qsizetype i = 0; i < _pendingIntents.size(); ++i) {
+        if (_pendingIntentEnabled.value(i, true)) {
+            approved.append(_pendingIntents.at(i));
+        }
+    }
+
+    if (approved.isEmpty()) {
+        qCDebug(VoiceCommandManagerLog) << "Approval ignored: no active voice command steps selected";
+        return;
+    }
+
+    qCDebug(VoiceCommandManagerLog) << "Operator approved" << approved.size() << "of" << _pendingIntents.size()
+                                    << "voice command step(s)";
+
+    _clearPendingConfirmation();
+    _setSessionState(SessionState::Executing);
+
+    emit commandApproved(approved);
+}
+
+void VoiceCommandManager::rejectPendingCommand()
+{
+    if (_sessionState != SessionState::Confirming && _pendingIntents.isEmpty()) {
+        return;
+    }
+
+    qCDebug(VoiceCommandManagerLog) << "Operator rejected pending voice command sequence";
+
+    _clearPendingConfirmation();
+    _setSessionState(SessionState::Idle);
+
+    emit commandRejected();
+}
+
+void VoiceCommandManager::_clearPendingConfirmation()
+{
+    if (_pendingIntents.isEmpty() && _pendingIntentEnabled.isEmpty() && _pendingTranscript.isEmpty()) {
+        return;
+    }
+
+    _pendingIntents.clear();
+    _pendingIntentEnabled.clear();
+    _pendingTranscript.clear();
+
+    emit pendingIntentsChanged();
 }
 
 bool VoiceCommandManager::isRecording() const
@@ -271,6 +405,7 @@ bool VoiceCommandManager::isVehicleConnected() const
     if (!_vehicleCheckEnabled) {
         return true;
     }
+
     MultiVehicleManager* mvm = MultiVehicleManager::instance();
     return mvm ? (mvm->activeVehicle() != nullptr) : false;
 }
@@ -279,6 +414,7 @@ void VoiceCommandManager::setVehicleCheckEnabled(bool enabled)
 {
     if (_vehicleCheckEnabled != enabled) {
         _vehicleCheckEnabled = enabled;
+
         emit vehicleConnectedChanged(isVehicleConnected());
         emit readyChanged(isReady());
     }
@@ -289,6 +425,7 @@ bool VoiceCommandManager::isSttModelAvailable() const
     if (!_sttModelCheckEnabled) {
         return true;
     }
+
     return _modelManager ? _modelManager->isModelAvailable() : false;
 }
 
@@ -301,6 +438,7 @@ void VoiceCommandManager::setSttModelCheckEnabled(bool enabled)
 {
     if (_sttModelCheckEnabled != enabled) {
         _sttModelCheckEnabled = enabled;
+
         emit sttModelAvailableChanged(isSttModelAvailable());
         emit readyChanged(isReady());
     }
@@ -322,6 +460,7 @@ void VoiceCommandManager::setSttEngine(SpeechToTextInterface* engine, bool takeO
             _worker->setEngine(engine, takeOwnership);
         }
     }
+
     _isModelLoaded = (engine && engine->isLoaded());
     emit modelLoadedChanged(_isModelLoaded);
 }
@@ -344,8 +483,10 @@ void VoiceCommandManager::setIdleUnloadTimeout(int timeoutMs)
 void VoiceCommandManager::setKeepModelInMemory(bool keepInMemory)
 {
     _keepModelInMemory = keepInMemory;
+
     if (_keepModelInMemory && _idleUnloadTimer) {
         _idleUnloadTimer->stop();
+
     } else if (_isModelLoaded && _sessionState != SessionState::Listening &&
                _sessionState != SessionState::Processing && _idleUnloadTimeoutMs > 0) {
         _idleUnloadTimer->start(_idleUnloadTimeoutMs);
@@ -354,7 +495,8 @@ void VoiceCommandManager::setKeepModelInMemory(bool keepInMemory)
 
 bool VoiceCommandManager::startRecording()
 {
-    if (_isRecognitionTestActive) {
+    if (_isRecognitionTestActive || _sessionState == SessionState::Confirming ||
+        _sessionState == SessionState::Executing) {
         return false;
     }
 
@@ -371,10 +513,13 @@ bool VoiceCommandManager::startRecording()
     if (!isSttModelAvailable()) {
         const QString msg = tr("Model for voice recognition is not found");
         qCWarning(VoiceCommandManagerLog) << msg;
+
         emit voiceCommandWarning(msg);
+
         if (qgcApp() && !qgcApp()->runningUnitTests()) {
             qgcApp()->showAppMessage(msg);
         }
+
         return false;
     }
 
@@ -388,6 +533,7 @@ bool VoiceCommandManager::startRecording()
     }
 
     qCDebug(VoiceCommandManagerLog) << "Starting Push-to-Talk voice recording...";
+
     const bool started = _audioCapture->startRecording();
     if (started) {
         _idleUnloadTimer->stop();
@@ -413,6 +559,7 @@ void VoiceCommandManager::_prewarmModel()
     if (!_isModelLoaded && _modelManager && _modelManager->isModelAvailable()) {
         const SttConfig config = _currentResolvedConfig();
         qCDebug(VoiceCommandManagerLog) << "Pre-warming STT model:" << config.modelPath;
+
         emit _requestInitializeModel(config);
     }
 }
@@ -420,11 +567,10 @@ void VoiceCommandManager::_prewarmModel()
 bool VoiceCommandManager::startRecognitionTest()
 {
     if (!_audioCapture || !isMicrophoneActive() || !isSttModelAvailable() || isRecording() ||
-        _sessionState == SessionState::Processing || _isRecognitionTestActive) {
+        _sessionState == SessionState::Processing || _sessionState == SessionState::Executing ||
+        _isRecognitionTestActive) {
         return false;
     }
-
-    // Unlike command PTT, this diagnostic works without a connected vehicle.
     if (!_audioCapture->startRecording()) {
         return false;
     }
@@ -432,12 +578,17 @@ bool VoiceCommandManager::startRecognitionTest()
     _recognitionTestTranscript.clear();
     _recognitionTestError.clear();
     _recognitionTestIntent.clear();
+
     emit recognitionTestResultChanged();
+
     _isRecognitionTestActive = true;
     emit recognitionTestActiveChanged(true);
+
     _idleUnloadTimer->stop();
+
     _setSessionState(SessionState::Listening);
     _prewarmModel();
+
     return true;
 }
 
@@ -453,19 +604,26 @@ void VoiceCommandManager::_finishRecognitionTest(const QString& transcript, cons
     _recognitionTestTranscript = transcript;
     _recognitionTestError = error;
     _recognitionTestIntent.clear();
+
     if (error.isEmpty() && !transcript.isEmpty()) {
         const IntentParseResult parsed = _defaultIntentParser.parse(transcript, _vehicleStateSnapshot());
+
         if (parsed.success) {
             QStringList summaries;
+
             for (const MissionIntent& intent : parsed.intents) {
                 summaries.append(intent.displaySummary);
             }
+
             _recognitionTestIntent = summaries.join(QStringLiteral(" → "));
         }
     }
+
     emit recognitionTestResultChanged();
+
     _isRecognitionTestActive = false;
     emit recognitionTestActiveChanged(false);
+
     _setSessionState(SessionState::Idle);
 }
 
@@ -497,16 +655,20 @@ bool VoiceCommandManager::eventFilter(QObject* watched, QEvent* event)
                 qCDebug(VoiceCommandManagerLog) << "PTT key ignored: No active vehicle connected";
                 return false;
             }
+
             _isKeyPressed = true;
             (void) startRecording();
+
             return true;
         }
     } else if (type == QEvent::KeyRelease) {
         if (_isKeyPressed && _matchesPttKey(keyEvent->key(), keyEvent->text())) {
             _isKeyPressed = false;
+
             if (!_isRecognitionTestActive) {
                 stopRecording();
             }
+
             return true;
         }
     }
@@ -523,6 +685,7 @@ void VoiceCommandManager::_onFactValueChanged()
     const QString newKey = _pushToTalkKeyFact->rawValue().toString().trimmed();
     if (!newKey.isEmpty() && newKey != _pushToTalkKey) {
         _pushToTalkKey = newKey;
+
         emit pushToTalkKeyChanged(_pushToTalkKey);
         qCDebug(VoiceCommandManagerLog) << "Push-to-Talk key updated from Fact:" << _pushToTalkKey;
     }
@@ -539,12 +702,15 @@ void VoiceCommandManager::_onRecordingFinished(const QByteArray& recordedPcmData
     if (durationUs < 500000 || recordedPcmData.size() < kMinPcmBytes) {
         qCDebug(VoiceCommandManagerLog) << "Utterance rejected: duration" << durationUs << "us (< 500ms) or size"
                                         << recordedPcmData.size() << "bytes (< 16000 bytes)";
+
         if (_isRecognitionTestActive) {
             _finishRecognitionTest(QString(), tr("Recording too short. Speak for at least half a second."));
         } else {
             _setSessionState(SessionState::Idle);
+
             const QString msg = tr("Voice Command is too short to recognize");
             emit voiceCommandWarning(msg);
+
             if (qgcApp() && !qgcApp()->runningUnitTests()) {
                 qgcApp()->showAppMessage(msg);
             }
@@ -552,6 +718,7 @@ void VoiceCommandManager::_onRecordingFinished(const QByteArray& recordedPcmData
         if (_isModelLoaded && !_keepModelInMemory && _idleUnloadTimeoutMs > 0) {
             _idleUnloadTimer->start(_idleUnloadTimeoutMs);
         }
+
         return;
     }
 
@@ -568,6 +735,7 @@ void VoiceCommandManager::_onRecordingFinished(const QByteArray& recordedPcmData
 void VoiceCommandManager::_onRecordingSafetyLimitReached(const QByteArray& recordedPcmData, const QAudioFormat& format)
 {
     qCWarning(VoiceCommandManagerLog) << "Voice command hit 60s memory safety ceiling!";
+
     emit recordingSafetyLimitReached(recordedPcmData, format);
     _onRecordingFinished(recordedPcmData, format);
 }
@@ -581,6 +749,7 @@ void VoiceCommandManager::_onMicrophoneActiveChanged(bool active)
 void VoiceCommandManager::_onSttModelAvailableChanged(bool available)
 {
     Q_UNUSED(available);
+
     emit sttModelAvailableChanged(isSttModelAvailable());
     emit readyChanged(isReady());
 }
@@ -599,6 +768,7 @@ void VoiceCommandManager::_onModelInitialized(bool success)
     if (success && _sessionState == SessionState::Idle && !_keepModelInMemory && _idleUnloadTimeoutMs > 0) {
         _idleUnloadTimer->start(_idleUnloadTimeoutMs);
     }
+
     qCDebug(VoiceCommandManagerLog) << "STT model initialized in worker thread, loaded:" << _isModelLoaded;
 }
 
@@ -608,6 +778,7 @@ void VoiceCommandManager::_onModelUnloaded()
         _isModelLoaded = false;
         emit modelLoadedChanged(false);
     }
+
     qCDebug(VoiceCommandManagerLog) << "STT model unloaded in worker thread";
 }
 
@@ -625,6 +796,7 @@ void VoiceCommandManager::_onTranscriptionFinished(const SttResult& result)
             _finishRecognitionTest(QString(), result.errorMessage.isEmpty()
                                                   ? tr("Speech recognition failed.")
                                                   : tr("Speech recognition failed: %1").arg(result.errorMessage));
+
         } else if (result.text.trimmed().isEmpty()) {
             _finishRecognitionTest(QString(), tr("No speech recognized. Try speaking again."));
         } else {
@@ -638,32 +810,47 @@ void VoiceCommandManager::_onTranscriptionFinished(const SttResult& result)
         qCWarning(VoiceCommandManagerLog) << "STT transcription failed:" << result.errorMessage;
         const QString msg = tr("Voice Command is Failed");
         emit voiceCommandWarning(msg);
+
         if (qgcApp() && !qgcApp()->runningUnitTests()) {
             qgcApp()->showAppMessage(msg);
         }
+
         _setSessionState(SessionState::Idle);
+
         return;
     }
 
     _isModelLoaded = true;
+
     const QString transcript = result.text.trimmed();
     qCDebug(VoiceCommandManagerLog) << "Transcription output:" << transcript;
+
     emit voiceCommandTranscribed(transcript, result.confidence);
 
     const IntentParseResult parsed = (_injectedIntentParser ? _injectedIntentParser : &_defaultIntentParser)
                                          ->parse(transcript, _vehicleStateSnapshot());
+
     if (!parsed.success || parsed.intents.isEmpty()) {
         qCWarning(VoiceCommandManagerLog) << "Voice intent mapping failed:" << parsed.errorMessage;
         const QString msg = tr("Voice Command is Failed");
         emit voiceCommandWarning(msg);
+
         if (qgcApp() && !qgcApp()->runningUnitTests()) {
             qgcApp()->showAppMessage(msg);
         }
+
         _setSessionState(SessionState::Idle);
+
         return;
     }
 
+    _pendingIntents = parsed.intents;
+    _pendingIntentEnabled = QList<bool>(_pendingIntents.size(), true);
+    _pendingTranscript = parsed.rawTranscript;
+
     _setSessionState(SessionState::Confirming);
+
+    emit pendingIntentsChanged();
     emit commandConfirmationRequested(parsed);
 }
 
@@ -671,6 +858,7 @@ void VoiceCommandManager::_onIdleTimeout()
 {
     if (_sessionState != SessionState::Listening && _sessionState != SessionState::Processing && !_keepModelInMemory) {
         qCDebug(VoiceCommandManagerLog) << "Idle unload timeout reached; releasing STT model from memory";
+
         emit _requestUnloadModel();
     } else if (!_keepModelInMemory && _idleUnloadTimeoutMs > 0) {
         _idleUnloadTimer->start(_idleUnloadTimeoutMs);
@@ -687,12 +875,15 @@ bool VoiceCommandManager::_matchesPttKey(int key, const QString& text) const
         if (!text.isEmpty() && text.compare(_pushToTalkKey, Qt::CaseInsensitive) == 0) {
             return true;
         }
+
         const QChar targetChar = _pushToTalkKey.at(0).toUpper();
+
         if (key == targetChar.unicode()) {
             return true;
         }
     } else {
         const QKeySequence seq(_pushToTalkKey);
+
         if (!seq.isEmpty() && key == seq[0].toCombined()) {
             return true;
         }
@@ -709,6 +900,7 @@ bool VoiceCommandManager::_isTextInputFocused()
     }
 
     const QString className = QString::fromLatin1(focusObj->metaObject()->className());
+
     return (className.contains(QStringLiteral("TextInput"), Qt::CaseInsensitive) ||
             className.contains(QStringLiteral("TextEdit"), Qt::CaseInsensitive) ||
             className.contains(QStringLiteral("TextField"), Qt::CaseInsensitive) ||

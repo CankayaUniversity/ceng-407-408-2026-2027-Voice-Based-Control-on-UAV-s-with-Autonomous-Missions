@@ -17,17 +17,23 @@ bool TakeoffCommand::execute(Vehicle* vehicle)
 {
     if (_dispatched || !checkPreCondition(vehicle))
         return false;
-    const double altitude = _intent.parameters.contains(QStringLiteral("altitude"))
-                                ? _intent.parameters.value(QStringLiteral("altitude")).toDouble()
-                                : vehicle->minimumTakeoffAltitudeMeters();
-    if (!std::isfinite(altitude) || altitude <= 0.0)
+    _targetAltitude = _intent.parameters.contains(QStringLiteral("altitude"))
+                          ? _intent.parameters.value(QStringLiteral("altitude")).toDouble()
+                          : vehicle->minimumTakeoffAltitudeMeters();
+    if (!std::isfinite(_targetAltitude) || _targetAltitude <= 0.0)
         return false;
     dispatched(vehicle);
-    vehicle->guidedModeTakeoff(altitude);
+    vehicle->guidedModeTakeoff(_targetAltitude);
     return true;
 }
 
 bool TakeoffCommand::checkPostCondition(Vehicle* vehicle) const
 {
     return dispatchedTo(vehicle) && vehicle->flying();
+}
+
+bool TakeoffCommand::isCompleted(Vehicle* vehicle) const
+{
+    return dispatchedTo(vehicle) && vehicle->flying() && vehicle->altitudeRelative()->rawValue().isValid() &&
+           vehicle->altitudeRelative()->rawValue().toDouble() >= _targetAltitude - 0.5;
 }

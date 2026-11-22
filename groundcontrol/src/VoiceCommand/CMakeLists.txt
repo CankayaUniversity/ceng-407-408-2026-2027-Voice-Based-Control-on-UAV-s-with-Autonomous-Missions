@@ -45,6 +45,8 @@ target_sources(${CMAKE_PROJECT_NAME}
         VehicleStateSnapshot.h
         VoiceCommandManager.cc
         VoiceCommandManager.h
+        VoiceCommandQueueRunner.cc
+        VoiceCommandQueueRunner.h
         VoiceCommandWorker.cc
         VoiceCommandWorker.h
         WhisperEngine.cc
