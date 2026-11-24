@@ -161,9 +161,9 @@ void VoiceCommandInterfaceTest::_testJustInTimePreconditions()
     QVERIFY(takeoff->checkPreCondition(vehicle()));
     QVERIFY(!takeoff->checkPostCondition(vehicle()));
 
-    auto move = makeVoiceCommand(makeIntent(
-        VoiceCommandAction::Move,
-        {{QStringLiteral("direction"), QStringLiteral("forward")}, {QStringLiteral("distance"), 5.0}}));
+    auto move =
+        makeVoiceCommand(makeIntent(VoiceCommandAction::Move, {{QStringLiteral("direction"), QStringLiteral("forward")},
+                                                               {QStringLiteral("distance"), 5.0}}));
     QVERIFY(!move->checkPreCondition(vehicle()));
     QVERIFY(!move->execute(vehicle()));
 }
@@ -177,8 +177,8 @@ void VoiceCommandInterfaceTest::_testAltitude()
     vehicle()->altitudeRelative()->setRawValue(5.0);
     QGeoCoordinate home(47.0, 8.0, 95.0);
     vehicle()->_setHomePosition(home);
-    auto altitude = makeVoiceCommand(
-        makeIntent(VoiceCommandAction::ChangeAltitude, {{QStringLiteral("altitude"), 10.0}}));
+    auto altitude =
+        makeVoiceCommand(makeIntent(VoiceCommandAction::ChangeAltitude, {{QStringLiteral("altitude"), 10.0}}));
     QVERIFY(altitude->checkPreCondition(vehicle()));
     QVERIFY(altitude->execute(vehicle()));
     QVERIFY(!altitude->checkPostCondition(vehicle()));
@@ -198,8 +198,7 @@ void VoiceCommandInterfaceTest::_testHeadingAndMove()
     vehicle()->sendMavCommand(vehicle()->defaultComponentId(), MAV_CMD_NAV_TAKEOFF, false, 0, 0, 0, 0, 0, 0, 5);
     QTRY_VERIFY_WITH_TIMEOUT(vehicle()->flying(), 5000);
     QTRY_VERIFY_WITH_TIMEOUT(vehicle()->coordinate().isValid(), 10000);
-    auto heading = makeVoiceCommand(
-        makeIntent(VoiceCommandAction::ChangeHeading, {{QStringLiteral("heading"), 90.0}}));
+    auto heading = makeVoiceCommand(makeIntent(VoiceCommandAction::ChangeHeading, {{QStringLiteral("heading"), 90.0}}));
     const QVariant originalHeading = vehicle()->heading()->rawValue();
     vehicle()->heading()->setRawValue(qQNaN());
     QVERIFY(!heading->checkPreCondition(vehicle()));
@@ -213,10 +212,10 @@ void VoiceCommandInterfaceTest::_testHeadingAndMove()
     vehicle()->heading()->setRawValue(90.0);
     QVERIFY(heading->checkPostCondition(vehicle()));
 
-    auto move = makeVoiceCommand(makeIntent(VoiceCommandAction::Move,
-                                            {{QStringLiteral("direction"), QStringLiteral("north")},
-                                             {QStringLiteral("distance"), 5.0},
-                                             {QStringLiteral("speed"), 2.0}}));
+    auto move =
+        makeVoiceCommand(makeIntent(VoiceCommandAction::Move, {{QStringLiteral("direction"), QStringLiteral("north")},
+                                                               {QStringLiteral("distance"), 5.0},
+                                                               {QStringLiteral("speed"), 2.0}}));
     QVERIFY(move->checkPreCondition(vehicle()));
     mockLink()->clearReceivedMavlinkMessageCounts();
     QVERIFY(move->execute(vehicle()));
@@ -235,9 +234,9 @@ void VoiceCommandInterfaceTest::_testHeadingAndMove()
     QVERIFY(std::abs(setpoint.vy) < 0.01f);
     move.reset();
 
-    auto defaultMove = makeVoiceCommand(makeIntent(
-        VoiceCommandAction::Move,
-        {{QStringLiteral("direction"), QStringLiteral("north")}, {QStringLiteral("distance"), 5.0}}));
+    auto defaultMove =
+        makeVoiceCommand(makeIntent(VoiceCommandAction::Move, {{QStringLiteral("direction"), QStringLiteral("north")},
+                                                               {QStringLiteral("distance"), 5.0}}));
     QVERIFY(defaultMove->checkPreCondition(vehicle()));
     mockLink()->clearReceivedMavlinkMessageCounts();
     QVERIFY(defaultMove->execute(vehicle()));
@@ -246,15 +245,14 @@ void VoiceCommandInterfaceTest::_testHeadingAndMove()
     mavlink_msg_set_position_target_local_ned_decode(&message, &setpoint);
     const double cruise = vehicle()->defaultCruiseSpeed();
     const double vehicleLimit = vehicle()->maximumHorizontalSpeedMultirotorMetersSecond();
-    const double expectedSpeed =
-        std::min(std::isfinite(cruise) && cruise > 0.0 ? cruise : 1.0,
-                 std::isfinite(vehicleLimit) && vehicleLimit > 0.0 ? vehicleLimit : 5.0);
+    const double expectedSpeed = std::min(std::isfinite(cruise) && cruise > 0.0 ? cruise : 1.0,
+                                          std::isfinite(vehicleLimit) && vehicleLimit > 0.0 ? vehicleLimit : 5.0);
     QVERIFY(std::abs(setpoint.vx - expectedSpeed) < 0.01);
     const double overVehicleLimit = (std::isfinite(vehicleLimit) && vehicleLimit > 0.0 ? vehicleLimit : 5.0) + 1.0;
-    auto tooFastForVehicle = makeVoiceCommand(makeIntent(VoiceCommandAction::Move,
-                                                         {{QStringLiteral("direction"), QStringLiteral("north")},
-                                                          {QStringLiteral("distance"), 5.0},
-                                                          {QStringLiteral("speed"), overVehicleLimit}}));
+    auto tooFastForVehicle =
+        makeVoiceCommand(makeIntent(VoiceCommandAction::Move, {{QStringLiteral("direction"), QStringLiteral("north")},
+                                                               {QStringLiteral("distance"), 5.0},
+                                                               {QStringLiteral("speed"), overVehicleLimit}}));
     QVERIFY(!tooFastForVehicle);
 }
 
