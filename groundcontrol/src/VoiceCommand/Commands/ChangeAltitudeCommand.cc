@@ -23,7 +23,7 @@ bool ChangeAltitudeCommand::hasValidParameters() const
 
     maxAltitude = CommandHelpers::tightenLimit(
         maxAltitude, CommandHelpers::positiveVehicleParam(targetVehicle(), QStringLiteral("GF_MAX_VER_DIST")));
-        
+
     return CommandHelpers::positiveNumberInRange(_intent.parameters.value(VoiceCommandParam::altitude()),
                                                  std::isfinite(maxAltitude) ? maxAltitude : 120.0);
 }

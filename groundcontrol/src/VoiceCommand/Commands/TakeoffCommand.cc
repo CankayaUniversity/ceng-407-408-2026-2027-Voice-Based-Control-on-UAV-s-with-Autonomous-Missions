@@ -15,7 +15,7 @@ bool TakeoffCommand::hasValidParameters() const
     if (!_intent.parameters.contains(VoiceCommandParam::altitude())) {
         return true;
     }
-    
+
     double maxAltitude = std::numeric_limits<double>::quiet_NaN();
 
     if (auto* settings = SettingsManager::instance()) {
@@ -27,7 +27,7 @@ bool TakeoffCommand::hasValidParameters() const
 
     maxAltitude = CommandHelpers::tightenLimit(
         maxAltitude, CommandHelpers::positiveVehicleParam(targetVehicle(), QStringLiteral("GF_MAX_VER_DIST")));
-        
+
     return CommandHelpers::positiveNumberInRange(_intent.parameters.value(VoiceCommandParam::altitude()),
                                                  std::isfinite(maxAltitude) ? maxAltitude : 120.0);
 }

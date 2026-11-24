@@ -86,7 +86,7 @@ bool MoveCommand::checkPreCondition(Vehicle* vehicle) const
         return false;
     }
     const double speed = moveSpeed(vehicle);
-    
+
     return !offboardMode(vehicle).isEmpty() && std::isfinite(vehicle->heading()->rawValue().toDouble()) &&
            speed > 0.0 && speed <= maxSpeed(vehicle);
 }

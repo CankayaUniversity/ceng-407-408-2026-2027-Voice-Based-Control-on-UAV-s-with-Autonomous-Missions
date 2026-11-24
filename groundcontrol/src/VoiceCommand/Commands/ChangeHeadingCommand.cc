@@ -12,7 +12,7 @@ bool ChangeHeadingCommand::hasValidParameters() const
 {
     bool ok = false;
     const double heading = _intent.parameters.value(VoiceCommandParam::heading()).toDouble(&ok);
-    
+
     return ok && std::isfinite(heading) && heading >= 0.0 && heading <= 360.0;
 }
 
