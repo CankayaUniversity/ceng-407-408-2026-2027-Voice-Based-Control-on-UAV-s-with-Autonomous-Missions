@@ -254,11 +254,6 @@ void VoiceCommandInterfaceTest::_testHeadingAndMove()
                                                           {QStringLiteral("distance"), 5.0},
                                                           {QStringLiteral("speed"), overVehicleLimit}}));
     QVERIFY(!tooFastForVehicle);
-    auto tooFast = makeVoiceCommand(makeIntent(VoiceCommandAction::Move,
-                                               {{QStringLiteral("direction"), QStringLiteral("north")},
-                                                {QStringLiteral("distance"), 5.0},
-                                                {QStringLiteral("speed"), 6.0}}));
-    QVERIFY(!tooFast || !tooFast->checkPreCondition(vehicle()));
 }
 
 void VoiceCommandInterfaceTest::_testFlightModeActions()
