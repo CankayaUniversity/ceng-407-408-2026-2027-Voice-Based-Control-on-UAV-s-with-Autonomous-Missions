@@ -12,16 +12,19 @@
 
 namespace {
 
+double maxMoveSpeed(Vehicle* vehicle)
+{
+    const double limit = vehicle->maximumHorizontalSpeedMultirotorMetersSecond();
+    return std::isfinite(limit) && limit > 0.0 ? limit : 5.0;
+}
+
 double moveSpeed(const MissionIntent& intent, Vehicle* vehicle)
 {
     if (intent.parameters.contains(QStringLiteral("speed")))
         return intent.parameters.value(QStringLiteral("speed")).toDouble();
 
     const double cruise = vehicle->defaultCruiseSpeed();
-    const double limit = vehicle->maximumHorizontalSpeedMultirotorMetersSecond();
-    // The cruise setting is intended for fixed-wing mission planning; cap it for
-    // voice-controlled multirotor Offboard movement.
-    const double safeLimit = std::isfinite(limit) && limit > 0.0 ? std::min(5.0, limit) : 5.0;
+    const double safeLimit = std::min(5.0, maxMoveSpeed(vehicle));
     return std::min(std::isfinite(cruise) && cruise > 0.0 ? cruise : 1.0, safeLimit);
 }
 
@@ -41,9 +44,8 @@ bool MoveCommand::checkPreCondition(Vehicle* vehicle) const
         return false;
     }
     const double speed = moveSpeed(_intent, vehicle);
-    const double vehicleLimit = vehicle->maximumHorizontalSpeedMultirotorMetersSecond();
     return !offboardMode(vehicle).isEmpty() && std::isfinite(vehicle->heading()->rawValue().toDouble()) &&
-           speed <= 5.0 && (!std::isfinite(vehicleLimit) || speed <= vehicleLimit);
+           speed > 0.0 && speed <= maxMoveSpeed(vehicle);
 }
 
 bool MoveCommand::execute(Vehicle* vehicle)
@@ -130,27 +132,30 @@ void MoveCommand::update()
         stop();
         return;
     }
-    
+    double commandedSpeed = _speed;
     if (_modeRequested && _vehicle->flightMode() == _mode) {
         if (!_offboardActive) {
             _offboardActive = true;
             _start = position;
         }
-        
+
         const double traveled = _start.distanceTo(position);
         const double bearing = qDegreesToRadians(_start.azimuthTo(position));
         const double alongTrack = traveled * (std::cos(bearing) * _north + std::sin(bearing) * _east);
+        const double remaining = _distance - alongTrack;
 
-        if (alongTrack >= _distance) {
+        if (remaining <= 0.0) {
             _complete = true;
             stop();
             return;
         }
+        // Ramp down linearly over the last ~1s of travel to reduce overshoot without stalling.
+        commandedSpeed = std::min(_speed, std::max(0.5, remaining));
     } else if (_offboardActive) {
         stop();
         return;
     }
-    if (!sendVelocity(_speed)) {
+    if (!sendVelocity(commandedSpeed)) {
         stop();
         return;
     }
