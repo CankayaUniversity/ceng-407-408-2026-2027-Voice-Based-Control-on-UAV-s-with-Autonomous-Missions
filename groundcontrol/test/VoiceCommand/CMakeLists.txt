@@ -12,11 +12,14 @@ target_sources(${CMAKE_PROJECT_NAME}
         VoiceCommandInterfaceTest.h
         VoiceCommandManagerTest.cc
         VoiceCommandManagerTest.h
+        VoiceCommandQueueRunnerTest.cc
+        VoiceCommandQueueRunnerTest.h
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_qgc_test(SttEngineTest LABELS Unit Utilities)
 add_qgc_test(DeterministicMatcherTest LABELS Unit Utilities)
-add_qgc_test(VoiceCommandManagerTest LABELS Unit Utilities)
 add_qgc_test(VoiceCommandInterfaceTest LABELS Unit Vehicle)
+add_qgc_test(VoiceCommandManagerTest LABELS Unit Utilities)
+add_qgc_test(VoiceCommandQueueRunnerTest LABELS Integration Vehicle)

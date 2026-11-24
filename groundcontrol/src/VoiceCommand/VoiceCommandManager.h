@@ -22,6 +22,7 @@ class AudioDeviceManager;
 class VoiceCommandManagerTest;
 
 class VoiceCommandWorker;
+class VoiceCommandQueueRunner;
 
 /// \brief VoiceCommandManager is the central coordinator for voice command capture,
 /// PTT lifecycle, background STT worker orchestration, session state machine,
@@ -242,6 +243,8 @@ private:
     DeterministicMatcher _defaultIntentParser;
     IntentParserInterface* _injectedIntentParser = nullptr;
     QTimer* _idleUnloadTimer = nullptr;
+    VoiceCommandQueueRunner* _queueRunner = nullptr;
+    quint64 _approvalGeneration = 0;
     int _idleUnloadTimeoutMs = 300000;
     bool _keepModelInMemory = false;
     bool _isModelLoaded = false;

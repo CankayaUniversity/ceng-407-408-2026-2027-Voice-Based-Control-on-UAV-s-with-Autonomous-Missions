@@ -12,17 +12,24 @@ bool HoldCommand::checkPreCondition(Vehicle* vehicle) const
 
 bool HoldCommand::execute(Vehicle* vehicle)
 {
-    if (_dispatched || !checkPreCondition(vehicle))
+    if (_dispatched || !checkPreCondition(vehicle)) {
         return false;
+    }
+
     dispatched(vehicle);
+
     vehicle->pauseVehicle();
+
     return true;
 }
 
 bool HoldCommand::checkPostCondition(Vehicle* vehicle) const
 {
-    if (!dispatchedTo(vehicle))
+    if (!dispatchedTo(vehicle)) {
         return false;
+    }
+
     const QString mode = vehicle->firmwarePlugin()->pauseFlightMode();
+
     return mode.isEmpty() || vehicle->flightMode() == mode;
 }

@@ -15,19 +15,39 @@ bool TakeoffCommand::checkPreCondition(Vehicle* vehicle) const
 
 bool TakeoffCommand::execute(Vehicle* vehicle)
 {
-    if (_dispatched || !checkPreCondition(vehicle))
+    if (_dispatched || !checkPreCondition(vehicle)) {
         return false;
-    const double altitude = _intent.parameters.contains(QStringLiteral("altitude"))
-                                ? _intent.parameters.value(QStringLiteral("altitude")).toDouble()
-                                : vehicle->minimumTakeoffAltitudeMeters();
-    if (!std::isfinite(altitude) || altitude <= 0.0)
+    }
+
+    if (_intent.parameters.contains(QStringLiteral("altitude"))) {
+        _targetAltitude = _intent.parameters.value(QStringLiteral("altitude")).toDouble();
+    } else {
+        _targetAltitude = vehicle->minimumTakeoffAltitudeMeters();
+    }
+
+    if (!std::isfinite(_targetAltitude) || _targetAltitude <= 0.0) {
         return false;
+    }
+
+    _targetAltitudeAMSL = vehicle->altitudeAMSL()->rawValue().toDouble() + _targetAltitude;
+    if (!std::isfinite(_targetAltitudeAMSL)) {
+        return false;
+    }
+
     dispatched(vehicle);
-    vehicle->guidedModeTakeoff(altitude);
+    vehicle->guidedModeTakeoff(_targetAltitude);
+
     return true;
 }
 
 bool TakeoffCommand::checkPostCondition(Vehicle* vehicle) const
 {
     return dispatchedTo(vehicle) && vehicle->flying();
+}
+
+bool TakeoffCommand::isCompleted(Vehicle* vehicle) const
+{
+    return dispatchedTo(vehicle) && vehicle->flying() && vehicle->altitudeAMSL()->rawValue().isValid() &&
+           std::isfinite(vehicle->altitudeAMSL()->rawValue().toDouble()) &&
+           vehicle->altitudeAMSL()->rawValue().toDouble() >= _targetAltitudeAMSL - 0.5;
 }

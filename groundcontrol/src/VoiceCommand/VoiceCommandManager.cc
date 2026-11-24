@@ -14,6 +14,7 @@
 #include "QGCLoggingCategory.h"
 #include "SttEngineFactory.h"
 #include "Vehicle.h"
+#include "VoiceCommandQueueRunner.h"
 #include "VoiceCommandWorker.h"
 
 QGC_LOGGING_CATEGORY(VoiceCommandManagerLog, "VoiceCommand.VoiceCommandManager")
@@ -26,7 +27,8 @@ VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManag
       _audioCapture(capture ? capture : AudioCapture::instance()),
       _deviceManager(deviceManager ? deviceManager : AudioDeviceManager::instance()),
       _modelManager(modelManager ? modelManager : SttModelManager::instance()),
-      _idleUnloadTimer(new QTimer(this))
+      _idleUnloadTimer(new QTimer(this)),
+      _queueRunner(new VoiceCommandQueueRunner(this))
 {
     qRegisterMetaType<SttConfig>("SttConfig");
     qRegisterMetaType<SttResult>("SttResult");
@@ -51,6 +53,26 @@ VoiceCommandManager::VoiceCommandManager(AudioCapture* capture, AudioDeviceManag
 
     _idleUnloadTimer->setSingleShot(true);
     (void) connect(_idleUnloadTimer, &QTimer::timeout, this, &VoiceCommandManager::_onIdleTimeout);
+
+    (void) connect(this, &VoiceCommandManager::commandApproved, this, [this](const QList<MissionIntent>& intents) {
+        MultiVehicleManager* manager = MultiVehicleManager::instance();
+        const QPointer<Vehicle> vehicle = manager ? manager->activeVehicle() : nullptr;
+        const quint64 generation = ++_approvalGeneration;
+        QTimer::singleShot(0, this, [this, intents, vehicle, generation]() {
+            if (_sessionState == SessionState::Executing && _approvalGeneration == generation) {
+                _queueRunner->start(intents, vehicle);
+            }
+        });
+    });
+    (void) connect(_queueRunner, &VoiceCommandQueueRunner::sequenceFinished, this,
+                   [this]() { _setSessionState(SessionState::Idle); });
+    (void) connect(_queueRunner, &VoiceCommandQueueRunner::sequenceFailed, this, [this](int, const QString& message) {
+        _setSessionState(SessionState::Idle);
+        emit voiceCommandWarning(message);
+        if (qgcApp() && !qgcApp()->runningUnitTests()) {
+            qgcApp()->showAppMessage(message);
+        }
+    });
 
     // Audio Capture
     if (_audioCapture) {
@@ -241,6 +263,8 @@ void VoiceCommandManager::_setSessionState(SessionState newState)
 
 void VoiceCommandManager::resetSession()
 {
+    ++_approvalGeneration;
+    _queueRunner->cancel();
     if (isRecording()) {
         stopRecording();
     }
@@ -471,7 +495,8 @@ void VoiceCommandManager::setKeepModelInMemory(bool keepInMemory)
 
 bool VoiceCommandManager::startRecording()
 {
-    if (_isRecognitionTestActive || _sessionState == SessionState::Confirming) {
+    if (_isRecognitionTestActive || _sessionState == SessionState::Confirming ||
+        _sessionState == SessionState::Executing) {
         return false;
     }
 
@@ -542,7 +567,8 @@ void VoiceCommandManager::_prewarmModel()
 bool VoiceCommandManager::startRecognitionTest()
 {
     if (!_audioCapture || !isMicrophoneActive() || !isSttModelAvailable() || isRecording() ||
-        _sessionState == SessionState::Processing || _isRecognitionTestActive) {
+        _sessionState == SessionState::Processing || _sessionState == SessionState::Executing ||
+        _isRecognitionTestActive) {
         return false;
     }
     if (!_audioCapture->startRecording()) {

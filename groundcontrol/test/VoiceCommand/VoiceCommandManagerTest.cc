@@ -645,6 +645,8 @@ void VoiceCommandManagerTest::_testConfirmationApproveFlow()
     manager->approvePendingCommand();
 
     QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Executing);
+    QCOMPARE(manager->startRecording(), false);
+    QCOMPARE(manager->startRecognitionTest(), false);
     QVERIFY(!manager->hasPendingConfirmation());
     QVERIFY(manager->pendingIntents().isEmpty());
     QVERIFY(manager->pendingTranscript().isEmpty());
@@ -712,6 +714,18 @@ void VoiceCommandManagerTest::_testConfirmationStepToggling()
     QCOMPARE(emitted.size(), 2);
     QCOMPARE(emitted.at(0), allIntents.at(0));
     QCOMPARE(emitted.at(1), allIntents.at(2));
+}
+
+void VoiceCommandManagerTest::_testApprovedSequenceWithoutVehicleFails()
+{
+    VoiceCommandManager* manager = VoiceCommandManager::instance();
+    QSignalSpy warning(manager, &VoiceCommandManager::voiceCommandWarning);
+    manager->_onTranscriptionFinished({true, QStringLiteral("arm"), 0.95f, 10, {}});
+    manager->approvePendingCommand();
+    QCOMPARE(manager->sessionState(), VoiceCommandManager::SessionState::Executing);
+    QTRY_COMPARE_WITH_TIMEOUT(manager->sessionState(), VoiceCommandManager::SessionState::Idle, 1000);
+    QCOMPARE(warning.count(), 1);
+    QCOMPARE(warning.first().first().toString(), QStringLiteral("Vehicle is not available"));
 }
 
 UT_REGISTER_TEST(VoiceCommandManagerTest, TestLabel::Unit, TestLabel::Utilities)

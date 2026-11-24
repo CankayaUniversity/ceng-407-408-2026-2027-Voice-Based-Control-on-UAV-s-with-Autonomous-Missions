@@ -16,12 +16,15 @@ public:
     bool checkPreCondition(Vehicle* vehicle) const override;
     bool execute(Vehicle* vehicle) override;
     bool checkPostCondition(Vehicle* vehicle) const override;
+    bool isCompleted(Vehicle* vehicle) const override;
+    bool isFailed(Vehicle* vehicle) const override;
 
 private:
     static QString offboardMode(Vehicle* vehicle);
     bool sendVelocity(double speed);
     void update();
     void stop();
+    void fail();
 
     QTimer _timer;
     QElapsedTimer _elapsed;
@@ -33,4 +36,5 @@ private:
     double _speed = 0.0;
     bool _modeRequested = false;
     bool _complete = false;
+    bool _failed = false;
 };

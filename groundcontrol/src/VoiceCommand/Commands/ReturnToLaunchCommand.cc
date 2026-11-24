@@ -13,14 +13,22 @@ bool ReturnToLaunchCommand::checkPreCondition(Vehicle* vehicle) const
 
 bool ReturnToLaunchCommand::execute(Vehicle* vehicle)
 {
-    if (_dispatched || !checkPreCondition(vehicle))
+    if (_dispatched || !checkPreCondition(vehicle)) {
         return false;
+    }
+
     dispatched(vehicle);
     vehicle->guidedModeRTL(false);
+
     return true;
 }
 
 bool ReturnToLaunchCommand::checkPostCondition(Vehicle* vehicle) const
 {
     return dispatchedTo(vehicle) && vehicle->flightMode() == vehicle->firmwarePlugin()->rtlFlightMode();
+}
+
+bool ReturnToLaunchCommand::isCompleted(Vehicle* vehicle) const
+{
+    return dispatchedTo(vehicle) && !vehicle->flying();
 }
