@@ -4,13 +4,15 @@
 
 #include "Fact.h"
 #include "Vehicle.h"
+#include "VehicleSupports.h"
 
 ChangeHeadingCommand::ChangeHeadingCommand(const MissionIntent& intent) : Command(intent) {}
 
 bool ChangeHeadingCommand::checkPreCondition(Vehicle* vehicle) const
 {
-    return guided(vehicle) && vehicle->armed() && vehicle->flying() && vehicle->coordinate().isValid() &&
-           vehicle->heading()->rawValue().isValid();
+    return guided(vehicle) && vehicle->supports()->changeHeading() && vehicle->armed() && vehicle->flying() &&
+           vehicle->coordinate().isValid() && vehicle->heading()->rawValue().isValid() &&
+           std::isfinite(vehicle->heading()->rawValue().toDouble());
 }
 
 bool ChangeHeadingCommand::execute(Vehicle* vehicle)

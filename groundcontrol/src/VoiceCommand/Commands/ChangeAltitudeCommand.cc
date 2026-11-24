@@ -29,5 +29,8 @@ bool ChangeAltitudeCommand::execute(Vehicle* vehicle)
 
 bool ChangeAltitudeCommand::checkPostCondition(Vehicle* vehicle) const
 {
-    return dispatchedTo(vehicle) && std::abs(vehicle->altitudeRelative()->rawValue().toDouble() - _target) <= 0.5;
+    if (!dispatchedTo(vehicle) || !vehicle->altitudeRelative()->rawValue().isValid())
+        return false;
+    const double altitude = vehicle->altitudeRelative()->rawValue().toDouble();
+    return std::isfinite(altitude) && std::abs(altitude - _target) <= 0.5;
 }
