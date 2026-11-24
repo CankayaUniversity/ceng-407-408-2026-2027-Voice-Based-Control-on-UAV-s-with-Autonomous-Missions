@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <utility>
 
 #include "ArmCommand.h"
@@ -13,6 +14,7 @@
 #include "LandCommand.h"
 #include "MoveCommand.h"
 #include "MultiVehicleManager.h"
+#include "ParameterManager.h"
 #include "ReturnToLaunchCommand.h"
 #include "SettingsManager.h"
 #include "TakeoffCommand.h"
@@ -20,10 +22,9 @@
 
 namespace {
 
-constexpr double kDefaultMaxAltitudeMeters = 120.0;
-constexpr double kMaxTakeoffAltitudeMeters = 50.0;
-constexpr double kMaxMoveDistanceMeters = 100.0;
-constexpr double kDefaultMaxMoveSpeedMetersSecond = 5.0;
+constexpr double kFallbackMaxAltitudeMeters = 120.0;
+constexpr double kFallbackMaxMoveDistanceMeters = 100.0;
+constexpr double kFallbackMaxMoveSpeedMetersSecond = 5.0;
 
 bool positiveNumberInRange(const QVariant& value, double maxValue)
 {
@@ -39,54 +40,67 @@ bool headingNumber(const QVariant& value)
     return ok && std::isfinite(number) && number >= 0.0 && number <= 360.0;
 }
 
-double maxAltitudeMeters()
+Vehicle* targetVehicle(const MissionIntent& intent)
 {
-    if (auto* settings = SettingsManager::instance()) {
-        if (auto* flyView = settings->flyViewSettings()) {
-            const double limit = flyView->guidedMaximumAltitude()->rawValue().toDouble();
-
-            if (std::isfinite(limit) && limit > 0.0) {
-                return limit;
-            }
-        }
+    auto* manager = MultiVehicleManager::instance();
+    if (!manager) {
+        return nullptr;
     }
-
-    return kDefaultMaxAltitudeMeters;
+    return intent.targetVehicleId != -1 ? manager->getVehicleById(intent.targetVehicleId) : manager->activeVehicle();
 }
 
-double maxTakeoffAltitudeMeters()
+double positiveVehicleParam(Vehicle* vehicle, const QString& name)
 {
-    return std::min(kMaxTakeoffAltitudeMeters, maxAltitudeMeters());
+    if (!vehicle || !vehicle->parameterManager() ||
+        !vehicle->parameterManager()->parameterExists(ParameterManager::defaultComponentId, name)) {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    const double value =
+        vehicle->parameterManager()->getParameter(ParameterManager::defaultComponentId, name)->rawValue().toDouble();
+    return std::isfinite(value) && value > 0.0 ? value : std::numeric_limits<double>::quiet_NaN();
 }
 
-double maxMoveDistanceMeters()
+double tighten(double current, double candidate)
 {
+    if (!std::isfinite(candidate) || candidate <= 0.0) {
+        return current;
+    }
+    return std::isfinite(current) && current > 0.0 ? std::min(current, candidate) : candidate;
+}
+
+double maxAltitudeMeters(const MissionIntent& intent)
+{
+    double limit = std::numeric_limits<double>::quiet_NaN();
     if (auto* settings = SettingsManager::instance()) {
         if (auto* flyView = settings->flyViewSettings()) {
-            const double limit = flyView->maxGoToLocationDistance()->rawValue().toDouble();
-
-            if (std::isfinite(limit) && limit > 0.0) {
-                return limit;
-            }
+            limit = tighten(limit, flyView->guidedMaximumAltitude()->rawValue().toDouble());
         }
     }
-    return kMaxMoveDistanceMeters;
+    limit = tighten(limit, positiveVehicleParam(targetVehicle(intent), QStringLiteral("GF_MAX_VER_DIST")));
+    return std::isfinite(limit) ? limit : kFallbackMaxAltitudeMeters;
+}
+
+double maxMoveDistanceMeters(const MissionIntent& intent)
+{
+    double limit = std::numeric_limits<double>::quiet_NaN();
+    if (auto* settings = SettingsManager::instance()) {
+        if (auto* flyView = settings->flyViewSettings()) {
+            limit = tighten(limit, flyView->maxGoToLocationDistance()->rawValue().toDouble());
+        }
+    }
+    limit = tighten(limit, positiveVehicleParam(targetVehicle(intent), QStringLiteral("GF_MAX_HOR_DIST")));
+    return std::isfinite(limit) ? limit : kFallbackMaxMoveDistanceMeters;
 }
 
 double maxMoveSpeedMetersSecond(const MissionIntent& intent)
 {
-    if (auto* manager = MultiVehicleManager::instance()) {
-        Vehicle* vehicle = intent.targetVehicleId != -1 ? manager->getVehicleById(intent.targetVehicleId)
-                                                        : manager->activeVehicle();
-        if (vehicle) {
-            const double vehicleLimit = vehicle->maximumHorizontalSpeedMultirotorMetersSecond();
-
-            if (std::isfinite(vehicleLimit) && vehicleLimit > 0.0) {
-                return vehicleLimit;
-            }
+    if (Vehicle* vehicle = targetVehicle(intent)) {
+        const double vehicleLimit = vehicle->maximumHorizontalSpeedMultirotorMetersSecond();
+        if (std::isfinite(vehicleLimit) && vehicleLimit > 0.0) {
+            return vehicleLimit;
         }
     }
-    return kDefaultMaxMoveSpeedMetersSecond;
+    return kFallbackMaxMoveSpeedMetersSecond;
 }
 
 std::unique_ptr<VoiceCommandInterface> makeBuiltinCommand(const MissionIntent& intent)
@@ -101,7 +115,7 @@ std::unique_ptr<VoiceCommandInterface> makeBuiltinCommand(const MissionIntent& i
 
         case VoiceCommandAction::Takeoff:
             if (p.contains(QStringLiteral("altitude")) &&
-                !positiveNumberInRange(p.value(QStringLiteral("altitude")), maxTakeoffAltitudeMeters()))
+                !positiveNumberInRange(p.value(QStringLiteral("altitude")), maxAltitudeMeters(intent)))
                 return {};
             return std::make_unique<TakeoffCommand>(intent);
 
@@ -115,7 +129,7 @@ std::unique_ptr<VoiceCommandInterface> makeBuiltinCommand(const MissionIntent& i
             return std::make_unique<ReturnToLaunchCommand>(intent);
 
         case VoiceCommandAction::ChangeAltitude:
-            return positiveNumberInRange(p.value(QStringLiteral("altitude")), maxAltitudeMeters())
+            return positiveNumberInRange(p.value(QStringLiteral("altitude")), maxAltitudeMeters(intent))
                        ? std::make_unique<ChangeAltitudeCommand>(intent)
                        : nullptr;
 
@@ -131,7 +145,7 @@ std::unique_ptr<VoiceCommandInterface> makeBuiltinCommand(const MissionIntent& i
                 direction != QStringLiteral("north") && direction != QStringLiteral("south") &&
                 direction != QStringLiteral("east") && direction != QStringLiteral("west"))
                 return {};
-            if (!positiveNumberInRange(p.value(QStringLiteral("distance")), maxMoveDistanceMeters()) ||
+            if (!positiveNumberInRange(p.value(QStringLiteral("distance")), maxMoveDistanceMeters(intent)) ||
                 (p.contains(QStringLiteral("speed")) &&
                  !positiveNumberInRange(p.value(QStringLiteral("speed")), maxMoveSpeedMetersSecond(intent))))
                 return {};

@@ -24,8 +24,7 @@ double moveSpeed(const MissionIntent& intent, Vehicle* vehicle)
         return intent.parameters.value(QStringLiteral("speed")).toDouble();
 
     const double cruise = vehicle->defaultCruiseSpeed();
-    const double safeLimit = std::min(5.0, maxMoveSpeed(vehicle));
-    return std::min(std::isfinite(cruise) && cruise > 0.0 ? cruise : 1.0, safeLimit);
+    return std::min(std::isfinite(cruise) && cruise > 0.0 ? cruise : 1.0, maxMoveSpeed(vehicle));
 }
 
 }  // namespace

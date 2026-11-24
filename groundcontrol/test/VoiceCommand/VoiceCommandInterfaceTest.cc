@@ -80,10 +80,12 @@ void VoiceCommandInterfaceTest::_testFactory()
     invalid.parameters = {{QStringLiteral("altitude"), 5000.0}};
     QVERIFY(!makeVoiceCommand(invalid));
 
+    const double maxAltitude =
+        SettingsManager::instance()->flyViewSettings()->guidedMaximumAltitude()->rawValue().toDouble();
     invalid.action = VoiceCommandAction::Takeoff;
-    invalid.parameters = {{QStringLiteral("altitude"), 50.0}};
+    invalid.parameters = {{QStringLiteral("altitude"), maxAltitude}};
     QVERIFY(makeVoiceCommand(invalid) != nullptr);
-    invalid.parameters = {{QStringLiteral("altitude"), 51.0}};
+    invalid.parameters = {{QStringLiteral("altitude"), maxAltitude + 1.0}};
     QVERIFY(!makeVoiceCommand(invalid));
 
     invalid.action = VoiceCommandAction::Move;
@@ -246,7 +248,7 @@ void VoiceCommandInterfaceTest::_testHeadingAndMove()
     const double vehicleLimit = vehicle()->maximumHorizontalSpeedMultirotorMetersSecond();
     const double expectedSpeed =
         std::min(std::isfinite(cruise) && cruise > 0.0 ? cruise : 1.0,
-                 std::isfinite(vehicleLimit) && vehicleLimit > 0.0 ? std::min(5.0, vehicleLimit) : 5.0);
+                 std::isfinite(vehicleLimit) && vehicleLimit > 0.0 ? vehicleLimit : 5.0);
     QVERIFY(std::abs(setpoint.vx - expectedSpeed) < 0.01);
     const double overVehicleLimit = (std::isfinite(vehicleLimit) && vehicleLimit > 0.0 ? vehicleLimit : 5.0) + 1.0;
     auto tooFastForVehicle = makeVoiceCommand(makeIntent(VoiceCommandAction::Move,
