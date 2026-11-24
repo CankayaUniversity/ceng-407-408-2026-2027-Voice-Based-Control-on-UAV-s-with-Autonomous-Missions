@@ -14,8 +14,12 @@ class StubCommand final : public VoiceCommandInterface
 public:
     using Check = std::function<bool()>;
 
-    StubCommand(Check pre, Check execute, Check post, Check completed)
-        : _pre(std::move(pre)), _execute(std::move(execute)), _post(std::move(post)), _completed(std::move(completed))
+    StubCommand(Check pre, Check execute, Check post, Check completed, Check failed = {})
+        : _pre(std::move(pre)),
+          _execute(std::move(execute)),
+          _post(std::move(post)),
+          _completed(std::move(completed)),
+          _failed(std::move(failed))
     {}
 
     bool checkPreCondition(Vehicle* vehicle) const override { return vehicle && _pre(); }
@@ -26,11 +30,14 @@ public:
 
     bool isCompleted(Vehicle* vehicle) const override { return vehicle && _completed(); }
 
+    bool isFailed(Vehicle* vehicle) const override { return vehicle && _failed && _failed(); }
+
 private:
     Check _pre;
     Check _execute;
     Check _post;
     Check _completed;
+    Check _failed;
 };
 
 MissionIntent intent(VoiceCommandAction action)
@@ -161,6 +168,52 @@ void VoiceCommandQueueRunnerTest::_testPostConditionTimeout()
     QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 4000);
     QCOMPARE(dispatches, 1);
     QCOMPARE(failed.at(0).at(0).toInt(), 0);
+    QVERIFY(!runner.isRunning());
+}
+
+void VoiceCommandQueueRunnerTest::_testCompletionTimeout()
+{
+    VoiceCommandQueueRunner runner;
+    runner.setCompletionTimeout(350);
+    int dispatches = 0;
+    runner.setCommandBuilder([&](const MissionIntent&) -> std::unique_ptr<VoiceCommandInterface> {
+        return std::make_unique<StubCommand>([]() { return true; },
+                                             [&]() {
+                                                 ++dispatches;
+                                                 return true;
+                                             },
+                                             []() { return true; }, []() { return false; });
+    });
+    QSignalSpy failed(&runner, &VoiceCommandQueueRunner::sequenceFailed);
+    runner.start({intent(VoiceCommandAction::Takeoff), intent(VoiceCommandAction::Move)}, vehicle());
+    QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 1500);
+    QCOMPARE(failed.at(0).at(0).toInt(), 0);
+    QCOMPARE(failed.at(0).at(1).toString(), QStringLiteral("Test step command timed out before completion"));
+    QCOMPARE(dispatches, 1);
+    QVERIFY(!runner.isRunning());
+}
+
+void VoiceCommandQueueRunnerTest::_testAsynchronousFailure()
+{
+    VoiceCommandQueueRunner runner;
+    bool commandFailed = false;
+    int dispatches = 0;
+    runner.setCommandBuilder([&](const MissionIntent&) -> std::unique_ptr<VoiceCommandInterface> {
+        return std::make_unique<StubCommand>([]() { return true; },
+                                             [&]() {
+                                                 ++dispatches;
+                                                 return true;
+                                             },
+                                             []() { return true; }, []() { return false; },
+                                             [&]() { return commandFailed; });
+    });
+    QSignalSpy failed(&runner, &VoiceCommandQueueRunner::sequenceFailed);
+    runner.start({intent(VoiceCommandAction::Move), intent(VoiceCommandAction::Land)}, vehicle());
+    commandFailed = true;
+    QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 1000);
+    QCOMPARE(failed.at(0).at(0).toInt(), 0);
+    QCOMPARE(failed.at(0).at(1).toString(), QStringLiteral("Test step command is failed while executing"));
+    QCOMPARE(dispatches, 1);
     QVERIFY(!runner.isRunning());
 }
 

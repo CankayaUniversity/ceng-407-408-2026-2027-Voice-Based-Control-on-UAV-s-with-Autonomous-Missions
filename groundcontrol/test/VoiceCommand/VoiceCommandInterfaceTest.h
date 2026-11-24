@@ -13,6 +13,8 @@ private slots:
     void _testArmDisarmTransition();
     void _testJustInTimePreconditions();
     void _testAltitude();
+    void _testRejectedAltitudeAck();
     void _testHeadingAndMove();
+    void _testRejectedHeadingAck();
     void _testFlightModeActions();
 };

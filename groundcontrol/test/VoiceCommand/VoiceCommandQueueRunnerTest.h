@@ -11,6 +11,8 @@ private slots:
     void _testOrderedHandoff();
     void _testJustInTimePreConditionFailure();
     void _testPostConditionTimeout();
+    void _testCompletionTimeout();
+    void _testAsynchronousFailure();
     void _testCompletedPostConditionStopsWatchdog();
     void _testCancelStopsSequence();
 };

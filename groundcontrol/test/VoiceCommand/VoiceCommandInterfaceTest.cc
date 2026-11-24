@@ -148,7 +148,36 @@ void VoiceCommandInterfaceTest::_testAltitude()
     QVERIFY(altitude->execute(vehicle()));
     QVERIFY(!altitude->checkPostCondition(vehicle()));
     vehicle()->altitudeRelative()->setRawValue(10.0);
+    QVERIFY(!altitude->checkPostCondition(vehicle()));  // Telemetry alone cannot substitute for a PX4 ACK.
+    Vehicle* currentVehicle = vehicle();
+    emit currentVehicle->mavCommandResult(currentVehicle->id(), currentVehicle->defaultComponentId(),
+                                          MAV_CMD_NAV_TAKEOFF, MAV_RESULT_ACCEPTED,
+                                          Vehicle::MavCmdResultCommandResultOnly);
+    QVERIFY(!altitude->checkPostCondition(vehicle()));
+    emit currentVehicle->mavCommandResult(currentVehicle->id(), currentVehicle->defaultComponentId(),
+                                          MAV_CMD_DO_REPOSITION, MAV_RESULT_ACCEPTED,
+                                          Vehicle::MavCmdResultCommandResultOnly);
     QVERIFY(altitude->checkPostCondition(vehicle()));
+    QVERIFY(altitude->isCompleted(vehicle()));
+}
+
+void VoiceCommandInterfaceTest::_testRejectedAltitudeAck()
+{
+    auto arm = makeVoiceCommand({.action = VoiceCommandAction::Arm});
+    QVERIFY(arm->execute(vehicle()));
+    QTRY_VERIFY_WITH_TIMEOUT(arm->checkPostCondition(vehicle()), 5000);
+    vehicle()->_setFlying(true);
+    vehicle()->altitudeRelative()->setRawValue(5.0);
+    QGeoCoordinate home(47.0, 8.0, 95.0);
+    vehicle()->_setHomePosition(home);
+    auto altitude = makeVoiceCommand(
+        {.action = VoiceCommandAction::ChangeAltitude, .parameters = {{QStringLiteral("altitude"), 10.0}}});
+    ignoreLogMessage("API.QGCApplication.AppMessage", QtDebugMsg,
+                     QRegularExpression(QStringLiteral("Reposition .* command not supported")));
+    QVERIFY(altitude->execute(vehicle()));
+    vehicle()->altitudeRelative()->setRawValue(10.0);
+    QTRY_VERIFY_WITH_TIMEOUT(altitude->isFailed(vehicle()), 3000);
+    QVERIFY(!altitude->checkPostCondition(vehicle()));
 }
 
 void VoiceCommandInterfaceTest::_testHeadingAndMove()
@@ -170,6 +199,11 @@ void VoiceCommandInterfaceTest::_testHeadingAndMove()
                      QRegularExpression(QStringLiteral("Reposition .* command not supported")));
     QVERIFY(heading->execute(vehicle()));
     vehicle()->heading()->setRawValue(90.0);
+    QVERIFY(!heading->checkPostCondition(vehicle()));
+    Vehicle* currentVehicle = vehicle();
+    emit currentVehicle->mavCommandResult(currentVehicle->id(), currentVehicle->defaultComponentId(),
+                                          MAV_CMD_DO_REPOSITION, MAV_RESULT_ACCEPTED,
+                                          Vehicle::MavCmdResultCommandResultOnly);
     QVERIFY(heading->checkPostCondition(vehicle()));
 
     auto move = makeVoiceCommand({.action = VoiceCommandAction::Move,
@@ -214,6 +248,28 @@ void VoiceCommandInterfaceTest::_testHeadingAndMove()
                                                     {QStringLiteral("distance"), 5.0},
                                                     {QStringLiteral("speed"), 6.0}}});
     QVERIFY(!tooFast->checkPreCondition(vehicle()));
+    mockLink()->setArmed(false);
+    QTRY_VERIFY_WITH_TIMEOUT(!vehicle()->armed(), 3000);
+    QTRY_VERIFY_WITH_TIMEOUT(defaultMove->isFailed(vehicle()), 1000);
+    QVERIFY(!defaultMove->isCompleted(vehicle()));
+}
+
+void VoiceCommandInterfaceTest::_testRejectedHeadingAck()
+{
+    auto arm = makeVoiceCommand({.action = VoiceCommandAction::Arm});
+    QVERIFY(arm->execute(vehicle()));
+    QTRY_VERIFY_WITH_TIMEOUT(arm->checkPostCondition(vehicle()), 5000);
+    vehicle()->sendMavCommand(vehicle()->defaultComponentId(), MAV_CMD_NAV_TAKEOFF, false, 0, 0, 0, 0, 0, 0, 5);
+    QTRY_VERIFY_WITH_TIMEOUT(vehicle()->flying(), 5000);
+    QTRY_VERIFY_WITH_TIMEOUT(vehicle()->coordinate().isValid(), 10000);
+    auto heading = makeVoiceCommand(
+        {.action = VoiceCommandAction::ChangeHeading, .parameters = {{QStringLiteral("heading"), 90.0}}});
+    ignoreLogMessage("API.QGCApplication.AppMessage", QtDebugMsg,
+                     QRegularExpression(QStringLiteral("Reposition .* command not supported")));
+    QVERIFY(heading->execute(vehicle()));
+    vehicle()->heading()->setRawValue(90.0);
+    QTRY_VERIFY_WITH_TIMEOUT(heading->isFailed(vehicle()), 3000);
+    QVERIFY(!heading->checkPostCondition(vehicle()));
 }
 
 void VoiceCommandInterfaceTest::_testFlightModeActions()
@@ -222,11 +278,18 @@ void VoiceCommandInterfaceTest::_testFlightModeActions()
     QVERIFY(arm->execute(vehicle()));
     QTRY_VERIFY_WITH_TIMEOUT(arm->checkPostCondition(vehicle()), 5000);
     vehicle()->altitudeAMSL()->setRawValue(100.0);
-    auto takeoff = makeVoiceCommand({.action = VoiceCommandAction::Takeoff});
+    auto takeoff =
+        makeVoiceCommand({.action = VoiceCommandAction::Takeoff, .parameters = {{QStringLiteral("altitude"), 10.0}}});
     QVERIFY(takeoff->execute(vehicle()));
     QVERIFY(!takeoff->checkPostCondition(vehicle()));
     vehicle()->_setFlying(true);
     QVERIFY(takeoff->checkPostCondition(vehicle()));
+    vehicle()->altitudeRelative()->setRawValue(10.0);
+    QVERIFY(!takeoff->isCompleted(vehicle()));  // Relative altitude alone is not the AMSL takeoff target.
+    vehicle()->altitudeAMSL()->setRawValue(109.4);
+    QVERIFY(!takeoff->isCompleted(vehicle()));
+    vehicle()->altitudeAMSL()->setRawValue(109.6);
+    QVERIFY(takeoff->isCompleted(vehicle()));
 
     auto rtl = makeVoiceCommand({.action = VoiceCommandAction::ReturnToLaunch});
     QVERIFY(rtl->checkPreCondition(vehicle()));
