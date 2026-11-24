@@ -8,6 +8,8 @@ target_sources(${CMAKE_PROJECT_NAME}
         DeterministicMatcherTest.h
         SttEngineTest.cc
         SttEngineTest.h
+        VoiceCommandInterfaceTest.cc
+        VoiceCommandInterfaceTest.h
         VoiceCommandManagerTest.cc
         VoiceCommandManagerTest.h
         VoiceCommandQueueRunnerTest.cc
