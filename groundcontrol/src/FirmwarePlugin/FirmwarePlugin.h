@@ -200,6 +200,9 @@ public:
     /// Command vehicle to rotate towards specified location.
     virtual void guidedModeChangeHeading(Vehicle *vehicle, const QGeoCoordinate &headingCoord) const;
 
+    /// MAV_CMD whose result acknowledges guided heading; ENUM_END when no command ACK is available.
+    virtual MAV_CMD guidedModeChangeHeadingAckCommand() const { return MAV_CMD_ENUM_END; }
+
     /// @return The minimum takeoff altitude (relative) for guided takeoff.
     virtual double minimumTakeoffAltitudeMeters(Vehicle* /*vehicle*/) const { return 3.048; }
 
@@ -235,6 +238,9 @@ public:
     ///     @param altitudeChange If > 0, go up by amount specified, if < 0, go down by amount specified
     ///     @param pauseVehicle true: pause vehicle prior to altitude change
     virtual void guidedModeChangeAltitude(Vehicle *vehicle, double altitudeChange, bool pauseVehicle);
+
+    /// MAV_CMD whose result acknowledges guided altitude; ENUM_END for unacknowledged setpoints.
+    virtual MAV_CMD guidedModeChangeAltitudeAckCommand() const { return MAV_CMD_ENUM_END; }
 
     /// Command vehicle to change groundspeed
     ///     @param groundspeed Groundspeed in m/s

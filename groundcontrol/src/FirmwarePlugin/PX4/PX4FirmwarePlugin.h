@@ -44,9 +44,11 @@ public:
     bool                fixedWingAirSpeedLimitsAvailable(Vehicle* vehicle) const override;
     bool                guidedModeGotoLocation          (Vehicle* vehicle, const QGeoCoordinate& gotoCoord, double forwardFlightLoiterRadius) const override;
     void                guidedModeChangeAltitude        (Vehicle* vehicle, double altitudeRel, bool pauseVehicle) override;
+    MAV_CMD             guidedModeChangeAltitudeAckCommand() const override { return MAV_CMD_DO_REPOSITION; }
     void                guidedModeChangeGroundSpeedMetersSecond(Vehicle* vehicle, double groundspeed) const override;
     void                guidedModeChangeEquivalentAirspeedMetersSecond(Vehicle* vehicle, double airspeed_equiv) const override;
     void                guidedModeChangeHeading         (Vehicle* vehicle, const QGeoCoordinate &headingCoord) const override;
+    MAV_CMD             guidedModeChangeHeadingAckCommand() const override { return MAV_CMD_DO_REPOSITION; }
     void                startTakeoff                    (Vehicle* vehicle) const override;
     void                startMission                    (Vehicle* vehicle) const override;
     bool                isGuidedMode                    (const Vehicle* vehicle) const override;
