@@ -13,12 +13,16 @@ public:
 
     ~MoveCommand() override;
 
+    bool hasValidParameters() const override;
     bool checkPreCondition(Vehicle* vehicle) const override;
     bool execute(Vehicle* vehicle) override;
     bool checkPostCondition(Vehicle* vehicle) const override;
 
 private:
     static QString offboardMode(Vehicle* vehicle);
+    double maxDistance() const;
+    double maxSpeed(Vehicle* vehicle = nullptr) const;
+    double moveSpeed(Vehicle* vehicle) const;
     bool sendVelocity(double speed);
     void update();
     void stop();
