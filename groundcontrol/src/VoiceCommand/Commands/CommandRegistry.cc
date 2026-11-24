@@ -1,5 +1,6 @@
 #include "CommandRegistry.h"
 
+#include <algorithm>
 #include <cmath>
 #include <utility>
 
@@ -7,19 +8,28 @@
 #include "ChangeAltitudeCommand.h"
 #include "ChangeHeadingCommand.h"
 #include "DisarmCommand.h"
+#include "FlyViewSettings.h"
 #include "HoldCommand.h"
 #include "LandCommand.h"
 #include "MoveCommand.h"
+#include "MultiVehicleManager.h"
 #include "ReturnToLaunchCommand.h"
+#include "SettingsManager.h"
 #include "TakeoffCommand.h"
+#include "Vehicle.h"
 
 namespace {
 
-bool positiveNumber(const QVariant& value)
+constexpr double kDefaultMaxAltitudeMeters = 120.0;
+constexpr double kMaxTakeoffAltitudeMeters = 50.0;
+constexpr double kMaxMoveDistanceMeters = 100.0;
+constexpr double kDefaultMaxMoveSpeedMetersSecond = 5.0;
+
+bool positiveNumberInRange(const QVariant& value, double maxValue)
 {
     bool ok = false;
     const double number = value.toDouble(&ok);
-    return ok && std::isfinite(number) && number > 0.0;
+    return ok && std::isfinite(number) && number > 0.0 && number <= maxValue;
 }
 
 bool headingNumber(const QVariant& value)
@@ -27,6 +37,56 @@ bool headingNumber(const QVariant& value)
     bool ok = false;
     const double number = value.toDouble(&ok);
     return ok && std::isfinite(number) && number >= 0.0 && number <= 360.0;
+}
+
+double maxAltitudeMeters()
+{
+    if (auto* settings = SettingsManager::instance()) {
+        if (auto* flyView = settings->flyViewSettings()) {
+            const double limit = flyView->guidedMaximumAltitude()->rawValue().toDouble();
+
+            if (std::isfinite(limit) && limit > 0.0) {
+                return limit;
+            }
+        }
+    }
+
+    return kDefaultMaxAltitudeMeters;
+}
+
+double maxTakeoffAltitudeMeters()
+{
+    return std::min(kMaxTakeoffAltitudeMeters, maxAltitudeMeters());
+}
+
+double maxMoveDistanceMeters()
+{
+    if (auto* settings = SettingsManager::instance()) {
+        if (auto* flyView = settings->flyViewSettings()) {
+            const double limit = flyView->maxGoToLocationDistance()->rawValue().toDouble();
+
+            if (std::isfinite(limit) && limit > 0.0) {
+                return limit;
+            }
+        }
+    }
+    return kMaxMoveDistanceMeters;
+}
+
+double maxMoveSpeedMetersSecond(const MissionIntent& intent)
+{
+    if (auto* manager = MultiVehicleManager::instance()) {
+        Vehicle* vehicle = intent.targetVehicleId != -1 ? manager->getVehicleById(intent.targetVehicleId)
+                                                        : manager->activeVehicle();
+        if (vehicle) {
+            const double vehicleLimit = vehicle->maximumHorizontalSpeedMultirotorMetersSecond();
+
+            if (std::isfinite(vehicleLimit) && vehicleLimit > 0.0) {
+                return vehicleLimit;
+            }
+        }
+    }
+    return kDefaultMaxMoveSpeedMetersSecond;
 }
 
 std::unique_ptr<VoiceCommandInterface> makeBuiltinCommand(const MissionIntent& intent)
@@ -40,7 +100,8 @@ std::unique_ptr<VoiceCommandInterface> makeBuiltinCommand(const MissionIntent& i
             return std::make_unique<DisarmCommand>(intent);
 
         case VoiceCommandAction::Takeoff:
-            if (p.contains(QStringLiteral("altitude")) && !positiveNumber(p.value(QStringLiteral("altitude"))))
+            if (p.contains(QStringLiteral("altitude")) &&
+                !positiveNumberInRange(p.value(QStringLiteral("altitude")), maxTakeoffAltitudeMeters()))
                 return {};
             return std::make_unique<TakeoffCommand>(intent);
 
@@ -54,8 +115,9 @@ std::unique_ptr<VoiceCommandInterface> makeBuiltinCommand(const MissionIntent& i
             return std::make_unique<ReturnToLaunchCommand>(intent);
 
         case VoiceCommandAction::ChangeAltitude:
-            return positiveNumber(p.value(QStringLiteral("altitude"))) ? std::make_unique<ChangeAltitudeCommand>(intent)
-                                                                       : nullptr;
+            return positiveNumberInRange(p.value(QStringLiteral("altitude")), maxAltitudeMeters())
+                       ? std::make_unique<ChangeAltitudeCommand>(intent)
+                       : nullptr;
 
         case VoiceCommandAction::ChangeHeading:
             return headingNumber(p.value(QStringLiteral("heading"))) ? std::make_unique<ChangeHeadingCommand>(intent)
@@ -69,8 +131,9 @@ std::unique_ptr<VoiceCommandInterface> makeBuiltinCommand(const MissionIntent& i
                 direction != QStringLiteral("north") && direction != QStringLiteral("south") &&
                 direction != QStringLiteral("east") && direction != QStringLiteral("west"))
                 return {};
-            if (!positiveNumber(p.value(QStringLiteral("distance"))) ||
-                (p.contains(QStringLiteral("speed")) && !positiveNumber(p.value(QStringLiteral("speed")))))
+            if (!positiveNumberInRange(p.value(QStringLiteral("distance")), maxMoveDistanceMeters()) ||
+                (p.contains(QStringLiteral("speed")) &&
+                 !positiveNumberInRange(p.value(QStringLiteral("speed")), maxMoveSpeedMetersSecond(intent))))
                 return {};
 
             return std::make_unique<MoveCommand>(intent);
