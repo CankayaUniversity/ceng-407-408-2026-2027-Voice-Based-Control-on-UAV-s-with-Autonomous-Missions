@@ -12,12 +12,23 @@ VoiceCommandQueueRunner::VoiceCommandQueueRunner(QObject* parent) : QObject(pare
     _pollTimer.setInterval(100);
     _postConditionTimer.setSingleShot(true);
     _postConditionTimer.setInterval(3000);
+    _completionTimer.setSingleShot(true);
+    _completionTimer.setInterval(60000);
     (void) connect(&_pollTimer, &QTimer::timeout, this, &VoiceCommandQueueRunner::_evaluate);
     (void) connect(&_postConditionTimer, &QTimer::timeout, this, [this]() {
         const quint64 generation = _generation;
+        const int index = _index;
         _evaluate();
-        if (_running && _generation == generation && !_postConditionSatisfied) {
+        if (_running && _generation == generation && _index == index && !_postConditionSatisfied) {
             _fail(tr("%1 command is failed while executing").arg(_intents.at(_index).displaySummary));
+        }
+    });
+    (void) connect(&_completionTimer, &QTimer::timeout, this, [this]() {
+        const quint64 generation = _generation;
+        const int index = _index;
+        _evaluate();
+        if (_running && _generation == generation && _index == index) {
+            _fail(tr("%1 command timed out before completion").arg(_intents.at(_index).displaySummary));
         }
     });
 }
@@ -26,6 +37,13 @@ void VoiceCommandQueueRunner::setCommandBuilder(CommandBuilder builder)
 {
     if (!_running && builder) {
         _builder = std::move(builder);
+    }
+}
+
+void VoiceCommandQueueRunner::setCompletionTimeout(int milliseconds)
+{
+    if (!_running && milliseconds > 0) {
+        _completionTimer.setInterval(milliseconds);
     }
 }
 
@@ -99,6 +117,7 @@ void VoiceCommandQueueRunner::_startNext()
     }
     _postConditionSatisfied = false;
     _postConditionTimer.start();
+    _completionTimer.start();
     _pollTimer.start();
     _evaluate();
 }
@@ -110,6 +129,10 @@ void VoiceCommandQueueRunner::_evaluate()
     }
     if (!_vehicleAvailable()) {
         _fail(tr("Vehicle is not available"));
+        return;
+    }
+    if (_command->isFailed(_vehicle)) {
+        _fail(tr("%1 command is failed while executing").arg(_intents.at(_index).displaySummary));
         return;
     }
     if (!_postConditionSatisfied) {
@@ -124,6 +147,7 @@ void VoiceCommandQueueRunner::_evaluate()
     }
 
     _pollTimer.stop();
+    _completionTimer.stop();
     _command.reset();
     ++_index;
     const quint64 generation = _generation;
@@ -140,6 +164,7 @@ void VoiceCommandQueueRunner::_clear()
     _running = false;
     _pollTimer.stop();
     _postConditionTimer.stop();
+    _completionTimer.stop();
     _command.reset();
     _intents.clear();
     _vehicle.clear();

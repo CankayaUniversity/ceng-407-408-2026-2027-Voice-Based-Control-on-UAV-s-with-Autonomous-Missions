@@ -29,6 +29,7 @@ public:
     void cancel();
     /// Allows tests and future dispatchers to supply commands without changing queue logic.
     void setCommandBuilder(CommandBuilder builder);
+    void setCompletionTimeout(int milliseconds);
 
 signals:
     void stepStarted(int index);
@@ -48,6 +49,7 @@ private:
     CommandBuilder _builder;
     QTimer _pollTimer;
     QTimer _postConditionTimer;
+    QTimer _completionTimer;
     int _index = 0;
     quint64 _generation = 0;
     bool _running = false;
