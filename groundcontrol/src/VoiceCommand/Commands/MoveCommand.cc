@@ -130,11 +130,23 @@ void MoveCommand::update()
         stop();
         return;
     }
-    const double traveled = _start.distanceTo(position);
-    const double bearing = qDegreesToRadians(_start.azimuthTo(position));
-    const double alongTrack = traveled * (std::cos(bearing) * _north + std::sin(bearing) * _east);
-    if (alongTrack >= _distance && _modeRequested && _vehicle->flightMode() == _mode) {
-        _complete = true;
+    
+    if (_modeRequested && _vehicle->flightMode() == _mode) {
+        if (!_offboardActive) {
+            _offboardActive = true;
+            _start = position;
+        }
+        
+        const double traveled = _start.distanceTo(position);
+        const double bearing = qDegreesToRadians(_start.azimuthTo(position));
+        const double alongTrack = traveled * (std::cos(bearing) * _north + std::sin(bearing) * _east);
+
+        if (alongTrack >= _distance) {
+            _complete = true;
+            stop();
+            return;
+        }
+    } else if (_offboardActive) {
         stop();
         return;
     }
@@ -147,7 +159,7 @@ void MoveCommand::update()
         _modeRequested = true;
         _vehicle->setFlightMode(_mode);
     }
-    if (_modeRequested && _elapsed.elapsed() >= 2500 && _vehicle->flightMode() != _mode)
+    if (_modeRequested && !_offboardActive && _elapsed.elapsed() >= 4000)
         stop();
 }
 
@@ -159,4 +171,5 @@ void MoveCommand::stop()
         _vehicle->pauseVehicle();
     }
     _modeRequested = false;
+    _offboardActive = false;
 }

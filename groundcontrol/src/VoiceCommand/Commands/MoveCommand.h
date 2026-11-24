@@ -32,5 +32,6 @@ private:
     double _distance = 0.0;
     double _speed = 0.0;
     bool _modeRequested = false;
+    bool _offboardActive = false;
     bool _complete = false;
 };
