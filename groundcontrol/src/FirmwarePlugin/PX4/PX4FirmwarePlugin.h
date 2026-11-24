@@ -8,8 +8,8 @@ class PX4FirmwarePlugin : public FirmwarePlugin
     Q_OBJECT
 
 public:
-    PX4FirmwarePlugin   ();
-    virtual ~PX4FirmwarePlugin  ();
+    PX4FirmwarePlugin();
+    virtual ~PX4FirmwarePlugin();
 
     // Called internally only
     void _changeAltAfterPause(void* resultHandlerData, bool pauseSucceeded);
@@ -18,65 +18,88 @@ public:
 
     QList<MAV_CMD> supportedMissionCommands(QGCMAVLink::VehicleClass_t vehicleClass) const override;
 
-    AutoPilotPlugin*    autopilotPlugin                 (Vehicle* vehicle) const override;
-    bool                isCapable                       (const Vehicle *vehicle, FirmwareCapabilities capabilities) const override;
-    QStringList         flightModes                     (Vehicle* vehicle) const override;
-    QString             flightMode                      (uint8_t base_mode, uint32_t custom_mode) const override;
-    bool                setFlightMode                   (const QString& flightMode, uint8_t* base_mode, uint32_t* custom_mode) const override;
-    void                setGuidedMode                   (Vehicle* vehicle, bool guidedMode) const override;
-    QString             pauseFlightMode                 (void) const override;
-    QString             missionFlightMode               (void) const override;
-    QString             rtlFlightMode                   (void) const override;
-    QString             landFlightMode                  (void) const override;
-    QString             takeControlFlightMode           (void) const override;
-    QString             gotoFlightMode                  (void) const override;
-    QString             followFlightMode                (void) const override;
-    QString             takeOffFlightMode               (void) const override;
-    QString             stabilizedFlightMode            (void) const override;
-    void                pauseVehicle                    (Vehicle* vehicle) const override;
-    void                guidedModeRTL                   (Vehicle* vehicle, bool smartRTL) const override;
-    void                guidedModeLand                  (Vehicle* vehicle) const override;
-    void                guidedModeTakeoff               (Vehicle* vehicle, double takeoffAltRel) const override;
-    double              maximumHorizontalSpeedMultirotorMetersSecond(Vehicle* vehicle) const override;
-    double              maximumEquivalentAirspeed(Vehicle* vehicle) const override;
-    double              minimumEquivalentAirspeed(Vehicle* vehicle) const override;
-    bool                mulirotorSpeedLimitsAvailable(Vehicle* vehicle) const override;
-    bool                fixedWingAirSpeedLimitsAvailable(Vehicle* vehicle) const override;
-    bool                guidedModeGotoLocation          (Vehicle* vehicle, const QGeoCoordinate& gotoCoord, double forwardFlightLoiterRadius) const override;
-    void                guidedModeChangeAltitude        (Vehicle* vehicle, double altitudeRel, bool pauseVehicle) override;
-    MAV_CMD             guidedModeChangeAltitudeAckCommand() const override { return MAV_CMD_DO_REPOSITION; }
-    void                guidedModeChangeGroundSpeedMetersSecond(Vehicle* vehicle, double groundspeed) const override;
-    void                guidedModeChangeEquivalentAirspeedMetersSecond(Vehicle* vehicle, double airspeed_equiv) const override;
-    void                guidedModeChangeHeading         (Vehicle* vehicle, const QGeoCoordinate &headingCoord) const override;
-    MAV_CMD             guidedModeChangeHeadingAckCommand() const override { return MAV_CMD_DO_REPOSITION; }
-    void                startTakeoff                    (Vehicle* vehicle) const override;
-    void                startMission                    (Vehicle* vehicle) const override;
-    bool                isGuidedMode                    (const Vehicle* vehicle) const override;
-    void                initializeVehicle               (Vehicle* vehicle) override;
-    bool                sendHomePositionToVehicle       (void) const override;
-    QString             missionCommandOverrides         (QGCMAVLink::VehicleClass_t vehicleClass) const override;
-    QString             _internalParameterMetaDataFile  (const Vehicle* vehicle) const override { Q_UNUSED(vehicle); return QStringLiteral(":/FirmwarePlugin/PX4/PX4ParameterFactMetaData.json"); }
-    MAV_AUTOPILOT       _autopilotType                  () const override { return MAV_AUTOPILOT_PX4; }
-    ParameterMetaData*  _createParameterMetaData         () final;
-    bool                adjustIncomingMavlinkMessage    (Vehicle* vehicle, mavlink_message_t* message) override;
-    QString             offlineEditingParamFile         (Vehicle* vehicle) const override { Q_UNUSED(vehicle); return QStringLiteral(":/FirmwarePlugin/PX4/PX4.OfflineEditing.params"); }
-    QString             autoDisarmParameter             (Vehicle* vehicle) const override { Q_UNUSED(vehicle); return QStringLiteral("COM_DISARM_LAND"); }
-    uint32_t            highLatencyCustomModeTo32Bits   (uint16_t hlCustomMode) const override;
-    bool                supportsNegativeThrust          (Vehicle* vehicle) const override;
-    QString             getHobbsMeter                   (Vehicle* vehicle) const override;
-    bool                hasGripper                      (const Vehicle* vehicle) const override;
-    QVariant            expandedToolbarIndicatorSource  (const Vehicle* vehicle, const QString& indicatorName) const override;
+    AutoPilotPlugin* autopilotPlugin(Vehicle* vehicle) const override;
+    bool isCapable(const Vehicle* vehicle, FirmwareCapabilities capabilities) const override;
+    QStringList flightModes(Vehicle* vehicle) const override;
+    QString flightMode(uint8_t base_mode, uint32_t custom_mode) const override;
+    bool setFlightMode(const QString& flightMode, uint8_t* base_mode, uint32_t* custom_mode) const override;
+    void setGuidedMode(Vehicle* vehicle, bool guidedMode) const override;
+    QString pauseFlightMode(void) const override;
+    QString missionFlightMode(void) const override;
+    QString rtlFlightMode(void) const override;
+    QString landFlightMode(void) const override;
+    QString takeControlFlightMode(void) const override;
+    QString gotoFlightMode(void) const override;
+    QString followFlightMode(void) const override;
+    QString takeOffFlightMode(void) const override;
+    QString stabilizedFlightMode(void) const override;
+    void pauseVehicle(Vehicle* vehicle) const override;
+    void guidedModeRTL(Vehicle* vehicle, bool smartRTL) const override;
+    void guidedModeLand(Vehicle* vehicle) const override;
+    void guidedModeTakeoff(Vehicle* vehicle, double takeoffAltRel) const override;
+    double maximumHorizontalSpeedMultirotorMetersSecond(Vehicle* vehicle) const override;
+    double maximumEquivalentAirspeed(Vehicle* vehicle) const override;
+    double minimumEquivalentAirspeed(Vehicle* vehicle) const override;
+    bool mulirotorSpeedLimitsAvailable(Vehicle* vehicle) const override;
+    bool fixedWingAirSpeedLimitsAvailable(Vehicle* vehicle) const override;
+    bool guidedModeGotoLocation(Vehicle* vehicle, const QGeoCoordinate& gotoCoord,
+                                double forwardFlightLoiterRadius) const override;
+    void guidedModeChangeAltitude(Vehicle* vehicle, double altitudeRel, bool pauseVehicle) override;
 
-    void                updateAvailableFlightModes      (FlightModeList &modeList) override;
+    MAV_CMD guidedModeChangeAltitudeAckCommand() const override { return MAV_CMD_DO_REPOSITION; }
+
+    void guidedModeChangeGroundSpeedMetersSecond(Vehicle* vehicle, double groundspeed) const override;
+    void guidedModeChangeEquivalentAirspeedMetersSecond(Vehicle* vehicle, double airspeed_equiv) const override;
+    void guidedModeChangeHeading(Vehicle* vehicle, const QGeoCoordinate& headingCoord) const override;
+
+    MAV_CMD guidedModeChangeHeadingAckCommand() const override { return MAV_CMD_DO_REPOSITION; }
+
+    void startTakeoff(Vehicle* vehicle) const override;
+    void startMission(Vehicle* vehicle) const override;
+    bool isGuidedMode(const Vehicle* vehicle) const override;
+    void initializeVehicle(Vehicle* vehicle) override;
+    bool sendHomePositionToVehicle(void) const override;
+    QString missionCommandOverrides(QGCMAVLink::VehicleClass_t vehicleClass) const override;
+
+    QString _internalParameterMetaDataFile(const Vehicle* vehicle) const override
+    {
+        Q_UNUSED(vehicle);
+        return QStringLiteral(":/FirmwarePlugin/PX4/PX4ParameterFactMetaData.json");
+    }
+
+    MAV_AUTOPILOT _autopilotType() const override { return MAV_AUTOPILOT_PX4; }
+
+    ParameterMetaData* _createParameterMetaData() final;
+    bool adjustIncomingMavlinkMessage(Vehicle* vehicle, mavlink_message_t* message) override;
+
+    QString offlineEditingParamFile(Vehicle* vehicle) const override
+    {
+        Q_UNUSED(vehicle);
+        return QStringLiteral(":/FirmwarePlugin/PX4/PX4.OfflineEditing.params");
+    }
+
+    QString autoDisarmParameter(Vehicle* vehicle) const override
+    {
+        Q_UNUSED(vehicle);
+        return QStringLiteral("COM_DISARM_LAND");
+    }
+
+    uint32_t highLatencyCustomModeTo32Bits(uint16_t hlCustomMode) const override;
+    bool supportsNegativeThrust(Vehicle* vehicle) const override;
+    QString getHobbsMeter(Vehicle* vehicle) const override;
+    bool hasGripper(const Vehicle* vehicle) const override;
+    QVariant expandedToolbarIndicatorSource(const Vehicle* vehicle, const QString& indicatorName) const override;
+
+    void updateAvailableFlightModes(FlightModeList& modeList) override;
 
 private slots:
     void _mavCommandResult(int vehicleId, int component, int command, int result, int failureCode);
 
 private:
-    void    _handleAutopilotVersion         (Vehicle* vehicle, mavlink_message_t* message);
+    void _handleAutopilotVersion(Vehicle* vehicle, mavlink_message_t* message);
 
-    QString _getLatestVersionFileUrl        (Vehicle* vehicle) const override;
-    QString _versionRegex                   () const override;
+    QString _getLatestVersionFileUrl(Vehicle* vehicle) const override;
+    QString _versionRegex() const override;
 
     // Any instance data here must be global to all vehicles
     // Vehicle specific data should go into PX4FirmwarePluginInstanceData
@@ -94,12 +117,13 @@ public:
     // firmware has supported cmd.  It return UNSUPPORTED if no
     // version ever has.  It returns UNKNOWN if that information is
     // not known.
-    CommandSupportedResult anyVersionSupportsCommand(MAV_CMD cmd) const override {
+    CommandSupportedResult anyVersionSupportsCommand(MAV_CMD cmd) const override
+    {
         switch (cmd) {
-        case MAV_CMD_DO_SET_MISSION_CURRENT:
-            return CommandSupportedResult::UNSUPPORTED;
-        default:
-            return CommandSupportedResult::UNKNOWN;
+            case MAV_CMD_DO_SET_MISSION_CURRENT:
+                return CommandSupportedResult::UNSUPPORTED;
+            default:
+                return CommandSupportedResult::UNKNOWN;
         }
     }
 
