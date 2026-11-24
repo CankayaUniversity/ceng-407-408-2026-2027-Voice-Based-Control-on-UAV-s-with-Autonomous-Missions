@@ -29,6 +29,11 @@ bool TakeoffCommand::execute(Vehicle* vehicle)
         return false;
     }
 
+    _targetAltitudeAMSL = vehicle->altitudeAMSL()->rawValue().toDouble() + _targetAltitude;
+    if (!std::isfinite(_targetAltitudeAMSL)) {
+        return false;
+    }
+
     dispatched(vehicle);
     vehicle->guidedModeTakeoff(_targetAltitude);
 
@@ -42,6 +47,7 @@ bool TakeoffCommand::checkPostCondition(Vehicle* vehicle) const
 
 bool TakeoffCommand::isCompleted(Vehicle* vehicle) const
 {
-    return dispatchedTo(vehicle) && vehicle->flying() && vehicle->altitudeRelative()->rawValue().isValid() &&
-           vehicle->altitudeRelative()->rawValue().toDouble() >= _targetAltitude - 0.5;
+    return dispatchedTo(vehicle) && vehicle->flying() && vehicle->altitudeAMSL()->rawValue().isValid() &&
+           std::isfinite(vehicle->altitudeAMSL()->rawValue().toDouble()) &&
+           vehicle->altitudeAMSL()->rawValue().toDouble() >= _targetAltitudeAMSL - 0.5;
 }

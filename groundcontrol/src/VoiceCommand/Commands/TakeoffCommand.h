@@ -14,4 +14,5 @@ public:
 
 private:
     double _targetAltitude = 0.0;
+    double _targetAltitudeAMSL = 0.0;
 };

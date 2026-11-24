@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "Fact.h"
+#include "FirmwarePlugin.h"
 #include "Vehicle.h"
 
 ChangeHeadingCommand::ChangeHeadingCommand(const MissionIntent& intent) : Command(intent) {}
@@ -20,9 +21,14 @@ bool ChangeHeadingCommand::execute(Vehicle* vehicle)
     }
 
     _target = _intent.parameters.value(QStringLiteral("heading")).toDouble();
+    const MAV_CMD ackCommand = vehicle->firmwarePlugin()->guidedModeChangeHeadingAckCommand();
+    if (ackCommand != MAV_CMD_ENUM_END && vehicle->isMavCommandPending(vehicle->defaultComponentId(), ackCommand)) {
+        return false;
+    }
 
     dispatched(vehicle);
 
+    watchForAck(vehicle, ackCommand);
     vehicle->guidedModeChangeHeading(vehicle->coordinate().atDistanceAndAzimuth(10.0, _target));
 
     return true;
@@ -30,8 +36,7 @@ bool ChangeHeadingCommand::execute(Vehicle* vehicle)
 
 bool ChangeHeadingCommand::checkPostCondition(Vehicle* vehicle) const
 {
-    // The requested heading is a physical completion condition, not a 3-second dispatch condition.
-    return dispatchedTo(vehicle);
+    return acknowledgedBy(vehicle);
 }
 
 bool ChangeHeadingCommand::isCompleted(Vehicle* vehicle) const

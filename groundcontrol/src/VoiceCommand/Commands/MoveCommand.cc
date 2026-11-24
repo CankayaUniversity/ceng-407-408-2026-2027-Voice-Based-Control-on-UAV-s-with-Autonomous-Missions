@@ -112,6 +112,11 @@ bool MoveCommand::isCompleted(Vehicle* vehicle) const
     return dispatchedTo(vehicle) && _complete;
 }
 
+bool MoveCommand::isFailed(Vehicle* vehicle) const
+{
+    return vehicle && _dispatched && _vehicle == vehicle && _failed;
+}
+
 QString MoveCommand::offboardMode(Vehicle* vehicle)
 {
     for (const QString& mode : vehicle->flightModes()) {
@@ -152,13 +157,13 @@ void MoveCommand::update()
 {
     // Independent safety limit in case the caller fails to release a timed-out command.
     if (!_vehicle || !available(_vehicle) || !_vehicle->armed() || !_vehicle->flying() || _elapsed.elapsed() >= 30000) {
-        stop();
+        fail();
         return;
     }
 
     const QGeoCoordinate position = _vehicle->coordinate();
     if (!position.isValid()) {
-        stop();
+        fail();
         return;
     }
 
@@ -173,7 +178,7 @@ void MoveCommand::update()
     }
 
     if (!sendVelocity(_speed)) {
-        stop();
+        fail();
         return;
     }
 
@@ -184,8 +189,14 @@ void MoveCommand::update()
     }
 
     if (_modeRequested && _elapsed.elapsed() >= 2500 && _vehicle->flightMode() != _mode) {
-        stop();
+        fail();
     }
+}
+
+void MoveCommand::fail()
+{
+    _failed = true;
+    stop();
 }
 
 void MoveCommand::stop()

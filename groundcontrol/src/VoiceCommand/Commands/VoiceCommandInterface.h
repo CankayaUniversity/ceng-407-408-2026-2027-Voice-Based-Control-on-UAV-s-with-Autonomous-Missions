@@ -7,7 +7,7 @@
 class Vehicle;
 
 /// A single, approved intent. The queue owns the command throughout its execution and
-/// checks its post-condition against fresh vehicle telemetry until it succeeds or times out.
+/// checks its post-condition and completion against fresh vehicle telemetry until it succeeds or times out.
 /// execute() reports dispatch, not completion; destroying a MOVE command stops its
 /// setpoint stream, so the queue must retain it until success or cancellation.
 class VoiceCommandInterface
@@ -21,6 +21,9 @@ public:
 
     /// Physical completion is separate from the initial state-transition post-condition.
     virtual bool isCompleted(Vehicle*) const { return true; }
+
+    /// A command can fail after dispatch (for example, a rejected ACK or a stopped setpoint stream).
+    virtual bool isFailed(Vehicle*) const { return false; }
 };
 
 /// Returns nullptr for unsupported actions or missing/invalid parameters.
