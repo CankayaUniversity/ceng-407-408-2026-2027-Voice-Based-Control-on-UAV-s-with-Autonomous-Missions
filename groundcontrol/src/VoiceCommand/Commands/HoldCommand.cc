@@ -2,12 +2,13 @@
 
 #include "FirmwarePlugin.h"
 #include "Vehicle.h"
+#include "VehicleSupports.h"
 
 HoldCommand::HoldCommand(const MissionIntent& intent) : Command(intent) {}
 
 bool HoldCommand::checkPreCondition(Vehicle* vehicle) const
 {
-    return guided(vehicle) && vehicle->armed() && vehicle->flying();
+    return guided(vehicle) && vehicle->supports()->pauseVehicle() && vehicle->armed() && vehicle->flying();
 }
 
 bool HoldCommand::execute(Vehicle* vehicle)
