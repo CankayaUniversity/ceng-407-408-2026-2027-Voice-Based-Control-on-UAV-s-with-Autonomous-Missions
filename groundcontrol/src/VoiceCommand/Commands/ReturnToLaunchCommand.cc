@@ -22,5 +22,6 @@ bool ReturnToLaunchCommand::execute(Vehicle* vehicle)
 
 bool ReturnToLaunchCommand::checkPostCondition(Vehicle* vehicle) const
 {
-    return dispatchedTo(vehicle) && vehicle->flightMode() == vehicle->firmwarePlugin()->rtlFlightMode();
+    return dispatchedTo(vehicle) &&
+           (!vehicle->flying() || vehicle->flightMode() == vehicle->firmwarePlugin()->rtlFlightMode());
 }
