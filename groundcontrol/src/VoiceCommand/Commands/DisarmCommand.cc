@@ -11,10 +11,14 @@ bool DisarmCommand::checkPreCondition(Vehicle* vehicle) const
 
 bool DisarmCommand::execute(Vehicle* vehicle)
 {
-    if (_dispatched || !checkPreCondition(vehicle))
+    if (_dispatched || !checkPreCondition(vehicle)) {
         return false;
+    }
+
     dispatched(vehicle);
+
     vehicle->setArmedShowError(false);
+
     return true;
 }
 

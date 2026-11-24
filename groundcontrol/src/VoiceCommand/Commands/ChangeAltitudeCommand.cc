@@ -17,13 +17,20 @@ bool ChangeAltitudeCommand::checkPreCondition(Vehicle* vehicle) const
 
 bool ChangeAltitudeCommand::execute(Vehicle* vehicle)
 {
-    if (_dispatched || !checkPreCondition(vehicle))
+    if (_dispatched || !checkPreCondition(vehicle)) {
         return false;
+    }
+
     _target = _intent.parameters.value(QStringLiteral("altitude")).toDouble();
+
     const double difference = _target - vehicle->altitudeRelative()->rawValue().toDouble();
+
     dispatched(vehicle);
-    if (std::abs(difference) > 0.5)
+
+    if (std::abs(difference) > 0.5) {
         vehicle->guidedModeChangeAltitude(difference, false);
+    }
+
     return true;
 }
 

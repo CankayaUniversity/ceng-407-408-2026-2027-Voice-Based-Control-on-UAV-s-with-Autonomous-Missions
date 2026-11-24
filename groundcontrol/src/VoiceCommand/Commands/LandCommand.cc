@@ -12,10 +12,14 @@ bool LandCommand::checkPreCondition(Vehicle* vehicle) const
 
 bool LandCommand::execute(Vehicle* vehicle)
 {
-    if (_dispatched || !checkPreCondition(vehicle))
+    if (_dispatched || !checkPreCondition(vehicle)) {
         return false;
+    }
+
     dispatched(vehicle);
+
     vehicle->guidedModeLand();
+
     return true;
 }
 

@@ -13,10 +13,13 @@ bool ReturnToLaunchCommand::checkPreCondition(Vehicle* vehicle) const
 
 bool ReturnToLaunchCommand::execute(Vehicle* vehicle)
 {
-    if (_dispatched || !checkPreCondition(vehicle))
+    if (_dispatched || !checkPreCondition(vehicle)) {
         return false;
+    }
+
     dispatched(vehicle);
     vehicle->guidedModeRTL(false);
+
     return true;
 }
 

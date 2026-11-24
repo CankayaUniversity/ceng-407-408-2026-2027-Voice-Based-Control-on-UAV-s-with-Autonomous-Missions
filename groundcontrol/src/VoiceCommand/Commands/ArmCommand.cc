@@ -11,9 +11,12 @@ bool ArmCommand::checkPreCondition(Vehicle* vehicle) const
 
 bool ArmCommand::execute(Vehicle* vehicle)
 {
-    if (_dispatched || !checkPreCondition(vehicle))
+    if (_dispatched || !checkPreCondition(vehicle)) {
         return false;
+    }
+
     dispatched(vehicle);
+
     vehicle->setArmedShowError(true);
     return true;
 }
