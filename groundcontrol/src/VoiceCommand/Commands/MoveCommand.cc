@@ -3,29 +3,15 @@
 #include <QtCore/QtMath>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 #include "Fact.h"
+#include "FlyViewSettings.h"
 #include "LinkInterface.h"
 #include "MAVLinkProtocol.h"
+#include "SettingsManager.h"
 #include "Vehicle.h"
 #include "VehicleLinkManager.h"
-
-namespace {
-
-double moveSpeed(const MissionIntent& intent, Vehicle* vehicle)
-{
-    if (intent.parameters.contains(QStringLiteral("speed")))
-        return intent.parameters.value(QStringLiteral("speed")).toDouble();
-
-    const double cruise = vehicle->defaultCruiseSpeed();
-    const double limit = vehicle->maximumHorizontalSpeedMultirotorMetersSecond();
-    // The cruise setting is intended for fixed-wing mission planning; cap it for
-    // voice-controlled multirotor Offboard movement.
-    const double safeLimit = std::isfinite(limit) && limit > 0.0 ? std::min(5.0, limit) : 5.0;
-    return std::min(std::isfinite(cruise) && cruise > 0.0 ? cruise : 1.0, safeLimit);
-}
-
-}  // namespace
 
 MoveCommand::MoveCommand(const MissionIntent& intent) : Command(intent) {}
 
@@ -34,23 +20,82 @@ MoveCommand::~MoveCommand()
     stop();
 }
 
+double MoveCommand::maxDistance() const
+{
+    double limit = std::numeric_limits<double>::quiet_NaN();
+
+    if (auto* settings = SettingsManager::instance()) {
+        if (auto* flyView = settings->flyViewSettings()) {
+            limit = CommandHelpers::tightenLimit(limit, flyView->maxGoToLocationDistance()->rawValue().toDouble());
+        }
+    }
+
+    limit = CommandHelpers::tightenLimit(
+        limit, CommandHelpers::positiveVehicleParam(targetVehicle(), QStringLiteral("GF_MAX_HOR_DIST")));
+
+    return std::isfinite(limit) ? limit : 100.0;
+}
+
+double MoveCommand::maxSpeed(Vehicle* vehicle) const
+{
+    Vehicle* resolved = vehicle ? vehicle : targetVehicle();
+
+    if (resolved) {
+        const double vehicleLimit = resolved->maximumHorizontalSpeedMultirotorMetersSecond();
+
+        if (std::isfinite(vehicleLimit) && vehicleLimit > 0.0) {
+            return vehicleLimit;
+        }
+    }
+
+    return 5.0;
+}
+
+bool MoveCommand::hasValidParameters() const
+{
+    const auto& p = _intent.parameters;
+    const QString direction = p.value(VoiceCommandParam::direction()).toString();
+
+    if (direction != QStringLiteral("forward") && direction != QStringLiteral("backward") &&
+        direction != QStringLiteral("left") && direction != QStringLiteral("right") &&
+        direction != QStringLiteral("north") && direction != QStringLiteral("south") &&
+        direction != QStringLiteral("east") && direction != QStringLiteral("west")) {
+        return false;
+    }
+
+    return CommandHelpers::positiveNumberInRange(p.value(VoiceCommandParam::distance()), maxDistance()) &&
+           (!p.contains(VoiceCommandParam::speed()) ||
+            CommandHelpers::positiveNumberInRange(p.value(VoiceCommandParam::speed()), maxSpeed()));
+}
+
+double MoveCommand::moveSpeed(Vehicle* vehicle) const
+{
+    if (_intent.parameters.contains(VoiceCommandParam::speed())) {
+        return _intent.parameters.value(VoiceCommandParam::speed()).toDouble();
+    }
+
+    const double cruise = vehicle->defaultCruiseSpeed();
+
+    return std::min(std::isfinite(cruise) && cruise > 0.0 ? cruise : 1.0, maxSpeed(vehicle));
+}
+
 bool MoveCommand::checkPreCondition(Vehicle* vehicle) const
 {
     if (!guided(vehicle) || !vehicle->multiRotor() || !vehicle->armed() || !vehicle->flying() ||
         !vehicle->coordinate().isValid() || !vehicle->heading()->rawValue().isValid()) {
         return false;
     }
-    const double speed = moveSpeed(_intent, vehicle);
-    const double vehicleLimit = vehicle->maximumHorizontalSpeedMultirotorMetersSecond();
+    const double speed = moveSpeed(vehicle);
+
     return !offboardMode(vehicle).isEmpty() && std::isfinite(vehicle->heading()->rawValue().toDouble()) &&
-           speed <= 5.0 && (!std::isfinite(vehicleLimit) || speed <= vehicleLimit);
+           speed > 0.0 && speed <= maxSpeed(vehicle);
 }
 
 bool MoveCommand::execute(Vehicle* vehicle)
 {
     if (_dispatched || !checkPreCondition(vehicle))
         return false;
-    const QString direction = _intent.parameters.value(QStringLiteral("direction")).toString();
+    const QString direction = _intent.parameters.value(VoiceCommandParam::direction()).toString();
     double azimuth = 0.0;
     if (direction == QStringLiteral("north"))
         azimuth = 0.0;
@@ -72,8 +117,8 @@ bool MoveCommand::execute(Vehicle* vehicle)
     _north = std::cos(qDegreesToRadians(azimuth));
     _east = std::sin(qDegreesToRadians(azimuth));
     _start = vehicle->coordinate();
-    _distance = _intent.parameters.value(QStringLiteral("distance")).toDouble();
-    _speed = moveSpeed(_intent, vehicle);
+    _distance = _intent.parameters.value(VoiceCommandParam::distance()).toDouble();
+    _speed = moveSpeed(vehicle);
     _mode = offboardMode(vehicle);
     dispatched(vehicle);
     QObject::connect(&_timer, &QTimer::timeout, &_timer, [this]() { update(); });
@@ -130,15 +175,30 @@ void MoveCommand::update()
         stop();
         return;
     }
-    const double traveled = _start.distanceTo(position);
-    const double bearing = qDegreesToRadians(_start.azimuthTo(position));
-    const double alongTrack = traveled * (std::cos(bearing) * _north + std::sin(bearing) * _east);
-    if (alongTrack >= _distance && _modeRequested && _vehicle->flightMode() == _mode) {
-        _complete = true;
+    double commandedSpeed = _speed;
+    if (_modeRequested && _vehicle->flightMode() == _mode) {
+        if (!_offboardActive) {
+            _offboardActive = true;
+            _start = position;
+        }
+
+        const double traveled = _start.distanceTo(position);
+        const double bearing = qDegreesToRadians(_start.azimuthTo(position));
+        const double alongTrack = traveled * (std::cos(bearing) * _north + std::sin(bearing) * _east);
+        const double remaining = _distance - alongTrack;
+
+        if (remaining <= 0.0) {
+            _complete = true;
+            stop();
+            return;
+        }
+        // Ramp down linearly over the last ~1s of travel to reduce overshoot without stalling.
+        commandedSpeed = std::min(_speed, std::max(0.5, remaining));
+    } else if (_offboardActive) {
         stop();
         return;
     }
-    if (!sendVelocity(_speed)) {
+    if (!sendVelocity(commandedSpeed)) {
         stop();
         return;
     }
@@ -147,7 +207,7 @@ void MoveCommand::update()
         _modeRequested = true;
         _vehicle->setFlightMode(_mode);
     }
-    if (_modeRequested && _elapsed.elapsed() >= 2500 && _vehicle->flightMode() != _mode)
+    if (_modeRequested && !_offboardActive && _elapsed.elapsed() >= 4000)
         stop();
 }
 
@@ -159,4 +219,5 @@ void MoveCommand::stop()
         _vehicle->pauseVehicle();
     }
     _modeRequested = false;
+    _offboardActive = false;
 }

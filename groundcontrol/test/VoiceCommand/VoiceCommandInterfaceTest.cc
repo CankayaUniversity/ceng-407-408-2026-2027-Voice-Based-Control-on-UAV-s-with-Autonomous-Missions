@@ -8,6 +8,8 @@
 #include "DeterministicMatcher.h"
 #include "Fact.h"
 #include "FirmwarePlugin.h"
+#include "FlyViewSettings.h"
+#include "SettingsManager.h"
 #include "Vehicle.h"
 
 namespace {
@@ -21,6 +23,15 @@ public:
 
     bool checkPostCondition(Vehicle* vehicle) const override { return vehicle != nullptr; }
 };
+
+MissionIntent makeIntent(VoiceCommandAction action, QVariantMap parameters = {}, int targetVehicleId = -1)
+{
+    MissionIntent intent;
+    intent.action = action;
+    intent.parameters = std::move(parameters);
+    intent.targetVehicleId = targetVehicleId;
+    return intent;
+}
 
 }  // namespace
 
@@ -66,12 +77,36 @@ void VoiceCommandInterfaceTest::_testFactory()
     invalid.action = VoiceCommandAction::ChangeAltitude;
     invalid.parameters = {};
     QVERIFY(!makeVoiceCommand(invalid));
+    invalid.parameters = {{QStringLiteral("altitude"), 5000.0}};
+    QVERIFY(!makeVoiceCommand(invalid));
+
+    const double maxAltitude =
+        SettingsManager::instance()->flyViewSettings()->guidedMaximumAltitude()->rawValue().toDouble();
+    invalid.action = VoiceCommandAction::Takeoff;
+    invalid.parameters = {{QStringLiteral("altitude"), maxAltitude}};
+    QVERIFY(makeVoiceCommand(invalid) != nullptr);
+    invalid.parameters = {{QStringLiteral("altitude"), maxAltitude + 1.0}};
+    QVERIFY(!makeVoiceCommand(invalid));
+
+    invalid.action = VoiceCommandAction::Move;
+    const double maxDistance =
+        SettingsManager::instance()->flyViewSettings()->maxGoToLocationDistance()->rawValue().toDouble();
+    invalid.parameters = {{QStringLiteral("direction"), QStringLiteral("forward")},
+                          {QStringLiteral("distance"), maxDistance}};
+    QVERIFY(makeVoiceCommand(invalid) != nullptr);
+    invalid.parameters[QStringLiteral("distance")] = maxDistance + 1.0;
+    QVERIFY(!makeVoiceCommand(invalid));
+    const double vehicleLimit = vehicle()->maximumHorizontalSpeedMultirotorMetersSecond();
+    const double maxSpeed = std::isfinite(vehicleLimit) && vehicleLimit > 0.0 ? vehicleLimit : 5.0;
+    invalid.parameters[QStringLiteral("distance")] = 5.0;
+    invalid.parameters[QStringLiteral("speed")] = maxSpeed + 1.0;
+    QVERIFY(!makeVoiceCommand(invalid));
 }
 
 void VoiceCommandInterfaceTest::_testFutureActionRegistration()
 {
     const VoiceCommandAction futureAction = static_cast<VoiceCommandAction>(250);
-    const MissionIntent futureIntent{.action = futureAction};
+    const MissionIntent futureIntent = makeIntent(futureAction);
     expectLogMessage("VoiceCommand.Factory", QtWarningMsg,
                      QRegularExpression(QStringLiteral("Unsupported voice command action: 250")));
     QVERIFY(!VoiceCommandFactory::create(futureIntent));
@@ -91,7 +126,7 @@ void VoiceCommandInterfaceTest::_testFutureActionRegistration()
 
 void VoiceCommandInterfaceTest::_testArmDisarmTransition()
 {
-    const MissionIntent armIntent{.action = VoiceCommandAction::Arm, .targetVehicleId = vehicle()->id()};
+    const MissionIntent armIntent = makeIntent(VoiceCommandAction::Arm, {}, vehicle()->id());
     auto arm = makeVoiceCommand(armIntent);
     QVERIFY(!arm->checkPreCondition(nullptr));
     QVERIFY(!arm->checkPostCondition(vehicle()));
@@ -101,7 +136,7 @@ void VoiceCommandInterfaceTest::_testArmDisarmTransition()
     QTRY_VERIFY_WITH_TIMEOUT(arm->checkPostCondition(vehicle()), 5000);
     QVERIFY(!arm->checkPreCondition(vehicle()));
 
-    auto disarm = makeVoiceCommand({.action = VoiceCommandAction::Disarm, .targetVehicleId = vehicle()->id()});
+    auto disarm = makeVoiceCommand(makeIntent(VoiceCommandAction::Disarm, {}, vehicle()->id()));
     QVERIFY(disarm->checkPreCondition(vehicle()));
     QVERIFY(!disarm->checkPostCondition(vehicle()));
     QVERIFY(disarm->execute(vehicle()));
@@ -110,42 +145,44 @@ void VoiceCommandInterfaceTest::_testArmDisarmTransition()
 
 void VoiceCommandInterfaceTest::_testJustInTimePreconditions()
 {
-    auto wrongVehicle = makeVoiceCommand({.action = VoiceCommandAction::Arm, .targetVehicleId = vehicle()->id() + 1});
+    auto wrongVehicle = makeVoiceCommand(makeIntent(VoiceCommandAction::Arm, {}, vehicle()->id() + 1));
     QVERIFY(!wrongVehicle->checkPreCondition(vehicle()));
     QVERIFY(!wrongVehicle->execute(vehicle()));
 
-    auto takeoff = makeVoiceCommand({.action = VoiceCommandAction::Takeoff});
+    auto takeoff = makeVoiceCommand(makeIntent(VoiceCommandAction::Takeoff));
     QVERIFY(!takeoff->checkPreCondition(vehicle()));
     QVERIFY(!takeoff->execute(vehicle()));
     QVERIFY(!takeoff->checkPostCondition(vehicle()));
 
-    auto arm = makeVoiceCommand({.action = VoiceCommandAction::Arm});
+    auto arm = makeVoiceCommand(makeIntent(VoiceCommandAction::Arm));
     QVERIFY(arm->execute(vehicle()));
     QTRY_VERIFY_WITH_TIMEOUT(arm->checkPostCondition(vehicle()), 5000);
     vehicle()->altitudeAMSL()->setRawValue(100.0);
     QVERIFY(takeoff->checkPreCondition(vehicle()));
     QVERIFY(!takeoff->checkPostCondition(vehicle()));
 
-    auto move = makeVoiceCommand(
-        {.action = VoiceCommandAction::Move,
-         .parameters = {{QStringLiteral("direction"), QStringLiteral("forward")}, {QStringLiteral("distance"), 5.0}}});
+    auto move =
+        makeVoiceCommand(makeIntent(VoiceCommandAction::Move, {{QStringLiteral("direction"), QStringLiteral("forward")},
+                                                               {QStringLiteral("distance"), 5.0}}));
     QVERIFY(!move->checkPreCondition(vehicle()));
     QVERIFY(!move->execute(vehicle()));
 }
 
 void VoiceCommandInterfaceTest::_testAltitude()
 {
-    auto arm = makeVoiceCommand({.action = VoiceCommandAction::Arm});
+    auto arm = makeVoiceCommand(makeIntent(VoiceCommandAction::Arm));
     QVERIFY(arm->execute(vehicle()));
     QTRY_VERIFY_WITH_TIMEOUT(arm->checkPostCondition(vehicle()), 5000);
     vehicle()->_setFlying(true);
     vehicle()->altitudeRelative()->setRawValue(5.0);
     QGeoCoordinate home(47.0, 8.0, 95.0);
     vehicle()->_setHomePosition(home);
-    auto altitude = makeVoiceCommand(
-        {.action = VoiceCommandAction::ChangeAltitude, .parameters = {{QStringLiteral("altitude"), 10.0}}});
+    auto altitude =
+        makeVoiceCommand(makeIntent(VoiceCommandAction::ChangeAltitude, {{QStringLiteral("altitude"), 10.0}}));
     QVERIFY(altitude->checkPreCondition(vehicle()));
     QVERIFY(altitude->execute(vehicle()));
+    QVERIFY(!altitude->checkPostCondition(vehicle()));
+    vehicle()->altitudeRelative()->setRawValue(qQNaN());
     QVERIFY(!altitude->checkPostCondition(vehicle()));
     vehicle()->altitudeRelative()->setRawValue(10.0);
     QVERIFY(altitude->checkPostCondition(vehicle()));
@@ -153,7 +190,7 @@ void VoiceCommandInterfaceTest::_testAltitude()
 
 void VoiceCommandInterfaceTest::_testHeadingAndMove()
 {
-    auto arm = makeVoiceCommand({.action = VoiceCommandAction::Arm});
+    auto arm = makeVoiceCommand(makeIntent(VoiceCommandAction::Arm));
     QVERIFY(arm->execute(vehicle()));
     QTRY_VERIFY_WITH_TIMEOUT(arm->checkPostCondition(vehicle()), 5000);
     // Have MockLink report a sustained airborne state rather than only setting
@@ -161,8 +198,11 @@ void VoiceCommandInterfaceTest::_testHeadingAndMove()
     vehicle()->sendMavCommand(vehicle()->defaultComponentId(), MAV_CMD_NAV_TAKEOFF, false, 0, 0, 0, 0, 0, 0, 5);
     QTRY_VERIFY_WITH_TIMEOUT(vehicle()->flying(), 5000);
     QTRY_VERIFY_WITH_TIMEOUT(vehicle()->coordinate().isValid(), 10000);
-    auto heading = makeVoiceCommand(
-        {.action = VoiceCommandAction::ChangeHeading, .parameters = {{QStringLiteral("heading"), 90.0}}});
+    auto heading = makeVoiceCommand(makeIntent(VoiceCommandAction::ChangeHeading, {{QStringLiteral("heading"), 90.0}}));
+    const QVariant originalHeading = vehicle()->heading()->rawValue();
+    vehicle()->heading()->setRawValue(qQNaN());
+    QVERIFY(!heading->checkPreCondition(vehicle()));
+    vehicle()->heading()->setRawValue(originalHeading);
     QVERIFY(heading->checkPreCondition(vehicle()));
     // MockLink acknowledges DO_REPOSITION as unsupported; the reported heading
     // telemetry below tests the contract independently of its command support.
@@ -172,10 +212,10 @@ void VoiceCommandInterfaceTest::_testHeadingAndMove()
     vehicle()->heading()->setRawValue(90.0);
     QVERIFY(heading->checkPostCondition(vehicle()));
 
-    auto move = makeVoiceCommand({.action = VoiceCommandAction::Move,
-                                  .parameters = {{QStringLiteral("direction"), QStringLiteral("north")},
-                                                 {QStringLiteral("distance"), 5.0},
-                                                 {QStringLiteral("speed"), 2.0}}});
+    auto move =
+        makeVoiceCommand(makeIntent(VoiceCommandAction::Move, {{QStringLiteral("direction"), QStringLiteral("north")},
+                                                               {QStringLiteral("distance"), 5.0},
+                                                               {QStringLiteral("speed"), 2.0}}));
     QVERIFY(move->checkPreCondition(vehicle()));
     mockLink()->clearReceivedMavlinkMessageCounts();
     QVERIFY(move->execute(vehicle()));
@@ -194,9 +234,9 @@ void VoiceCommandInterfaceTest::_testHeadingAndMove()
     QVERIFY(std::abs(setpoint.vy) < 0.01f);
     move.reset();
 
-    auto defaultMove = makeVoiceCommand(
-        {.action = VoiceCommandAction::Move,
-         .parameters = {{QStringLiteral("direction"), QStringLiteral("north")}, {QStringLiteral("distance"), 5.0}}});
+    auto defaultMove =
+        makeVoiceCommand(makeIntent(VoiceCommandAction::Move, {{QStringLiteral("direction"), QStringLiteral("north")},
+                                                               {QStringLiteral("distance"), 5.0}}));
     QVERIFY(defaultMove->checkPreCondition(vehicle()));
     mockLink()->clearReceivedMavlinkMessageCounts();
     QVERIFY(defaultMove->execute(vehicle()));
@@ -205,35 +245,35 @@ void VoiceCommandInterfaceTest::_testHeadingAndMove()
     mavlink_msg_set_position_target_local_ned_decode(&message, &setpoint);
     const double cruise = vehicle()->defaultCruiseSpeed();
     const double vehicleLimit = vehicle()->maximumHorizontalSpeedMultirotorMetersSecond();
-    const double expectedSpeed =
-        std::min(std::isfinite(cruise) && cruise > 0.0 ? cruise : 1.0,
-                 std::isfinite(vehicleLimit) && vehicleLimit > 0.0 ? std::min(5.0, vehicleLimit) : 5.0);
+    const double expectedSpeed = std::min(std::isfinite(cruise) && cruise > 0.0 ? cruise : 1.0,
+                                          std::isfinite(vehicleLimit) && vehicleLimit > 0.0 ? vehicleLimit : 5.0);
     QVERIFY(std::abs(setpoint.vx - expectedSpeed) < 0.01);
-    auto tooFast = makeVoiceCommand({.action = VoiceCommandAction::Move,
-                                     .parameters = {{QStringLiteral("direction"), QStringLiteral("north")},
-                                                    {QStringLiteral("distance"), 5.0},
-                                                    {QStringLiteral("speed"), 6.0}}});
-    QVERIFY(!tooFast->checkPreCondition(vehicle()));
+    const double overVehicleLimit = (std::isfinite(vehicleLimit) && vehicleLimit > 0.0 ? vehicleLimit : 5.0) + 1.0;
+    auto tooFastForVehicle =
+        makeVoiceCommand(makeIntent(VoiceCommandAction::Move, {{QStringLiteral("direction"), QStringLiteral("north")},
+                                                               {QStringLiteral("distance"), 5.0},
+                                                               {QStringLiteral("speed"), overVehicleLimit}}));
+    QVERIFY(!tooFastForVehicle);
 }
 
 void VoiceCommandInterfaceTest::_testFlightModeActions()
 {
-    auto arm = makeVoiceCommand({.action = VoiceCommandAction::Arm});
+    auto arm = makeVoiceCommand(makeIntent(VoiceCommandAction::Arm));
     QVERIFY(arm->execute(vehicle()));
     QTRY_VERIFY_WITH_TIMEOUT(arm->checkPostCondition(vehicle()), 5000);
     vehicle()->altitudeAMSL()->setRawValue(100.0);
-    auto takeoff = makeVoiceCommand({.action = VoiceCommandAction::Takeoff});
+    auto takeoff = makeVoiceCommand(makeIntent(VoiceCommandAction::Takeoff));
     QVERIFY(takeoff->execute(vehicle()));
     QVERIFY(!takeoff->checkPostCondition(vehicle()));
     vehicle()->_setFlying(true);
     QVERIFY(takeoff->checkPostCondition(vehicle()));
 
-    auto rtl = makeVoiceCommand({.action = VoiceCommandAction::ReturnToLaunch});
+    auto rtl = makeVoiceCommand(makeIntent(VoiceCommandAction::ReturnToLaunch));
     QVERIFY(rtl->checkPreCondition(vehicle()));
     QVERIFY(rtl->execute(vehicle()));
     QTRY_VERIFY_WITH_TIMEOUT(rtl->checkPostCondition(vehicle()), 5000);
 
-    auto land = makeVoiceCommand({.action = VoiceCommandAction::Land});
+    auto land = makeVoiceCommand(makeIntent(VoiceCommandAction::Land));
     QVERIFY(land->execute(vehicle()));
     QTRY_VERIFY_WITH_TIMEOUT(land->checkPostCondition(vehicle()), 5000);
 
@@ -241,7 +281,7 @@ void VoiceCommandInterfaceTest::_testFlightModeActions()
     // Simulate the resulting flight-mode telemetry to exercise the post-condition.
     ignoreLogMessage("API.QGCApplication.AppMessage", QtDebugMsg,
                      QRegularExpression(QStringLiteral("Reposition .* command not supported")));
-    auto hold = makeVoiceCommand({.action = VoiceCommandAction::Hold});
+    auto hold = makeVoiceCommand(makeIntent(VoiceCommandAction::Hold));
     QVERIFY(hold->execute(vehicle()));
     QVERIFY(!hold->checkPostCondition(vehicle()));
     vehicle()->setFlightMode(vehicle()->firmwarePlugin()->pauseFlightMode());

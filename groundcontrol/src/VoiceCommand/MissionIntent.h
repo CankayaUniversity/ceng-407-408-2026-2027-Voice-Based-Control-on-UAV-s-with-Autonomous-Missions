@@ -19,6 +19,35 @@ enum class VoiceCommandAction : std::uint8_t
     Move
 };
 
+namespace VoiceCommandParam {
+
+inline QString altitude()
+{
+    return QStringLiteral("altitude");
+}
+
+inline QString heading()
+{
+    return QStringLiteral("heading");
+}
+
+inline QString direction()
+{
+    return QStringLiteral("direction");
+}
+
+inline QString distance()
+{
+    return QStringLiteral("distance");
+}
+
+inline QString speed()
+{
+    return QStringLiteral("speed");
+}
+
+}  // namespace VoiceCommandParam
+
 struct MissionIntent
 {
     Q_GADGET

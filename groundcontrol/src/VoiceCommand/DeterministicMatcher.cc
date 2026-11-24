@@ -70,7 +70,7 @@ bool DeterministicMatcher::matchClause(const QString& clause, const VehicleState
             if (altitudeM <= 0.0) {
                 return false;
             }
-            parameters.insert(QStringLiteral("altitude"), altitudeM);
+            parameters.insert(VoiceCommandParam::altitude(), altitudeM);
             summary += QStringLiteral(" to %1 m").arg(takeoffMatch.captured(1));
         }
         intents.append(makeIntent(VoiceCommandAction::Takeoff, summary, state.vehicleId, parameters));
@@ -81,7 +81,7 @@ bool DeterministicMatcher::matchClause(const QString& clause, const VehicleState
         }
         intents.append(makeIntent(VoiceCommandAction::ChangeAltitude,
                                   QStringLiteral("Change altitude to %1 m").arg(altitudeMatch.captured(1)),
-                                  state.vehicleId, {{QStringLiteral("altitude"), altitudeM}}));
+                                  state.vehicleId, {{VoiceCommandParam::altitude(), altitudeM}}));
     } else if (const auto headingMatch = heading.match(clause); headingMatch.hasMatch()) {
         const double degrees =
             (headingMatch.captured(1).isEmpty() ? headingMatch.captured(2) : headingMatch.captured(1)).toDouble();
@@ -90,7 +90,7 @@ bool DeterministicMatcher::matchClause(const QString& clause, const VehicleState
         }
         intents.append(makeIntent(VoiceCommandAction::ChangeHeading,
                                   QStringLiteral("Change heading to %1°").arg(degrees), state.vehicleId,
-                                  {{QStringLiteral("heading"), degrees}}));
+                                  {{VoiceCommandParam::heading(), degrees}}));
     } else if (const auto moveMatch = move.match(clause); moveMatch.hasMatch()) {
         static const QHash<QString, QString> translatedDirections{
             {QStringLiteral("back"), QStringLiteral("backward")}, {QStringLiteral("ileri"), QStringLiteral("forward")},
@@ -106,10 +106,10 @@ bool DeterministicMatcher::matchClause(const QString& clause, const VehicleState
         if (distance <= 0.0 || (!moveMatch.captured(3).isEmpty() && moveMatch.captured(3).toDouble() <= 0.0)) {
             return false;
         }
-        QVariantMap parameters{{QStringLiteral("direction"), direction}, {QStringLiteral("distance"), distance}};
+        QVariantMap parameters{{VoiceCommandParam::direction(), direction}, {VoiceCommandParam::distance(), distance}};
         QString summary = QStringLiteral("Move %1 %2 m").arg(direction).arg(distance);
         if (!moveMatch.captured(3).isEmpty()) {
-            parameters.insert(QStringLiteral("speed"), moveMatch.captured(3).toDouble());
+            parameters.insert(VoiceCommandParam::speed(), moveMatch.captured(3).toDouble());
             summary += QStringLiteral(" at %1 m/s").arg(moveMatch.captured(3));
         }
         intents.append(makeIntent(VoiceCommandAction::Move, summary, state.vehicleId, parameters));
